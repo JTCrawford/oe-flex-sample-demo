@@ -195,3 +195,48 @@ export interface StrikeOverlayToggles {
   origins: boolean;
   hotZones: boolean;
 }
+
+/** SAMPLE munition hypothesis inferred from a strike — not an identification. */
+export interface MunitionCandidate {
+  id: string;
+  name: string;
+  /** Reported strike family this profile belongs to. */
+  family: StrikeAttackType;
+  confidence: number;
+  rationale: string;
+  envelopeMinKm: number;
+  envelopeMaxKm: number;
+  ringColor: string;
+  ringDash: string;
+}
+
+/** Circle drawn for the selected strike only. */
+export interface StrikeRangeRing {
+  id: string;
+  kind: 'envelope' | 'observed';
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  color: string;
+  dashArray: string;
+  /** Leaflet stroke width in px. */
+  weight: number;
+  /** Globe fat-line width in degrees; null keeps a 1px stroke. */
+  strokeDegrees: number | null;
+  fillOpacity: number;
+  label: string;
+}
+
+export interface StrikeMunitionAssessment {
+  strikeId: string;
+  label: string;
+  attackType: StrikeAttackType;
+  timestamp: string;
+  rangeKm: number;
+  bearingDeg: number;
+  bearingLabel: string;
+  trajectory: string;
+  threatContext: string;
+  candidates: MunitionCandidate[];
+  rings: StrikeRangeRing[];
+}

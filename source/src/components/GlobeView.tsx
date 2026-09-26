@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import Globe from 'globe.gl';
+import { circleRingPoints } from '../data/munitionInference';
 import type {
   AO,
   StrikeEvent,
+  StrikeMunitionAssessment,
   StrikeOverlayToggles,
   SymbologyMode,
   ThreatLayer,
@@ -29,6 +31,17 @@ type GlobeWithLayers = ReturnType<typeof Globe> & {
   ringMaxRadius: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
   ringPropagationSpeed: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
   ringRepeatPeriod: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  pathsData: (data?: object[]) => GlobeWithLayers;
+  pathPoints: (a: string | ((d: object) => object[])) => GlobeWithLayers;
+  pathPointLat: (a: string | ((d: object) => number)) => GlobeWithLayers;
+  pathPointLng: (a: string | ((d: object) => number)) => GlobeWithLayers;
+  pathPointAlt: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  pathColor: (a: string | string[] | ((d: object) => string | string[])) => GlobeWithLayers;
+  pathStroke: (a: number | null | ((d: object) => number | null)) => GlobeWithLayers;
+  pathDashLength: (a: number | ((d: object) => number)) => GlobeWithLayers;
+  pathDashGap: (a: number | ((d: object) => number)) => GlobeWithLayers;
+  pathDashAnimateTime: (a: number | ((d: object) => number)) => GlobeWithLayers;
+  pathTransitionDuration: (a: number) => GlobeWithLayers;
 };
 
 interface Props {
@@ -41,6 +54,9 @@ interface Props {
   strikes?: StrikeEvent[];
   strikeOverlays?: StrikeOverlayToggles;
   showStrikeOverlays?: boolean;
+  selectedStrikeId?: string | null;
+  onSelectStrike?: (id: string) => void;
+  munitionAssessment?: StrikeMunitionAssessment | null;
 }
 
 type Point = {
@@ -50,6 +66,7 @@ type Point = {
   label: string;
   kind: 'ao' | 'threat' | 'strike-impact' | 'strike-origin';
   aoId?: string;
+  strikeId?: string;
   symbolKind?: string;
   color: string;
 };
@@ -103,11 +120,16 @@ export function GlobeView({
   strikes = [],
   strikeOverlays,
   showStrikeOverlays = false,
+  selectedStrikeId = null,
+  onSelectStrike,
+  munitionAssessment = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
   const onSelectRef = useRef(onSelectAo);
+  const onSelectStrikeRef = useRef(onSelectStrike);
   onSelectRef.current = onSelectAo;
+  onSelectStrikeRef.current = onSelectStrike;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -122,19 +144,36 @@ export function GlobeView({
       .pointOfView({ lat: 25, lng: 55, altitude: 2.2 }, 0);
 
     globeRef.current = globe;
+    const container = containerRef.current;
 
     const onResize = () => {
-      if (!containerRef.current) return;
-      globe.width(containerRef.current.clientWidth);
-      globe.height(containerRef.current.clientHeight);
+      if (!container) return;
+      globe.width(container.clientWidth);
+      globe.height(container.clientHeight);
     };
     onResize();
     window.addEventListener('resize', onResize);
 
     return () => {
       window.removeEventListener('resize', onResize);
-      if (containerRef.current) containerRef.current.innerHTML = '';
-      globeRef.current = null;
+      if (globeRef.current === globe) globeRef.current = null;
+      // Release the WebGL context before the next Globe mounts. A leaked
+      // context leaves the 2D → globe switch on a blank or stale map.
+      const disposable = globe as unknown as {
+        renderer: () => { forceContextLoss: () => void };
+        _destructor: () => void;
+      };
+      try {
+        disposable.renderer().forceContextLoss();
+      } catch {
+        /* context already gone */
+      }
+      try {
+        disposable._destructor();
+      } catch {
+        /* destructor is best-effort on unmount */
+      }
+      container?.replaceChildren();
     };
   }, []);
 
@@ -179,6 +218,7 @@ export function GlobeView({
             lng: s.impactLng,
             label: `${s.attackType.toUpperCase()} · ${s.timestamp} — ${s.label}`,
             kind: 'strike-impact',
+            strikeId: s.id,
             color: '#ff5722',
           });
         }
@@ -191,6 +231,7 @@ export function GlobeView({
             lng: s.originLng,
             label: `Origin · ${s.attackType} — ${s.label}`,
             kind: 'strike-origin',
+            strikeId: s.id,
             color: '#00bcd4',
           });
         }
@@ -205,13 +246,24 @@ export function GlobeView({
       .htmlElement((d) => {
         const p = d as unknown as Point;
         const el = document.createElement('div');
-        el.className = `globe-marker ${p.kind}`;
+        const strikeSelected = !!p.strikeId && p.strikeId === selectedStrikeId;
+        el.className = `globe-marker ${p.kind}${strikeSelected ? ' selected' : ''}`;
         el.title = p.label;
-        el.style.cursor = p.kind === 'ao' ? 'pointer' : 'default';
+        el.style.cursor =
+          p.kind === 'ao' || p.kind === 'strike-impact' || p.kind === 'strike-origin'
+            ? 'pointer'
+            : 'default';
         el.style.pointerEvents = 'auto';
+        if (p.strikeId) el.dataset.strikeId = p.strikeId;
         el.onclick = (e) => {
           e.stopPropagation();
           if (p.kind === 'ao' && p.aoId) onSelectRef.current(p.aoId);
+          if (
+            (p.kind === 'strike-impact' || p.kind === 'strike-origin') &&
+            p.strikeId
+          ) {
+            onSelectStrikeRef.current?.(p.strikeId);
+          }
         };
 
         if (p.kind === 'ao') {
@@ -242,8 +294,14 @@ export function GlobeView({
         .arcEndLat('impactLat')
         .arcEndLng('impactLng')
         .arcAltitude(0.08)
-        .arcStroke(0.6)
-        .arcColor(() => ['rgba(0,188,212,0.7)', 'rgba(255,87,34,0.85)'])
+        .arcStroke((d: object) =>
+          (d as StrikeEvent).id === selectedStrikeId ? 1.3 : 0.6,
+        )
+        .arcColor((d: object) =>
+          (d as StrikeEvent).id === selectedStrikeId
+            ? ['#f5d76e', '#fff4c2']
+            : ['rgba(0,188,212,0.7)', 'rgba(255,87,34,0.85)'],
+        )
         .arcDashLength(0.4)
         .arcDashGap(0.2)
         .arcDashAnimateTime(2500);
@@ -269,7 +327,39 @@ export function GlobeView({
       globe.ringsData([]);
     }
 
-    if (selectedAoId) {
+    // Static engagement envelopes for the selected strike. Hot-zone rings stay on ringsData.
+    const ringPaths = (munitionAssessment?.rings ?? []).map((ring) => ({
+      id: ring.id,
+      color: ring.color,
+      points: circleRingPoints(ring.lat, ring.lng, ring.radiusKm),
+      dashLength: ring.kind === 'observed' ? 0.012 : 0.04,
+      dashGap: ring.kind === 'observed' ? 0.012 : 0.018,
+      stroke: ring.strokeDegrees,
+    }));
+    globe
+      .pathsData(ringPaths)
+      .pathPoints('points')
+      .pathPointLat('lat')
+      .pathPointLng('lng')
+      .pathPointAlt(0.005)
+      .pathColor('color')
+      .pathStroke((d: object) => (d as { stroke: number | null }).stroke)
+      .pathDashLength((d: object) => (d as { dashLength: number }).dashLength)
+      .pathDashGap((d: object) => (d as { dashGap: number }).dashGap)
+      .pathDashAnimateTime(0)
+      .pathTransitionDuration(0);
+
+    const selectedStrike = strikes.find((s) => s.id === selectedStrikeId) ?? null;
+    if (selectedStrike) {
+      globe.pointOfView(
+        {
+          lat: (selectedStrike.originLat + selectedStrike.impactLat) / 2,
+          lng: (selectedStrike.originLng + selectedStrike.impactLng) / 2,
+          altitude: 0.45,
+        },
+        800,
+      );
+    } else if (selectedAoId) {
       const ao = aos.find((a) => a.id === selectedAoId);
       if (ao) {
         globe.pointOfView({ lat: ao.lat, lng: ao.lng, altitude: 1.6 }, 800);
@@ -284,6 +374,8 @@ export function GlobeView({
     strikes,
     strikeOverlays,
     showStrikeOverlays,
+    selectedStrikeId,
+    munitionAssessment,
   ]);
 
   return <div className="map-surface" ref={containerRef} data-export-root />;
