@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Threat Tec · Operational Environment Flexibility</title>
+<style>
+  :root {
+    --bg: #070b14;
+    --panel: #0e1626;
+    --line: #24344f;
+    --text: #e8eef7;
+    --muted: #8fa3bd;
+    --gold: #f0c75e;
+    --accent: #ff6b35;
+    --blue: #5eb1ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+  a { color: inherit; text-decoration: none; }
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 5vw; border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; backdrop-filter: blur(10px);
+    background: rgba(7,11,20,.85); z-index: 10;
+  }
+  .brand { font-weight: 700; letter-spacing: .02em; }
+  .brand span { color: var(--gold); }
+  .nav-cta {
+    background: var(--accent); color: #fff; padding: .55rem 1rem;
+    border-radius: 999px; font-weight: 600; font-size: .9rem;
+  }
+  .hero {
+    display: grid; grid-template-columns: 1.05fr .95fr; gap: 2rem;
+    padding: 3.5rem 5vw 2.5rem; align-items: center;
+    background:
+      radial-gradient(ellipse at 80% 20%, rgba(255,107,53,.18), transparent 40%),
+      radial-gradient(ellipse at 10% 80%, rgba(94,177,255,.12), transparent 45%),
+      var(--bg);
+  }
+  .eyebrow {
+    color: var(--gold); text-transform: uppercase; letter-spacing: .14em;
+    font-size: .72rem; font-weight: 700; margin: 0 0 .75rem;
+  }
+  h1 {
+    font-size: clamp(2.1rem, 4.5vw, 3.4rem); line-height: 1.05;
+    margin: 0 0 1rem; letter-spacing: -0.02em;
+  }
+  .lede { color: var(--muted); font-size: 1.08rem; max-width: 40rem; margin: 0 0 1.5rem; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  .btn-primary {
+    background: linear-gradient(135deg, #ff7a45, #c45c26);
+    padding: .85rem 1.35rem; border-radius: 10px; font-weight: 700;
+    box-shadow: 0 10px 30px rgba(255,107,53,.25);
+  }
+  .btn-ghost {
+    border: 1px solid var(--line); padding: .85rem 1.2rem; border-radius: 10px;
+    color: var(--blue);
+  }
+  .globe-card {
+    position: relative; min-height: 360px; border-radius: 18px;
+    border: 1px solid var(--line); overflow: hidden;
+    background: radial-gradient(circle at 50% 45%, #1a3058, #070b14 70%);
+  }
+  .orb {
+    position: absolute; inset: 12% 18%;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 35% 30%, #4f8fd9, #16325c 45%, #0a1528 70%);
+    box-shadow: inset -30px -20px 60px rgba(0,0,0,.45), 0 0 80px rgba(94,177,255,.2);
+    animation: spin 28s linear infinite;
+  }
+  .orb::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(255,255,255,.05) 19px),
+      repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(255,255,255,.04) 19px);
+    mix-blend-mode: soft-light;
+  }
+  .hotspot {
+    position: absolute; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 0 6px rgba(255,107,53,.25);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  .hotspot:nth-child(2) { top: 32%; left: 58%; animation-delay: .4s; }
+  .hotspot:nth-child(3) { top: 48%; left: 42%; animation-delay: .8s; background: var(--gold); }
+  .hotspot:nth-child(4) { top: 62%; left: 55%; animation-delay: 1.2s; background: var(--blue); }
+  .globe-label {
+    position: absolute; left: 1rem; bottom: 1rem; right: 1rem;
+    background: rgba(7,11,20,.75); border: 1px solid var(--line);
+    border-radius: 10px; padding: .75rem .9rem; font-size: .85rem; color: var(--muted);
+  }
+  .globe-label strong { color: var(--text); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.35); opacity: .7; }
+  }
+  section { padding: 2.75rem 5vw; }
+  .section-title { font-size: 1.55rem; margin: 0 0 .4rem; }
+  .section-sub { color: var(--muted); margin: 0 0 1.4rem; max-width: 46rem; }
+  .domains {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem;
+  }
+  .domain {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1rem; min-height: 96px;
+  }
+  .domain strong { display: block; margin-bottom: .25rem; }
+  .domain span { color: var(--muted); font-size: .82rem; }
+  .pmesii {
+    display: flex; flex-wrap: wrap; gap: .5rem;
+  }
+  .chip {
+    border: 1px solid var(--line); background: #101a2d; border-radius: 999px;
+    padding: .45rem .85rem; font-size: .85rem; color: #c9d7ea;
+  }
+  .tiers {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  }
+  .tier {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 1.25rem 1.35rem;
+  }
+  .tier.paid { border-color: rgba(255,107,53,.55); box-shadow: inset 0 0 0 1px rgba(255,107,53,.15); }
+  .tier h3 { margin: 0 0 .5rem; }
+  .tier ul { margin: .75rem 0 0; padding-left: 1.1rem; color: var(--muted); }
+  .diff {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  }
+  .diff article {
+    background: linear-gradient(180deg, #121c31, #0c1322);
+    border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem 1.3rem;
+  }
+  .diff h3 { margin-top: 0; }
+  .diff .win { color: var(--gold); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+  footer {
+    border-top: 1px solid var(--line); padding: 1.5rem 5vw 2.5rem;
+    color: var(--muted); font-size: .85rem;
+  }
+  @media (max-width: 900px) {
+    .hero, .domains, .tiers, .diff { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="brand">Threat Tec · <span>OE Flex</span></div>
+    <a class="nav-cta" href="./app/">Launch SAMPLE demo</a>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Unclassified SAMPLE · Interactive OE</p>
+      <h1>Operational Environment Flexibility</h1>
+      <p class="lede">
+        One AI-enabled OE / threat intel center — 2D, 3D, VR/AR — that takes you from
+        global hot spots to sourced TTPs you can watch, war-game, and act on.
+        Interactive and live. Not a static database.
+      </p>
+      <div class="hero-actions">
+        <a class="btn-primary" href="./app/">Open OE Flex SAMPLE</a>
+        <a class="btn-ghost" href="./app/#ttp">Explore TTP Feeds</a>
+      </div>
+    </div>
+    <div class="globe-card" aria-hidden="true">
+      <div class="orb"></div>
+      <div class="hotspot" style="top:28%;left:46%"></div>
+      <div class="hotspot"></div>
+      <div class="hotspot"></div>
+      <div class="hotspot"></div>
+      <div class="globe-label">
+        <strong>Multi-feed zoom · Observe → Mitigate → Wargame → Decide</strong><br />
+        Drill from Hormuz to Yemen. Watch sourced vectors on the terrain. Subscribe to TTPs the week they emerge.
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <h2 class="section-title">Domains</h2>
+    <p class="section-sub">Train, test, and operate across the full OE — land first LIVE in SAMPLE; others stand up as radio-station feeds.</p>
+    <div class="domains">
+      <div class="domain"><strong>Land</strong><span>LIVE SAMPLE · WEG layers</span></div>
+      <div class="domain"><strong>Sea</strong><span>Maritime threat lanes</span></div>
+      <div class="domain"><strong>Air</strong><span>UAS / ASM corridors</span></div>
+      <div class="domain"><strong>Cyber</strong><span>Network & spoof cues</span></div>
+      <div class="domain"><strong>Space</strong><span>Stub · stand-up next</span></div>
+      <div class="domain"><strong>EMS</strong><span>RF / soft-kill picture</span></div>
+      <div class="domain"><strong>Undersea</strong><span>Stub · stand-up next</span></div>
+      <div class="domain"><strong>Information</strong><span>Narrative & info ops</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">PMESII-PT story filters</h2>
+    <p class="section-sub">Audience storytelling lenses on every Observe layer — military and commercial symbology never mixed.</p>
+    <div class="pmesii">
+      <span class="chip">Political</span><span class="chip">Military</span><span class="chip">Economic</span>
+      <span class="chip">Social</span><span class="chip">Information</span><span class="chip">Infrastructure</span>
+      <span class="chip">Physical</span><span class="chip">Time</span>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">Free vs paywall</h2>
+    <div class="tiers">
+      <article class="tier">
+        <h3>Free sandbox</h3>
+        <p>Spin the globe. See SAMPLE theaters. Taste multi-feed zoom.</p>
+        <ul>
+          <li>Observe sample AOs</li>
+          <li>Public SAMPLE layers</li>
+          <li>Path into paid vignettes</li>
+        </ul>
+      </article>
+      <article class="tier paid">
+        <h3>Paywalled seats</h3>
+        <p>TTP subscription feeds, Mitigate → Wargame → Decide, partner intros, white-label skins.</p>
+        <ul>
+          <li>Recurring TTP radio-station feed</li>
+          <li>Sourced video evidence layer</li>
+          <li>Export / presentation packs</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">Why OE Flex vs a static intel database</h2>
+    <div class="diff">
+      <article>
+        <div class="win">Incumbent pattern</div>
+        <h3>Static database</h3>
+        <p>Search, read, screenshot, paste into slides — weeks behind the fight.</p>
+      </article>
+      <article>
+        <div class="win">Threat Tec wedge</div>
+        <h3>Interactive OE Flex</h3>
+        <p>Multi-feed zoom to sourced video on the terrain. Subscribe to TTPs the same week. Every vignette is a commercial lead.</p>
+      </article>
+    </div>
+  </section>
+
+  <footer>
+    Threat Tec · OE Flex SAMPLE demo — unclassified mock data only. Not for CUI.
+    <br />Product name: OE Flex · Value prop on this page: Operational Environment Flexibility.
+  </footer>
+</body>
+</html>

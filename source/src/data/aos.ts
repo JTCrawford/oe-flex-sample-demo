@@ -1,0 +1,189 @@
+import type { AO, ThreatLayer } from '../types';
+
+export const aos: AO[] = [
+  {
+    id: 'hormuz',
+    name: 'Strait of Hormuz',
+    type: 'maritime',
+    lat: 26.5667,
+    lng: 56.25,
+    description: 'Chokepoint shipping AO — commercial vignette + maritime threat layers.',
+  },
+  {
+    id: 'suwalki-gap',
+    name: 'Suwałki Gap',
+    type: 'land',
+    lat: 54.1,
+    lng: 22.93,
+    description: 'NATO land corridor (Poland–Lithuania) — SAMPLE OPFOR armor vignette for LSCO / JRTC-style training. Unclassified SAMPLE only.',
+  },
+];
+
+export const threatLayersByAo: Record<string, ThreatLayer[]> = {
+  hormuz: [
+    {
+      id: 'hormuz-shipping',
+      label: 'Commercial shipping tracks',
+      pmesii: ['Economic', 'Infrastructure'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'ship-1',
+          lat: 26.4,
+          lng: 56.1,
+          label: 'VLCC Alpha (SAMPLE)',
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Economic'],
+        },
+        {
+          id: 'ship-2',
+          lat: 26.7,
+          lng: 56.4,
+          label: 'Tanker Bravo (SAMPLE)',
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Economic', 'Infrastructure'],
+        },
+      ],
+    },
+    {
+      id: 'hormuz-ports',
+      label: 'Port / terminal nodes',
+      pmesii: ['Infrastructure', 'Economic'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'port-1',
+          lat: 27.1,
+          lng: 56.45,
+          label: 'Bandar Abbas approach (SAMPLE)',
+          milSymbol: 'port',
+          commercialSymbol: 'port',
+          pmesii: ['Infrastructure'],
+        },
+      ],
+    },
+    {
+      id: 'hormuz-pipeline',
+      label: 'Pipeline / energy nodes',
+      pmesii: ['Infrastructure', 'Economic', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'pipe-1',
+          lat: 26.9,
+          lng: 55.8,
+          label: 'Coastal pipeline node (SAMPLE)',
+          milSymbol: 'infra',
+          commercialSymbol: 'pipeline',
+          pmesii: ['Infrastructure', 'Physical'],
+        },
+      ],
+    },
+    {
+      id: 'hormuz-isr-feeders',
+      label: 'ISR feeder positions',
+      pmesii: ['Military', 'Information'],
+      domain: 'air',
+      isFeeder: true,
+      markers: [
+        {
+          id: 'isr-1',
+          lat: 25.9,
+          lng: 55.5,
+          label: 'ISR orbit (SAMPLE — feeder)',
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Information'],
+        },
+      ],
+    },
+  ],
+  'suwalki-gap': [
+    {
+      id: 'sg-armor',
+      label: 'OPFOR armor (WEG SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'tank-1',
+          lat: 54.18,
+          lng: 22.85,
+          label: 'T-72B3 platoon (SAMPLE)',
+          milSymbol: 'armor',
+          commercialSymbol: 'vehicle',
+          pmesii: ['Military'],
+        },
+        {
+          id: 'ifv-1',
+          lat: 54.05,
+          lng: 23.05,
+          label: 'BMP-2 section (SAMPLE)',
+          milSymbol: 'ifv',
+          commercialSymbol: 'vehicle',
+          pmesii: ['Military', 'Physical'],
+        },
+      ],
+    },
+    {
+      id: 'sg-arty',
+      label: 'MLRS / fires',
+      pmesii: ['Military', 'Time'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'mlrs-1',
+          lat: 54.22,
+          lng: 22.7,
+          label: 'BM-21 battery (SAMPLE)',
+          milSymbol: 'arty',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Time'],
+        },
+      ],
+    },
+    {
+      id: 'sg-infra',
+      label: 'Corridor infrastructure',
+      pmesii: ['Infrastructure', 'Economic', 'Social'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'bridge-1',
+          lat: 54.08,
+          lng: 23.0,
+          label: 'Via Baltica / E67 node (SAMPLE)',
+          milSymbol: 'infra',
+          commercialSymbol: 'pipeline',
+          pmesii: ['Infrastructure', 'Economic'],
+        },
+      ],
+    },
+    {
+      id: 'sg-isr-feeders',
+      label: 'UAV feeder orbits',
+      pmesii: ['Military', 'Information'],
+      domain: 'land',
+      isFeeder: true,
+      markers: [
+        {
+          id: 'uav-1',
+          lat: 54.28,
+          lng: 23.15,
+          label: 'Orlan analog orbit (SAMPLE — feeder)',
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Information'],
+        },
+      ],
+    },
+  ]
+};

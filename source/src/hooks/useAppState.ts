@@ -1,0 +1,204 @@
+import { useCallback, useMemo, useState } from 'react';
+import { aos, threatLayersByAo } from '../data/aos';
+import { vignetteForAo } from '../data/vignettes';
+import type {
+  MapMode,
+  MitigationOption,
+  Role,
+  Stage,
+  SymbologyMode,
+  WargameOutcome,
+  PmesiiChip,
+} from '../types';
+
+const ALL_PMESII: PmesiiChip[] = [
+  'Political',
+  'Military',
+  'Economic',
+  'Social',
+  'Information',
+  'Infrastructure',
+  'Physical',
+  'Time',
+];
+
+export function useAppState() {
+  const [role, setRole] = useState<Role | null>(null);
+  const [stage, setStage] = useState<Stage>('Observe');
+  const [mapMode, setMapMode] = useState<MapMode>('globe');
+  const [selectedAoId, setSelectedAoId] = useState<string | null>(null);
+  const [symbology, setSymbology] = useState<SymbologyMode>('military');
+  const [enabledLayers, setEnabledLayers] = useState<Set<string>>(new Set());
+  const [pmesiiFilters, setPmesiiFilters] = useState<Set<PmesiiChip>>(
+    () => new Set(ALL_PMESII),
+  );
+  const [killSwitch, setKillSwitch] = useState(false);
+  const [whiteLabel, setWhiteLabel] = useState(false);
+  const [selectedMitigationId, setSelectedMitigationId] = useState<string | null>(
+    null,
+  );
+  const [wargameOutcome, setWargameOutcome] = useState<WargameOutcome | null>(
+    null,
+  );
+  const [toast, setToast] = useState<string | null>(null);
+  const [committedResources, setCommittedResources] = useState<string[]>([]);
+
+  const selectedAo = useMemo(
+    () => aos.find((a) => a.id === selectedAoId) ?? null,
+    [selectedAoId],
+  );
+
+  const vignette = useMemo(
+    () => (selectedAoId ? vignetteForAo(selectedAoId) : undefined),
+    [selectedAoId],
+  );
+
+  const isCommercialPartner = role === 'Commercial Partner';
+
+  const visibleLayers = useMemo(() => {
+    if (!selectedAoId || killSwitch) return [];
+    const layers = threatLayersByAo[selectedAoId] ?? [];
+    return layers.filter((layer) => {
+      if (isCommercialPartner && layer.isFeeder) return false;
+      if (!enabledLayers.has(layer.id)) return false;
+      const matchesPmesii = layer.pmesii.some((p) => pmesiiFilters.has(p));
+      return matchesPmesii;
+    });
+  }, [
+    selectedAoId,
+    killSwitch,
+    enabledLayers,
+    pmesiiFilters,
+    isCommercialPartner,
+  ]);
+
+  const selectAo = useCallback(
+    (aoId: string) => {
+      setSelectedAoId(aoId);
+      setWargameOutcome(null);
+      setSelectedMitigationId(null);
+      const layers = threatLayersByAo[aoId] ?? [];
+      const defaults = new Set(
+        layers
+          .filter((l) => !(isCommercialPartner && l.isFeeder))
+          .map((l) => l.id),
+      );
+      setEnabledLayers(defaults);
+      setStage('Observe');
+    },
+    [isCommercialPartner],
+  );
+
+  const toggleLayer = useCallback((layerId: string) => {
+    setEnabledLayers((prev) => {
+      const next = new Set(prev);
+      if (next.has(layerId)) next.delete(layerId);
+      else next.add(layerId);
+      return next;
+    });
+  }, []);
+
+  const togglePmesii = useCallback((chip: PmesiiChip) => {
+    setPmesiiFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(chip)) next.delete(chip);
+      else next.add(chip);
+      return next;
+    });
+  }, []);
+
+  const setSymbologyMutex = useCallback((mode: SymbologyMode) => {
+    setSymbology(mode);
+  }, []);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 3200);
+  }, []);
+
+  const runWargame = useCallback(
+    (mitigation: MitigationOption) => {
+      // Simple probabilistic red model (demo only)
+      const redPressure = 0.15 + Math.random() * 0.25;
+      const jitter = (Math.random() - 0.5) * 0.12;
+      const successProb = Math.max(
+        0.05,
+        Math.min(0.95, mitigation.baseSuccess - redPressure + jitter),
+      );
+      const roll = Math.random();
+      const success = roll < successProb;
+      const outcome: WargameOutcome = {
+        mitigationId: mitigation.id,
+        successProb,
+        redResponse: success
+          ? 'Red adapts slowly; window holds for 6–12h (SAMPLE).'
+          : 'Red doubles down on alternate axis; mitigation partially bypassed (SAMPLE).',
+        residualRisk: success
+          ? 'Elevated but manageable residual risk on flank.'
+          : 'High residual risk — re-plan Decide commitments.',
+        narrative: success
+          ? `COA "${mitigation.label}" likely holds under SAMPLE red pressure (p≈${(successProb * 100).toFixed(0)}%).`
+          : `COA "${mitigation.label}" stressed; consider alternate mitigation or partner ISR (p≈${(successProb * 100).toFixed(0)}%).`,
+      };
+      setSelectedMitigationId(mitigation.id);
+      setWargameOutcome(outcome);
+      showToast(success ? 'Wargame: COA holds (SAMPLE)' : 'Wargame: COA stressed (SAMPLE)');
+    },
+    [showToast],
+  );
+
+  const commitResource = useCallback(
+    (label: string) => {
+      setCommittedResources((prev) =>
+        prev.includes(label) ? prev : [...prev, label],
+      );
+      showToast(`Committed: ${label} (stub)`);
+    },
+    [showToast],
+  );
+
+  const availableLayers = useMemo(() => {
+    if (!selectedAoId) return [];
+    const layers = threatLayersByAo[selectedAoId] ?? [];
+    if (isCommercialPartner) return layers.filter((l) => !l.isFeeder);
+    return layers;
+  }, [selectedAoId, isCommercialPartner]);
+
+  return {
+    role,
+    setRole,
+    stage,
+    setStage,
+    mapMode,
+    setMapMode,
+    selectedAoId,
+    selectedAo,
+    selectAo,
+    symbology,
+    setSymbologyMutex,
+    enabledLayers,
+    toggleLayer,
+    availableLayers,
+    visibleLayers,
+    pmesiiFilters,
+    togglePmesii,
+    allPmesii: ALL_PMESII,
+    killSwitch,
+    setKillSwitch,
+    whiteLabel,
+    setWhiteLabel,
+    vignette,
+    selectedMitigationId,
+    setSelectedMitigationId,
+    wargameOutcome,
+    runWargame,
+    toast,
+    showToast,
+    committedResources,
+    commitResource,
+    isCommercialPartner,
+    aos,
+  };
+}
+
+export type AppState = ReturnType<typeof useAppState>;
