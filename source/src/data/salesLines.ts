@@ -22,6 +22,8 @@ export const salesLines: Record<string, string> = {
     'See the fight unfold — every strike, every origin, every hot zone, layered on the same map.',
   munitionInference:
     'Select a strike and brief the likely munitions — range, trajectory, and threat context, with confidence, on SAMPLE data.',
+  orbat:
+    'Inspect a unit pin and brief the order of battle — designation, vehicle types, and counts — from one SAMPLE schema.',
 };
 
 export type SalesCapabilityId = keyof typeof salesLines;

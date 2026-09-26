@@ -61,6 +61,12 @@ export interface DomainPipeline {
 
 Kill-switch blanks all live Observe layers regardless of role.
 
+## Order of battle
+
+Unit and force markers may carry a `UnitOrbat` (`designation`, `echelon`, `higherFormation`, `vehicles[]`). Each holding is `{ category, typeDesignation, count }` where `category` is `tank | ifv | artillery | aircraft | ship`. The pin detail panel iterates holdings and resolves labels from `VEHICLE_CATEGORY_LABEL` in `src/data/orbat.ts`, so a new category is a catalog entry, not a UI rewrite. Infrastructure markers omit `orbat`.
+
+ORBAT rides the existing Observe gates: AO selection, layer toggles, PMESII-PT filters, Commercial Partner feeder hiding, the current-positions toggle, and the kill-switch. It does not replace strike history, origins, hot zones, or munition range rings.
+
 ## Symbology mutex
 
 `symbology: 'military' | 'commercial'` is exclusive. Military uses 2525-style SVG frames; Commercial uses ship/port/pipeline-style icons. Export burns in the active deck only.

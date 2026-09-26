@@ -17,7 +17,9 @@ import type {
   StrikeOverlayToggles,
   SymbologyMode,
   ThreatLayer,
+  UnitOrbat,
 } from '../types';
+import { OrbatInspect } from './OrbatPanel';
 import 'leaflet/dist/leaflet.css';
 
 interface Props {
@@ -33,6 +35,8 @@ interface Props {
   selectedStrikeId?: string | null;
   onSelectStrike?: (id: string) => void;
   munitionAssessment?: StrikeMunitionAssessment | null;
+  selectedUnitId?: string | null;
+  onSelectUnit?: (id: string) => void;
 }
 
 function FlyTo({ ao, suspend }: { ao: AO | null; suspend: boolean }) {
@@ -43,7 +47,20 @@ function FlyTo({ ao, suspend }: { ao: AO | null; suspend: boolean }) {
   return null;
 }
 
-/** Frame the selected strike and its primary envelope without dropping history layers. */
+/** Pan to a selected unit without overriding a selected strike. */
+function FlyToUnit({
+  unit,
+}: {
+  unit: { lat: number; lng: number } | null;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!unit) return;
+    map.panTo([unit.lat, unit.lng]);
+  }, [unit, map]);
+  return null;
+}
+
 function FlyToStrike({
   strike,
   radiusKm,
@@ -92,9 +109,14 @@ function symbolSvg(kind: string | undefined, mode: SymbologyMode): string {
   return `<svg width="28" height="28" viewBox="0 0 40 40"><rect x="4" y="18" width="32" height="10" rx="2" fill="#1e90ff"/><polygon points="8,18 16,8 24,8 28,18" fill="#4aa3ff"/></svg>`;
 }
 
-function makeSymbolIcon(kind: string | undefined, mode: SymbologyMode, label: string) {
+function makeSymbolIcon(
+  kind: string | undefined,
+  mode: SymbologyMode,
+  label: string,
+  selected: boolean,
+) {
   return L.divIcon({
-    className: 'leaflet-symbol-wrapper',
+    className: `leaflet-symbol-wrapper${selected ? ' is-selected' : ''}`,
     html: `<div class="leaflet-symbol" title="${label.replace(/"/g, '')}">${symbolSvg(kind, mode)}</div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
@@ -139,6 +161,8 @@ export function Map2D({
   selectedStrikeId = null,
   onSelectStrike,
   munitionAssessment = null,
+  selectedUnitId = null,
+  onSelectUnit,
 }: Props) {
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -153,6 +177,7 @@ export function Map2D({
       lng: number;
       label: string;
       symbolKind?: string;
+      orbat?: UnitOrbat;
     }[] = [];
     for (const layer of visibleLayers) {
       for (const m of layer.markers) {
@@ -163,11 +188,17 @@ export function Map2D({
           label: m.label,
           symbolKind:
             symbology === 'military' ? m.milSymbol : m.commercialSymbol,
+          orbat: m.orbat,
         });
       }
     }
     return list;
   }, [visibleLayers, killSwitch, symbology]);
+
+  const selectedUnit = useMemo(
+    () => threatMarkers.find((m) => m.id === selectedUnitId && m.orbat) ?? null,
+    [threatMarkers, selectedUnitId],
+  );
 
   const overlaysOn = showStrikeOverlays && strikes.length > 0 && !!strikeOverlays;
   const selectedStrike = useMemo(
@@ -188,8 +219,9 @@ export function Map2D({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FlyTo ao={selectedAo} suspend={!!selectedStrike} />
+        <FlyTo ao={selectedAo} suspend={!!selectedStrike || !!selectedUnit} />
         <FlyToStrike strike={selectedStrike} radiusKm={focusRadiusKm} />
+        <FlyToUnit unit={selectedStrike ? null : selectedUnit} />
         {aos.map((ao) => (
           <CircleMarker
             key={ao.id}
@@ -218,9 +250,26 @@ export function Map2D({
           <Marker
             key={`${m.id}-${symbology}`}
             position={[m.lat, m.lng]}
-            icon={makeSymbolIcon(m.symbolKind, symbology, m.label)}
+            zIndexOffset={selectedUnitId === m.id ? 400 : 0}
+            icon={makeSymbolIcon(
+              m.symbolKind,
+              symbology,
+              m.orbat ? `${m.orbat.designation}` : m.label,
+              selectedUnitId === m.id,
+            )}
+            eventHandlers={
+              m.orbat
+                ? { click: () => onSelectUnit?.(m.id) }
+                : undefined
+            }
           >
-            <Popup>{m.label}</Popup>
+            <Popup>
+              {m.orbat ? (
+                <OrbatInspect orbat={m.orbat} variant="popup" />
+              ) : (
+                m.label
+              )}
+            </Popup>
           </Marker>
         ))}
 

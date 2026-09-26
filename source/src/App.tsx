@@ -4,6 +4,7 @@ import { RoleSelector } from './components/RoleSelector';
 import { GlobeView } from './components/GlobeView';
 import { Map2D } from './components/Map2D';
 import { MunitionInferencePanel } from './components/MunitionInferencePanel';
+import { OrbatPanel } from './components/OrbatPanel';
 import { ObservePanel } from './components/ObservePanel';
 import { MitigatePanel } from './components/MitigatePanel';
 import { WargamePanel } from './components/WargamePanel';
@@ -151,6 +152,8 @@ export default function App() {
               selectedStrikeId={state.selectedStrikeId}
               onSelectStrike={state.selectStrike}
               munitionAssessment={state.munitionAssessment}
+              selectedUnitId={state.selectedUnitId}
+              onSelectUnit={state.selectUnit}
             />
           ) : (
             <Map2D
@@ -166,7 +169,12 @@ export default function App() {
               selectedStrikeId={state.selectedStrikeId}
               onSelectStrike={state.selectStrike}
               munitionAssessment={state.munitionAssessment}
+              selectedUnitId={state.selectedUnitId}
+              onSelectUnit={state.selectUnit}
             />
+          )}
+          {state.selectedUnit?.orbat && (
+            <OrbatPanel orbat={state.selectedUnit.orbat} onClear={state.clearUnit} />
           )}
           {state.munitionAssessment && (
             <MunitionInferencePanel
