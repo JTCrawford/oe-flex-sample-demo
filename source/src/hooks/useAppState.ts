@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { aos, threatLayersByAo } from '../data/aos';
+import { strikesByAo } from '../data/strikes';
 import { vignetteForAo } from '../data/vignettes';
 import type {
   MapMode,
@@ -9,6 +10,7 @@ import type {
   SymbologyMode,
   WargameOutcome,
   PmesiiChip,
+  StrikeOverlayToggles,
 } from '../types';
 
 const ALL_PMESII: PmesiiChip[] = [
@@ -21,6 +23,13 @@ const ALL_PMESII: PmesiiChip[] = [
   'Physical',
   'Time',
 ];
+
+const DEFAULT_STRIKE_OVERLAYS: StrikeOverlayToggles = {
+  currentPositions: true,
+  strikeHistory: true,
+  origins: true,
+  hotZones: true,
+};
 
 export function useAppState() {
   const [role, setRole] = useState<Role | null>(null);
@@ -42,6 +51,8 @@ export function useAppState() {
   );
   const [toast, setToast] = useState<string | null>(null);
   const [committedResources, setCommittedResources] = useState<string[]>([]);
+  const [strikeOverlays, setStrikeOverlays] =
+    useState<StrikeOverlayToggles>(DEFAULT_STRIKE_OVERLAYS);
 
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -55,8 +66,34 @@ export function useAppState() {
 
   const isCommercialPartner = role === 'Commercial Partner';
 
+  const militaryFilterActive = pmesiiFilters.has('Military');
+
+  const strikeOverlayAvailable =
+    militaryFilterActive &&
+    symbology === 'military' &&
+    !killSwitch &&
+    !!selectedAoId;
+
+  const visibleStrikes = useMemo(() => {
+    if (
+      killSwitch ||
+      !selectedAoId ||
+      !militaryFilterActive ||
+      symbology !== 'military'
+    ) {
+      return [];
+    }
+    return strikesByAo[selectedAoId] ?? [];
+  }, [killSwitch, selectedAoId, militaryFilterActive, symbology]);
+
+  const hideCurrentUnitMarkers =
+    militaryFilterActive &&
+    symbology === 'military' &&
+    !strikeOverlays.currentPositions;
+
   const visibleLayers = useMemo(() => {
     if (!selectedAoId || killSwitch) return [];
+    if (hideCurrentUnitMarkers) return [];
     const layers = threatLayersByAo[selectedAoId] ?? [];
     return layers.filter((layer) => {
       if (isCommercialPartner && layer.isFeeder) return false;
@@ -70,6 +107,7 @@ export function useAppState() {
     enabledLayers,
     pmesiiFilters,
     isCommercialPartner,
+    hideCurrentUnitMarkers,
   ]);
 
   const selectAo = useCallback(
@@ -105,6 +143,10 @@ export function useAppState() {
       else next.add(chip);
       return next;
     });
+  }, []);
+
+  const toggleStrikeOverlay = useCallback((key: keyof StrikeOverlayToggles) => {
+    setStrikeOverlays((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
   const setSymbologyMutex = useCallback((mode: SymbologyMode) => {
@@ -198,6 +240,11 @@ export function useAppState() {
     commitResource,
     isCommercialPartner,
     aos,
+    strikeOverlays,
+    toggleStrikeOverlay,
+    militaryFilterActive,
+    visibleStrikes,
+    strikeOverlayAvailable,
   };
 }
 

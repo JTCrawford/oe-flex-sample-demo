@@ -17,6 +17,14 @@ export const aos: AO[] = [
     lng: 22.93,
     description: 'NATO land corridor (Poland–Lithuania) — SAMPLE OPFOR armor vignette for LSCO / JRTC-style training. Unclassified SAMPLE only.',
   },
+  {
+    id: 'ukraine-east',
+    name: 'Ukraine East (SAMPLE)',
+    type: 'land',
+    lat: 49.2,
+    lng: 37.2,
+    description: 'Unclassified SAMPLE eastern theater — current units + strike history / hot-zone vignette. Not real-time intel.',
+  },
 ];
 
 export const threatLayersByAo: Record<string, ThreatLayer[]> = {
@@ -185,5 +193,88 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
         },
       ],
     },
-  ]
+  ],
+  'ukraine-east': [
+    {
+      id: 'ue-armor',
+      label: 'OPFOR armor (WEG SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'ue-bmp-1',
+          lat: 49.28,
+          lng: 37.35,
+          label: 'BMP-2 section (SAMPLE)',
+          milSymbol: 'ifv',
+          commercialSymbol: 'vehicle',
+          pmesii: ['Military', 'Physical'],
+        },
+        {
+          id: 'ue-bmp-2',
+          lat: 49.12,
+          lng: 37.05,
+          label: 'BMP-2 section — south (SAMPLE)',
+          milSymbol: 'ifv',
+          commercialSymbol: 'vehicle',
+          pmesii: ['Military'],
+        },
+      ],
+    },
+    {
+      id: 'ue-infra',
+      label: 'Corridor / rail-road nodes',
+      pmesii: ['Infrastructure', 'Economic', 'Military'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'ue-m03',
+          lat: 49.18,
+          lng: 37.05,
+          label: 'M03 corridor node (SAMPLE)',
+          milSymbol: 'infra',
+          commercialSymbol: 'pipeline',
+          pmesii: ['Infrastructure', 'Economic'],
+        },
+      ],
+    },
+    {
+      id: 'ue-isr-feeders',
+      label: 'UAV feeder orbits',
+      pmesii: ['Military', 'Information'],
+      domain: 'land',
+      isFeeder: true,
+      markers: [
+        {
+          id: 'ue-uav-1',
+          lat: 49.45,
+          lng: 37.55,
+          label: 'Orlan analog orbit (SAMPLE — feeder)',
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Information'],
+        },
+      ],
+    },
+    {
+      id: 'ue-arty',
+      label: 'MLRS / fires',
+      pmesii: ['Military', 'Time'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'ue-mlrs-1',
+          lat: 49.38,
+          lng: 37.8,
+          label: 'BM-21 battery (SAMPLE)',
+          milSymbol: 'arty',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Time'],
+        },
+      ],
+    },
+  ],
 };

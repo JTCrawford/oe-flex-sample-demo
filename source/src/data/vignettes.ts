@@ -137,6 +137,63 @@ export const vignettes: Vignette[] = [
       },
     ],
   },
+
+  {
+    id: 'vignette-ukraine-east',
+    title: 'Ukraine East — drone / missile pulse (SAMPLE)',
+    aoId: 'ukraine-east',
+    domain: 'land',
+    durationSec: 40,
+    steps: [
+      {
+        t: 0,
+        title: 'Setup',
+        description: 'BMP-2 sections hold near M03 corridor node; UAV feeder cues east (SAMPLE).',
+        kind: 'attack',
+      },
+      {
+        t: 10,
+        title: 'Drone / missile pulse',
+        description: 'FPV swarm and cruise missile cues strike rail / depot nodes from eastern origins (SAMPLE).',
+        kind: 'attack',
+      },
+      {
+        t: 22,
+        title: 'Mitigation: C-UAS + dispersal',
+        description: 'C-UAS coverage on corridor; disperse logistics away from hot-zone ring (SAMPLE).',
+        kind: 'mitigation',
+      },
+      {
+        t: 32,
+        title: 'Outcome window',
+        description: 'Corridor holds if C-UAS densifies; residual ballistic risk on logistics hub (SAMPLE).',
+        kind: 'outcome',
+      },
+    ],
+    mitigations: [
+      {
+        id: 'mit-ue-cuas',
+        label: 'C-UAS corridor coverage',
+        description: 'Attrit FPV / Lancet-class cues on M03 approach.',
+        cost: 'Med',
+        baseSuccess: 0.68,
+      },
+      {
+        id: 'mit-ue-disperse',
+        label: 'Logistics dispersal',
+        description: 'Move depot stocks outside hot-zone intensity rings.',
+        cost: 'Low',
+        baseSuccess: 0.6,
+      },
+      {
+        id: 'mit-ue-counterfire',
+        label: 'Counterfire on MLRS',
+        description: 'Suppress BM-21 battery before next fire mission.',
+        cost: 'High',
+        baseSuccess: 0.58,
+      },
+    ],
+  },
 ];
 
 export function vignetteForAo(aoId: string): Vignette | undefined {

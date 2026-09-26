@@ -1,6 +1,35 @@
 import { useEffect, useRef } from 'react';
 import Globe from 'globe.gl';
-import type { AO, SymbologyMode, ThreatLayer } from '../types';
+import type {
+  AO,
+  StrikeEvent,
+  StrikeOverlayToggles,
+  SymbologyMode,
+  ThreatLayer,
+} from '../types';
+
+/** globe.gl runtime exposes arcs/rings; published GlobeInstance typings omit some layer setters. */
+type GlobeWithLayers = ReturnType<typeof Globe> & {
+  arcsData: (data?: object[]) => GlobeWithLayers;
+  arcStartLat: (a: string | ((d: object) => number)) => GlobeWithLayers;
+  arcStartLng: (a: string | ((d: object) => number)) => GlobeWithLayers;
+  arcEndLat: (a: string | ((d: object) => number)) => GlobeWithLayers;
+  arcEndLng: (a: string | ((d: object) => number)) => GlobeWithLayers;
+  arcAltitude: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  arcStroke: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  arcColor: (a: string | string[] | ((d: object) => string | string[] | ((t: number) => string))) => GlobeWithLayers;
+  arcDashLength: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  arcDashGap: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  arcDashAnimateTime: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  ringsData: (data?: object[]) => GlobeWithLayers;
+  ringLat: (a: string | ((d: object) => number)) => GlobeWithLayers;
+  ringLng: (a: string | ((d: object) => number)) => GlobeWithLayers;
+  ringAltitude: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  ringColor: (a: string | string[] | ((d: object) => string | string[] | ((t: number) => string))) => GlobeWithLayers;
+  ringMaxRadius: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  ringPropagationSpeed: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+  ringRepeatPeriod: (a: number | string | ((d: object) => number)) => GlobeWithLayers;
+};
 
 interface Props {
   aos: AO[];
@@ -9,6 +38,9 @@ interface Props {
   visibleLayers: ThreatLayer[];
   symbology: SymbologyMode;
   killSwitch: boolean;
+  strikes?: StrikeEvent[];
+  strikeOverlays?: StrikeOverlayToggles;
+  showStrikeOverlays?: boolean;
 }
 
 type Point = {
@@ -16,7 +48,7 @@ type Point = {
   lat: number;
   lng: number;
   label: string;
-  kind: 'ao' | 'threat';
+  kind: 'ao' | 'threat' | 'strike-impact' | 'strike-origin';
   aoId?: string;
   symbolKind?: string;
   color: string;
@@ -53,6 +85,14 @@ function commercialSvg(kind?: string): string {
   return `<svg width="26" height="26" viewBox="0 0 40 40"><rect x="4" y="18" width="32" height="10" rx="2" fill="#1e90ff"/><polygon points="8,18 16,8 24,8 28,18" fill="#4aa3ff"/></svg>`;
 }
 
+function strikeImpactSvg(): string {
+  return `<svg width="22" height="22" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="rgba(180,40,20,0.35)" stroke="#ff5722" stroke-width="2"/><path d="M20 6 L22 16 L32 14 L24 20 L32 28 L20 24 L8 28 L16 20 L8 14 L18 16 Z" fill="#ff7043" stroke="#fff" stroke-width="0.5"/></svg>`;
+}
+
+function strikeOriginSvg(): string {
+  return `<svg width="14" height="14" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="#00bcd4" stroke="#e0f7fa" stroke-width="2"/></svg>`;
+}
+
 export function GlobeView({
   aos,
   selectedAoId,
@@ -60,6 +100,9 @@ export function GlobeView({
   visibleLayers,
   symbology,
   killSwitch,
+  strikes = [],
+  strikeOverlays,
+  showStrikeOverlays = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
@@ -96,7 +139,7 @@ export function GlobeView({
   }, []);
 
   useEffect(() => {
-    const globe = globeRef.current;
+    const globe = globeRef.current as GlobeWithLayers | null;
     if (!globe) return;
 
     const points: Point[] = aos.map((ao) => ({
@@ -126,6 +169,34 @@ export function GlobeView({
       }
     }
 
+    const overlaysOn = showStrikeOverlays && strikes.length > 0 && strikeOverlays;
+    if (overlaysOn) {
+      if (strikeOverlays!.strikeHistory) {
+        for (const s of strikes) {
+          points.push({
+            id: `impact-${s.id}`,
+            lat: s.impactLat,
+            lng: s.impactLng,
+            label: `${s.attackType.toUpperCase()} · ${s.timestamp} — ${s.label}`,
+            kind: 'strike-impact',
+            color: '#ff5722',
+          });
+        }
+      }
+      if (strikeOverlays!.origins) {
+        for (const s of strikes) {
+          points.push({
+            id: `origin-${s.id}`,
+            lat: s.originLat,
+            lng: s.originLng,
+            label: `Origin · ${s.attackType} — ${s.label}`,
+            kind: 'strike-origin',
+            color: '#00bcd4',
+          });
+        }
+      }
+    }
+
     globe
       .htmlElementsData(points)
       .htmlLat('lat')
@@ -145,6 +216,10 @@ export function GlobeView({
 
         if (p.kind === 'ao') {
           el.innerHTML = `<div class="ao-pin" style="--c:${p.color}"><span>${p.label}</span></div>`;
+        } else if (p.kind === 'strike-impact') {
+          el.innerHTML = `<div class="strike-pin threat-pin-inner">${strikeImpactSvg()}</div>`;
+        } else if (p.kind === 'strike-origin') {
+          el.innerHTML = `<div class="strike-origin threat-pin-inner">${strikeOriginSvg()}</div>`;
         } else {
           const svg =
             symbology === 'military'
@@ -155,13 +230,61 @@ export function GlobeView({
         return el;
       });
 
+    // Arcs: origin → impact when origins and/or strikeHistory
+    const showArcs =
+      overlaysOn &&
+      (strikeOverlays!.origins || strikeOverlays!.strikeHistory);
+    if (showArcs) {
+      globe
+        .arcsData(strikes)
+        .arcStartLat('originLat')
+        .arcStartLng('originLng')
+        .arcEndLat('impactLat')
+        .arcEndLng('impactLng')
+        .arcAltitude(0.08)
+        .arcStroke(0.6)
+        .arcColor(() => ['rgba(0,188,212,0.7)', 'rgba(255,87,34,0.85)'])
+        .arcDashLength(0.4)
+        .arcDashGap(0.2)
+        .arcDashAnimateTime(2500);
+    } else {
+      globe.arcsData([]);
+    }
+
+    // Hot-zone rings on impact points
+    if (overlaysOn && strikeOverlays!.hotZones) {
+      globe
+        .ringsData(strikes)
+        .ringLat('impactLat')
+        .ringLng('impactLng')
+        .ringAltitude(0.002)
+        .ringColor(() => (t: number) => `rgba(255,60,40,${1 - t})`)
+        .ringMaxRadius((d: object) => {
+          const s = d as StrikeEvent;
+          return 1.2 + s.intensity * 2.5;
+        })
+        .ringPropagationSpeed(1.2)
+        .ringRepeatPeriod(1400);
+    } else {
+      globe.ringsData([]);
+    }
+
     if (selectedAoId) {
       const ao = aos.find((a) => a.id === selectedAoId);
       if (ao) {
         globe.pointOfView({ lat: ao.lat, lng: ao.lng, altitude: 1.6 }, 800);
       }
     }
-  }, [aos, selectedAoId, visibleLayers, symbology, killSwitch]);
+  }, [
+    aos,
+    selectedAoId,
+    visibleLayers,
+    symbology,
+    killSwitch,
+    strikes,
+    strikeOverlays,
+    showStrikeOverlays,
+  ]);
 
   return <div className="map-surface" ref={containerRef} data-export-root />;
 }
