@@ -114,7 +114,8 @@
   }
   .domain strong { display: block; margin-bottom: .25rem; }
   .domain span { color: var(--muted); font-size: .82rem; }
-  .pmesii {
+  .pmesii-hyphen { color: var(--gold); font-weight: 700; margin: 0 0.15rem; align-self: center; }
+    .pmesii {
     display: flex; flex-wrap: wrap; gap: .5rem;
   }
   .chip {
@@ -200,11 +201,18 @@
   <section>
     <h2 class="section-title">PMESII-PT story filters</h2>
     <p class="section-sub">Audience storytelling lenses on every Observe layer — military and commercial symbology never mixed.</p>
-    <div class="pmesii">
-      <span class="chip">Political</span><span class="chip">Military</span><span class="chip">Economic</span>
-      <span class="chip">Social</span><span class="chip">Information</span><span class="chip">Infrastructure</span>
-      <span class="chip">Physical</span><span class="chip">Time</span>
+    <div class="pmesii" aria-label="PMESII-PT">
+      <span class="chip" title="Political: governance, authority, factions, and decision-makers that shape the operating environment.">P</span>
+      <span class="chip" title="Military: force structure, posture, weapons, and combat power that can affect the fight.">M</span>
+      <span class="chip" title="Economic: markets, trade, resources, and money flows that enable or constrain actors.">E</span>
+      <span class="chip" title="Social: demographics, culture, identity groups, and civil society that drive behavior on the ground.">S</span>
+      <span class="chip" title="Information: narratives, media, influence, and the info space that shapes perception and will.">I</span>
+      <span class="chip" title="Infrastructure: roads, ports, power, networks, and facilities that sustain operations and populations.">I</span>
+      <span class="pmesii-hyphen" aria-hidden="true">-</span>
+      <span class="chip" title="Physical Environment: terrain, weather, climate, and geography that channel movement and effects.">P</span>
+      <span class="chip" title="Time: tempo, windows of opportunity, seasons, and sequencing that change what is possible when.">T</span>
     </div>
+    <p class="section-sub" style="margin-top:0.6rem">Hover each letter of <strong>PMESII-PT</strong> to learn that OE variable.</p>
   </section>
 
   <section>
