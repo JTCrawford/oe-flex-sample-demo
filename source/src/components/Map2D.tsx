@@ -3,12 +3,20 @@ import {
   MapContainer,
   TileLayer,
   CircleMarker,
+  Circle,
   Marker,
   Popup,
+  Polyline,
   useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
-import type { AO, SymbologyMode, ThreatLayer } from '../types';
+import type {
+  AO,
+  StrikeEvent,
+  StrikeOverlayToggles,
+  SymbologyMode,
+  ThreatLayer,
+} from '../types';
 import 'leaflet/dist/leaflet.css';
 
 interface Props {
@@ -18,6 +26,9 @@ interface Props {
   visibleLayers: ThreatLayer[];
   symbology: SymbologyMode;
   killSwitch: boolean;
+  strikes?: StrikeEvent[];
+  strikeOverlays?: StrikeOverlayToggles;
+  showStrikeOverlays?: boolean;
 }
 
 function FlyTo({ ao }: { ao: AO | null }) {
@@ -62,6 +73,31 @@ function makeSymbolIcon(kind: string | undefined, mode: SymbologyMode, label: st
   });
 }
 
+function makeStrikeImpactIcon(label: string) {
+  const svg = `<svg width="22" height="22" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="rgba(180,40,20,0.35)" stroke="#ff5722" stroke-width="2"/><path d="M20 6 L22 16 L32 14 L24 20 L32 28 L20 24 L8 28 L16 20 L8 14 L18 16 Z" fill="#ff7043" stroke="#fff" stroke-width="0.5"/></svg>`;
+  return L.divIcon({
+    className: 'leaflet-symbol-wrapper strike-pin',
+    html: `<div class="leaflet-symbol" title="${label.replace(/"/g, '')}">${svg}</div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+}
+
+function makeStrikeOriginIcon(label: string) {
+  const svg = `<svg width="14" height="14" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="#00bcd4" stroke="#e0f7fa" stroke-width="2"/></svg>`;
+  return L.divIcon({
+    className: 'leaflet-symbol-wrapper strike-origin',
+    html: `<div class="leaflet-symbol" title="${label.replace(/"/g, '')}">${svg}</div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+}
+
+/** Approximate meters for hot-zone circle from intensity (0.2–1). */
+function hotZoneRadiusMeters(intensity: number): number {
+  return 4000 + intensity * 18000;
+}
+
 export function Map2D({
   aos,
   selectedAoId,
@@ -69,6 +105,9 @@ export function Map2D({
   visibleLayers,
   symbology,
   killSwitch,
+  strikes = [],
+  strikeOverlays,
+  showStrikeOverlays = false,
 }: Props) {
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -98,6 +137,8 @@ export function Map2D({
     }
     return list;
   }, [visibleLayers, killSwitch, symbology]);
+
+  const overlaysOn = showStrikeOverlays && strikes.length > 0 && !!strikeOverlays;
 
   return (
     <div className="map-surface" data-export-root>
@@ -145,6 +186,82 @@ export function Map2D({
             <Popup>{m.label}</Popup>
           </Marker>
         ))}
+
+        {overlaysOn &&
+          strikeOverlays!.hotZones &&
+          strikes.map((s) => (
+            <Circle
+              key={`hz-${s.id}`}
+              center={[s.impactLat, s.impactLng]}
+              radius={hotZoneRadiusMeters(s.intensity)}
+              pathOptions={{
+                color: '#ff3c28',
+                fillColor: '#ff5722',
+                fillOpacity: 0.12 + s.intensity * 0.18,
+                weight: 1,
+              }}
+            >
+              <Popup>
+                Hot zone · {s.attackType} · intensity {s.intensity.toFixed(2)}
+                <br />
+                {s.label}
+              </Popup>
+            </Circle>
+          ))}
+
+        {overlaysOn &&
+          (strikeOverlays!.origins || strikeOverlays!.strikeHistory) &&
+          strikes.map((s) => (
+            <Polyline
+              key={`arc-${s.id}`}
+              positions={[
+                [s.originLat, s.originLng],
+                [s.impactLat, s.impactLng],
+              ]}
+              pathOptions={{
+                color: '#ff7043',
+                weight: 2,
+                opacity: 0.75,
+                dashArray: '6 4',
+              }}
+            />
+          ))}
+
+        {overlaysOn &&
+          strikeOverlays!.strikeHistory &&
+          strikes.map((s) => (
+            <Marker
+              key={`impact-${s.id}`}
+              position={[s.impactLat, s.impactLng]}
+              icon={makeStrikeImpactIcon(
+                `${s.attackType.toUpperCase()} · ${s.timestamp} — ${s.label}`,
+              )}
+            >
+              <Popup>
+                <strong>Impact · {s.attackType}</strong>
+                <br />
+                {s.timestamp}
+                <br />
+                {s.label}
+              </Popup>
+            </Marker>
+          ))}
+
+        {overlaysOn &&
+          strikeOverlays!.origins &&
+          strikes.map((s) => (
+            <Marker
+              key={`origin-${s.id}`}
+              position={[s.originLat, s.originLng]}
+              icon={makeStrikeOriginIcon(`Origin · ${s.attackType} — ${s.label}`)}
+            >
+              <Popup>
+                <strong>Origin · {s.attackType}</strong>
+                <br />
+                {s.label}
+              </Popup>
+            </Marker>
+          ))}
       </MapContainer>
     </div>
   );

@@ -144,6 +144,9 @@ export default function App() {
               visibleLayers={state.visibleLayers}
               symbology={state.symbology}
               killSwitch={state.killSwitch}
+              strikes={state.visibleStrikes}
+              strikeOverlays={state.strikeOverlays}
+              showStrikeOverlays={state.strikeOverlayAvailable}
             />
           ) : (
             <Map2D
@@ -153,6 +156,9 @@ export default function App() {
               visibleLayers={state.visibleLayers}
               symbology={state.symbology}
               killSwitch={state.killSwitch}
+              strikes={state.visibleStrikes}
+              strikeOverlays={state.strikeOverlays}
+              showStrikeOverlays={state.strikeOverlayAvailable}
             />
           )}
           <div className="ao-quick">

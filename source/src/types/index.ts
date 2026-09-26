@@ -173,3 +173,25 @@ export interface TtpFeed {
   mitigations: TtpMitigationCard[];
   accent: string;
 }
+
+export type StrikeAttackType = 'drone' | 'missile' | 'artillery' | 'ied' | 'other';
+
+export interface StrikeEvent {
+  id: string;
+  aoId: string;
+  attackType: StrikeAttackType;
+  timestamp: string; // ISO
+  originLat: number;
+  originLng: number;
+  impactLat: number;
+  impactLng: number;
+  label: string;
+  intensity: number; // 0.2–1 for heat
+}
+
+export interface StrikeOverlayToggles {
+  currentPositions: boolean;
+  strikeHistory: boolean;
+  origins: boolean;
+  hotZones: boolean;
+}

@@ -18,6 +18,8 @@ export const salesLines: Record<string, string> = {
   decide: 'Commit ISR, security, subcontract, or VISMOD partners without leaving the map.',
   killSwitch: 'One control blanks live Observe layers — OPSEC when the room changes.',
   domains: 'Land live today; air, sea, EMS, info, cyber, undersea, and space plug into the same pipeline interface.',
+  strikeHistory:
+    'See the fight unfold — every strike, every origin, every hot zone, layered on the same map.',
 };
 
 export type SalesCapabilityId = keyof typeof salesLines;

@@ -282,6 +282,80 @@
   color: #e8eef7;
 }
 
+.pmesii-hint {
+  margin: 0 0 0.45rem;
+  font-size: 0.75rem;
+}
+
+.pmesii-bar {
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  overflow: visible;
+}
+
+.pmesii-letter-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  position: relative;
+}
+
+.pmesii-hyphen {
+  color: #6ec6ff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0 0.1rem;
+  user-select: none;
+}
+
+.chip.pmesii-letter {
+  position: relative;
+  min-width: 1.7rem;
+  padding: 0.28rem 0.45rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  overflow: visible;
+}
+
+.pmesii-tooltip {
+  display: none;
+  position: absolute;
+  left: calc(100% + 0.55rem);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  width: min(16rem, 42vw);
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #2a3a55;
+  background: #0e1626;
+  color: #e8eef7;
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.pmesii-tooltip::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: #2a3a55;
+}
+
+.chip.pmesii-letter:hover .pmesii-tooltip,
+.chip.pmesii-letter:focus-visible .pmesii-tooltip {
+  display: block;
+}
+
 .layer-list,
 .mitigation-list {
   list-style: none;
@@ -916,4 +990,30 @@
   padding: 0.25rem 0.55rem;
   font-size: 0.75rem;
   cursor: pointer;
+}
+
+
+/* —— Strike History & Hot Zones —— */
+.strike-overlay-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0.6rem;
+}
+.strike-overlay-list li {
+  margin: 0.25rem 0;
+}
+.strike-overlay-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.strike-pin,
+.strike-origin {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65));
+}
+.globe-marker.strike-impact .strike-pin,
+.globe-marker.strike-origin .strike-origin {
+  pointer-events: none;
 }
