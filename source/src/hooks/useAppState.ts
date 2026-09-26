@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { aos, threatLayersByAo } from '../data/aos';
+import { inferMunitions } from '../data/munitionInference';
 import { strikesByAo } from '../data/strikes';
 import { vignetteForAo } from '../data/vignettes';
 import type {
@@ -53,6 +54,7 @@ export function useAppState() {
   const [committedResources, setCommittedResources] = useState<string[]>([]);
   const [strikeOverlays, setStrikeOverlays] =
     useState<StrikeOverlayToggles>(DEFAULT_STRIKE_OVERLAYS);
+  const [selectedStrikeId, setSelectedStrikeId] = useState<string | null>(null);
 
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -86,6 +88,16 @@ export function useAppState() {
     return strikesByAo[selectedAoId] ?? [];
   }, [killSwitch, selectedAoId, militaryFilterActive, symbology]);
 
+  const selectedStrike = useMemo(() => {
+    if (!selectedStrikeId || !strikeOverlayAvailable) return null;
+    return visibleStrikes.find((s) => s.id === selectedStrikeId) ?? null;
+  }, [selectedStrikeId, strikeOverlayAvailable, visibleStrikes]);
+
+  const munitionAssessment = useMemo(
+    () => (selectedStrike ? inferMunitions(selectedStrike, visibleStrikes) : null),
+    [selectedStrike, visibleStrikes],
+  );
+
   const hideCurrentUnitMarkers =
     militaryFilterActive &&
     symbology === 'military' &&
@@ -113,6 +125,7 @@ export function useAppState() {
   const selectAo = useCallback(
     (aoId: string) => {
       setSelectedAoId(aoId);
+      setSelectedStrikeId(null);
       setWargameOutcome(null);
       setSelectedMitigationId(null);
       const layers = threatLayersByAo[aoId] ?? [];
@@ -147,6 +160,14 @@ export function useAppState() {
 
   const toggleStrikeOverlay = useCallback((key: keyof StrikeOverlayToggles) => {
     setStrikeOverlays((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const selectStrike = useCallback((id: string) => {
+    setSelectedStrikeId(id);
+  }, []);
+
+  const clearStrike = useCallback(() => {
+    setSelectedStrikeId(null);
   }, []);
 
   const setSymbologyMutex = useCallback((mode: SymbologyMode) => {
@@ -245,6 +266,11 @@ export function useAppState() {
     militaryFilterActive,
     visibleStrikes,
     strikeOverlayAvailable,
+    selectedStrikeId,
+    selectedStrike,
+    selectStrike,
+    clearStrike,
+    munitionAssessment,
   };
 }
 

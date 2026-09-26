@@ -3,6 +3,7 @@ import { useAppState } from './hooks/useAppState';
 import { RoleSelector } from './components/RoleSelector';
 import { GlobeView } from './components/GlobeView';
 import { Map2D } from './components/Map2D';
+import { MunitionInferencePanel } from './components/MunitionInferencePanel';
 import { ObservePanel } from './components/ObservePanel';
 import { MitigatePanel } from './components/MitigatePanel';
 import { WargamePanel } from './components/WargamePanel';
@@ -147,6 +148,9 @@ export default function App() {
               strikes={state.visibleStrikes}
               strikeOverlays={state.strikeOverlays}
               showStrikeOverlays={state.strikeOverlayAvailable}
+              selectedStrikeId={state.selectedStrikeId}
+              onSelectStrike={state.selectStrike}
+              munitionAssessment={state.munitionAssessment}
             />
           ) : (
             <Map2D
@@ -159,6 +163,15 @@ export default function App() {
               strikes={state.visibleStrikes}
               strikeOverlays={state.strikeOverlays}
               showStrikeOverlays={state.strikeOverlayAvailable}
+              selectedStrikeId={state.selectedStrikeId}
+              onSelectStrike={state.selectStrike}
+              munitionAssessment={state.munitionAssessment}
+            />
+          )}
+          {state.munitionAssessment && (
+            <MunitionInferencePanel
+              assessment={state.munitionAssessment}
+              onClear={state.clearStrike}
             />
           )}
           <div className="ao-quick">

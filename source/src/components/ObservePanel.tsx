@@ -32,6 +32,10 @@ export function ObservePanel({ state }: Props) {
     strikeOverlayAvailable,
     strikeOverlays,
     toggleStrikeOverlay,
+    visibleStrikes,
+    selectedStrikeId,
+    selectStrike,
+    clearStrike,
   } = state;
 
   if (!selectedAo) {
@@ -153,6 +157,34 @@ export function ObservePanel({ state }: Props) {
             ))}
           </ul>
           <SalesCallout id="strikeHistory" compact />
+          {visibleStrikes.length > 0 && (
+            <>
+              <h3>Munition inference</h3>
+              <p className="muted">
+                Click an impact or origin pin — or a strike below — to list likely
+                munition types from range, trajectory, and threat context. UNCLASS
+                SAMPLE only. History pins, arcs, and hot zones stay on the map.
+              </p>
+              <ul className="strike-pick-list">
+                {visibleStrikes.map((s) => {
+                  const selected = selectedStrikeId === s.id;
+                  return (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        className={selected ? 'active' : ''}
+                        aria-pressed={selected}
+                        onClick={() => (selected ? clearStrike() : selectStrike(s.id))}
+                      >
+                        {s.attackType} · {s.label}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <SalesCallout id="munitionInference" compact />
+            </>
+          )}
         </section>
       )}
 

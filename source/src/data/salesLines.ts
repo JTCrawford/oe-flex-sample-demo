@@ -20,6 +20,8 @@ export const salesLines: Record<string, string> = {
   domains: 'Land live today; air, sea, EMS, info, cyber, undersea, and space plug into the same pipeline interface.',
   strikeHistory:
     'See the fight unfold — every strike, every origin, every hot zone, layered on the same map.',
+  munitionInference:
+    'Select a strike and brief the likely munitions — range, trajectory, and threat context, with confidence, on SAMPLE data.',
 };
 
 export type SalesCapabilityId = keyof typeof salesLines;

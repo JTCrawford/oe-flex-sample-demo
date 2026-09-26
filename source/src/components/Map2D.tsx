@@ -13,6 +13,7 @@ import L from 'leaflet';
 import type {
   AO,
   StrikeEvent,
+  StrikeMunitionAssessment,
   StrikeOverlayToggles,
   SymbologyMode,
   ThreatLayer,
@@ -29,13 +30,40 @@ interface Props {
   strikes?: StrikeEvent[];
   strikeOverlays?: StrikeOverlayToggles;
   showStrikeOverlays?: boolean;
+  selectedStrikeId?: string | null;
+  onSelectStrike?: (id: string) => void;
+  munitionAssessment?: StrikeMunitionAssessment | null;
 }
 
-function FlyTo({ ao }: { ao: AO | null }) {
+function FlyTo({ ao, suspend }: { ao: AO | null; suspend: boolean }) {
   const map = useMap();
   useEffect(() => {
-    if (ao) map.flyTo([ao.lat, ao.lng], 6, { duration: 0.8 });
-  }, [ao, map]);
+    if (ao && !suspend) map.flyTo([ao.lat, ao.lng], 6, { duration: 0.8 });
+  }, [ao, map, suspend]);
+  return null;
+}
+
+/** Frame the selected strike and its primary envelope without dropping history layers. */
+function FlyToStrike({
+  strike,
+  radiusKm,
+}: {
+  strike: StrikeEvent | null;
+  radiusKm: number;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!strike) return;
+    const fitKm = Math.min(Math.max(radiusKm, 20), 160);
+    const dLat = fitKm / 111;
+    const dLng = fitKm / (111 * Math.cos((strike.originLat * Math.PI) / 180));
+    const bounds = L.latLngBounds(
+      [strike.originLat - dLat, strike.originLng - dLng],
+      [strike.originLat + dLat, strike.originLng + dLng],
+    );
+    bounds.extend([strike.impactLat, strike.impactLng]);
+    map.fitBounds(bounds.pad(0.12), { maxZoom: 8 });
+  }, [strike, radiusKm, map]);
   return null;
 }
 
@@ -73,10 +101,10 @@ function makeSymbolIcon(kind: string | undefined, mode: SymbologyMode, label: st
   });
 }
 
-function makeStrikeImpactIcon(label: string) {
-  const svg = `<svg width="22" height="22" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="rgba(180,40,20,0.35)" stroke="#ff5722" stroke-width="2"/><path d="M20 6 L22 16 L32 14 L24 20 L32 28 L20 24 L8 28 L16 20 L8 14 L18 16 Z" fill="#ff7043" stroke="#fff" stroke-width="0.5"/></svg>`;
+function makeStrikeImpactIcon(label: string, selected: boolean) {
+  const svg = `<svg width="22" height="22" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="rgba(180,40,20,0.35)" stroke="${selected ? '#f5d76e' : '#ff5722'}" stroke-width="${selected ? 3 : 2}"/><path d="M20 6 L22 16 L32 14 L24 20 L32 28 L20 24 L8 28 L16 20 L8 14 L18 16 Z" fill="#ff7043" stroke="#fff" stroke-width="0.5"/></svg>`;
   return L.divIcon({
-    className: 'leaflet-symbol-wrapper strike-pin',
+    className: `leaflet-symbol-wrapper strike-pin${selected ? ' is-selected' : ''}`,
     html: `<div class="leaflet-symbol" title="${label.replace(/"/g, '')}">${svg}</div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
@@ -108,6 +136,9 @@ export function Map2D({
   strikes = [],
   strikeOverlays,
   showStrikeOverlays = false,
+  selectedStrikeId = null,
+  onSelectStrike,
+  munitionAssessment = null,
 }: Props) {
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -139,6 +170,11 @@ export function Map2D({
   }, [visibleLayers, killSwitch, symbology]);
 
   const overlaysOn = showStrikeOverlays && strikes.length > 0 && !!strikeOverlays;
+  const selectedStrike = useMemo(
+    () => strikes.find((s) => s.id === selectedStrikeId) ?? null,
+    [strikes, selectedStrikeId],
+  );
+  const focusRadiusKm = munitionAssessment?.candidates[0]?.envelopeMaxKm ?? 40;
 
   return (
     <div className="map-surface" data-export-root>
@@ -152,7 +188,8 @@ export function Map2D({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FlyTo ao={selectedAo} />
+        <FlyTo ao={selectedAo} suspend={!!selectedStrike} />
+        <FlyToStrike strike={selectedStrike} radiusKm={focusRadiusKm} />
         {aos.map((ao) => (
           <CircleMarker
             key={ao.id}
@@ -228,14 +265,54 @@ export function Map2D({
           ))}
 
         {overlaysOn &&
+          selectedStrike &&
+          (strikeOverlays!.origins || strikeOverlays!.strikeHistory) && (
+            <Polyline
+              key={`arc-selected-${selectedStrike.id}`}
+              positions={[
+                [selectedStrike.originLat, selectedStrike.originLng],
+                [selectedStrike.impactLat, selectedStrike.impactLng],
+              ]}
+              pathOptions={{
+                color: '#f5d76e',
+                weight: 3,
+                opacity: 0.95,
+              }}
+            />
+          )}
+
+        {munitionAssessment &&
+          munitionAssessment.rings.map((ring) => (
+            <Circle
+              key={ring.id}
+              center={[ring.lat, ring.lng]}
+              radius={ring.radiusKm * 1000}
+              interactive={false}
+              pathOptions={{
+                color: ring.color,
+                fillColor: ring.color,
+                fillOpacity: ring.fillOpacity,
+                weight: ring.weight,
+                dashArray: ring.dashArray,
+                opacity: 0.95,
+              }}
+            />
+          ))}
+
+        {overlaysOn &&
           strikeOverlays!.strikeHistory &&
           strikes.map((s) => (
             <Marker
               key={`impact-${s.id}`}
               position={[s.impactLat, s.impactLng]}
+              zIndexOffset={selectedStrikeId === s.id ? 600 : 200}
               icon={makeStrikeImpactIcon(
                 `${s.attackType.toUpperCase()} · ${s.timestamp} — ${s.label}`,
+                selectedStrikeId === s.id,
               )}
+              eventHandlers={{
+                click: () => onSelectStrike?.(s.id),
+              }}
             >
               <Popup>
                 <strong>Impact · {s.attackType}</strong>
@@ -253,7 +330,11 @@ export function Map2D({
             <Marker
               key={`origin-${s.id}`}
               position={[s.originLat, s.originLng]}
+              zIndexOffset={selectedStrikeId === s.id ? 500 : 100}
               icon={makeStrikeOriginIcon(`Origin · ${s.attackType} — ${s.label}`)}
+              eventHandlers={{
+                click: () => onSelectStrike?.(s.id),
+              }}
             >
               <Popup>
                 <strong>Origin · {s.attackType}</strong>
