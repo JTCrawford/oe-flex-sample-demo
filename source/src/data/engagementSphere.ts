@@ -28,6 +28,8 @@ export interface ArmorWeakPoint {
 export interface SphereModel {
   id: SphereModelId;
   title: string;
+  /** Short SAMPLE-analog label shown in the viewer. */
+  analog: string;
   kind: string;
   summary: string;
   weakPoints: ArmorWeakPoint[];
@@ -45,13 +47,13 @@ const SRBM_POINTS: ArmorWeakPoint[] = [
     id: 'seeker',
     label: 'Nose fairing',
     confidence: 'known',
-    note: 'SAMPLE: stylized nose fairing on this analog. Not a real assessment.',
+    note: 'SAMPLE: nose fairing on this analog round. Not a real assessment.',
   },
   {
     id: 'nozzle',
     label: 'Tail nozzle',
     confidence: 'known',
-    note: 'SAMPLE: stylized nozzle at the tail of the round.',
+    note: 'SAMPLE: nozzle at the tail of the round.',
   },
   {
     id: 'joint',
@@ -67,11 +69,17 @@ const SRBM_POINTS: ArmorWeakPoint[] = [
   },
 ];
 
-function srbmModel(id: SphereModelId, title: string, summary: string): SphereModel {
+function srbmModel(
+  id: SphereModelId,
+  title: string,
+  analog: string,
+  summary: string,
+): SphereModel {
   return {
     id,
     title,
-    kind: 'Munition · stylized SAMPLE mesh',
+    analog,
+    kind: 'Munition · photoreal SAMPLE analog',
     summary,
     weakPoints: SRBM_POINTS,
   };
@@ -81,9 +89,10 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
   'sphere-mbt': {
     id: 'sphere-mbt',
     title: 'Main battle tank',
-    kind: 'Land · stylized SAMPLE mesh',
+    analog: 'T-72/T-80 family SAMPLE analog',
+    kind: 'Land · photoreal SAMPLE analog',
     summary:
-      'Class mesh shared by SAMPLE main battle tanks. Orbit for the glacis, turret roof, flanks, rear deck, and belly.',
+      'Original photoreal model shared by SAMPLE T-72 and T-80 holdings. Orbit for the glacis, turret roof, flanks, rear deck, and belly.',
     weakPoints: [
       {
         id: 'rear-deck',
@@ -120,9 +129,10 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
   'sphere-fighter': {
     id: 'sphere-fighter',
     title: 'Fighter / attack aircraft',
-    kind: 'Air · stylized SAMPLE mesh',
+    analog: 'Fulcrum-family SAMPLE analog',
+    kind: 'Air · photoreal SAMPLE analog',
     summary:
-      'Class mesh for the SAMPLE fighter/attack holding. Nose, canopy, planform, tailpipes, and gear are distinct by view.',
+      'Original twin-tail, twin-engine photoreal analog for the SAMPLE fighter/attack holding. Nose, canopy, planform, nozzles, and gear are distinct by view.',
     weakPoints: [
       {
         id: 'nozzles',
@@ -153,9 +163,10 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
   'sphere-vessel': {
     id: 'sphere-vessel',
     title: 'Surface vessel',
-    kind: 'Sea · stylized SAMPLE mesh',
+    analog: 'Corvette-class SAMPLE analog',
+    kind: 'Sea · photoreal SAMPLE analog',
     summary:
-      'Class mesh for the SAMPLE surface combatant. Bow, bridge, stack, transom, and underhull are distinct by view.',
+      'Original photoreal corvette-class analog. Bow, bridge, funnel, flight deck, and underhull are distinct by view.',
     weakPoints: [
       {
         id: 'bridge',
@@ -186,22 +197,26 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
   'sphere-tochka-u': srbmModel(
     'sphere-tochka-u',
     'Tochka-U',
-    'Stylized SAMPLE round for catalog id tochka-u. Same mesh id as the linked munition card.',
+    'Tochka-U TEL SAMPLE analog',
+    'Original photoreal 6x6 TEL with an elevated round for catalog id tochka-u. Same mesh id as the linked munition card.',
   ),
   'sphere-iskander-m': srbmModel(
     'sphere-iskander-m',
     'Iskander-M',
-    'Stylized SAMPLE round for catalog id iskander-m. Same mesh id as the linked munition card.',
+    'Iskander-M TEL SAMPLE analog',
+    'Original photoreal 8x8 TEL with one exposed round and one closed canister for catalog id iskander-m. Same mesh id as the linked munition card.',
   ),
   'sphere-atacms-block-i': srbmModel(
     'sphere-atacms-block-i',
     'ATACMS Block I',
-    'Stylized SAMPLE round for catalog id atacms-block-i, with a launch rail. Same mesh id as the linked munition card.',
+    'HIMARS-class / ATACMS Block I SAMPLE analog',
+    'Original photoreal wheeled HIMARS-class launcher with a short Block I round for catalog id atacms-block-i. Same mesh id as the linked munition card.',
   ),
   'sphere-atacms-later-block': srbmModel(
     'sphere-atacms-later-block',
     'ATACMS later block',
-    'Stylized SAMPLE round for catalog id atacms-later-block. Same mesh id as the linked munition card.',
+    'M270 / later-block ATACMS SAMPLE analog',
+    'Original photoreal tracked MLRS-class launcher with a longer SAMPLE round for catalog id atacms-later-block. Same mesh id as the linked munition card.',
   ),
 };
 

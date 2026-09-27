@@ -86,7 +86,7 @@ See the deliverable checklist in the agent handoff or keep this README as the so
 - [x] Kill-switch blanks Observe layers
 - [x] Domain pipeline panel: Land LIVE + WEG SAMPLE; others STUB
 - [x] Sales-line callouts; SAMPLE / claim fence in UI + README + ARCHITECTURE.md
-- [x] Engagement sphere: stylized SAMPLE 3D view for MBT, fighter/attack, and surface vessel, with known vs believed weak-point overlays
+- [x] Engagement sphere: photoreal SAMPLE-analog GLBs (MBT, fighter/attack, surface vessel, SRBM/ATACMS launchers) with known vs believed weak-point overlays. Licenses in repo-root `ATTRIBUTION.md`.
 
 ## Remaining (next increments)
 
