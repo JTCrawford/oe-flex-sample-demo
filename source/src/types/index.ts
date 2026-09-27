@@ -47,6 +47,45 @@ export interface ThreatLayer {
   markers: ThreatMarker[];
 }
 
+/**
+ * Canonical vehicle categories for order-of-battle holdings.
+ * Add a member here and a label in `VEHICLE_CATEGORY_LABEL` — the pin
+ * detail panel iterates holdings and does not switch on category.
+ */
+export type VehicleCategoryId = 'tank' | 'ifv' | 'artillery' | 'aircraft' | 'ship';
+
+/** Echelon in the SAMPLE designation scheme. Extend the label map with the union. */
+export type UnitEchelon =
+  | 'section'
+  | 'platoon'
+  | 'company'
+  | 'battery'
+  | 'flight'
+  | 'squadron'
+  | 'task-force';
+
+/** One typed vehicle holding. Several holdings may share a category. */
+export interface VehicleHolding {
+  category: VehicleCategoryId;
+  /** Platform nomenclature, e.g. "BMP-2 (SAMPLE)". */
+  typeDesignation: string;
+  count: number;
+}
+
+/**
+ * Fictional order of battle carried on a unit/force pin.
+ * Infrastructure nodes omit this.
+ */
+export interface UnitOrbat {
+  /** SAMPLE designation, e.g. "SAMPLE 2nd Mech Section". */
+  designation: string;
+  echelon: UnitEchelon;
+  /** Parent formation. SAMPLE / fictional. */
+  higherFormation: string;
+  vehicles: VehicleHolding[];
+  sampleLabel: 'SAMPLE';
+}
+
 export interface ThreatMarker {
   id: string;
   lat: number;
@@ -55,6 +94,8 @@ export interface ThreatMarker {
   milSymbol?: string;
   commercialSymbol?: string;
   pmesii: PmesiiChip[];
+  /** Present on unit/force pins. Omitted for infrastructure and commercial tracks. */
+  orbat?: UnitOrbat;
 }
 
 export interface WegEquipment {

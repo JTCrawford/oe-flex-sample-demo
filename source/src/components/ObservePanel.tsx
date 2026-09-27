@@ -1,4 +1,5 @@
 import type { AppState } from '../hooks/useAppState';
+import { orbatCountSummary } from '../data/orbat';
 import { PMESII_LETTERS, PMESII_TOOLTIPS } from '../data/pmesii';
 import type { StrikeOverlayToggles } from '../types';
 import { SalesCallout } from './SalesCallout';
@@ -36,7 +37,14 @@ export function ObservePanel({ state }: Props) {
     selectedStrikeId,
     selectStrike,
     clearStrike,
+    visibleLayers,
+    selectedUnitId,
+    toggleUnit,
   } = state;
+
+  const unitPins = visibleLayers.flatMap((layer) =>
+    layer.markers.filter((marker) => marker.orbat),
+  );
 
   if (!selectedAo) {
     return (
@@ -187,6 +195,40 @@ export function ObservePanel({ state }: Props) {
           )}
         </section>
       )}
+
+      <section>
+        <h3>Order of battle</h3>
+        <p className="muted">
+          Unit pins carry a SAMPLE designation and typed vehicle counts. Select a
+          pin on the map or a unit below. The list follows the AO, layer toggles,
+          PMESII filters, and the kill-switch. Strike history stays on the map.
+        </p>
+        {unitPins.length === 0 ? (
+          <p className="muted">No unit pins in the current Observe view.</p>
+        ) : (
+          <ul className="strike-pick-list">
+            {unitPins.map((marker) => {
+              const selected = selectedUnitId === marker.id;
+              const orbat = marker.orbat;
+              if (!orbat) return null;
+              return (
+                <li key={marker.id}>
+                  <button
+                    type="button"
+                    className={selected ? 'active' : ''}
+                    aria-pressed={selected}
+                        onClick={() => toggleUnit(marker.id)}
+                  >
+                    {orbat.designation}
+                    <small className="orbat-pick-counts">{orbatCountSummary(orbat)}</small>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <SalesCallout id="orbat" compact />
+      </section>
 
       <section>
         <h3>Threat layers</h3>

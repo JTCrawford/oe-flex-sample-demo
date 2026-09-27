@@ -1,4 +1,15 @@
 import type { AO, ThreatLayer } from '../types';
+import {
+  SAMPLE_PLATFORM,
+  forceMarker,
+  holding,
+  sampleDesignation,
+  unitOrbat,
+} from './orbat';
+
+const UE_HIGHER = 'SAMPLE Ukraine East OPFOR Group';
+const SG_HIGHER = 'SAMPLE Suwałki OPFOR Group';
+const HZ_HIGHER = 'SAMPLE Hormuz OPFOR Group';
 
 export const aos: AO[] = [
   {
@@ -99,15 +110,43 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
       domain: 'air',
       isFeeder: true,
       markers: [
-        {
+        forceMarker({
           id: 'isr-1',
           lat: 25.9,
           lng: 55.5,
-          label: 'ISR orbit (SAMPLE — feeder)',
           milSymbol: 'uav',
           commercialSymbol: 'sensor',
           pmesii: ['Military', 'Information'],
-        },
+          orbat: unitOrbat({
+            designation: sampleDesignation('3rd', 'ISR', 'flight'),
+            echelon: 'flight',
+            higherFormation: HZ_HIGHER,
+            vehicles: [holding('aircraft', SAMPLE_PLATFORM.orlan, 1)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'hormuz-naval',
+      label: 'OPFOR patrol squadron (SAMPLE)',
+      pmesii: ['Military'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'hormuz-patrol-1',
+          lat: 26.55,
+          lng: 56.55,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Patrol', 'squadron'),
+            echelon: 'squadron',
+            higherFormation: HZ_HIGHER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.corvette, 2)],
+          }),
+        }),
       ],
     },
   ],
@@ -119,24 +158,34 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
       domain: 'land',
       isFeeder: false,
       markers: [
-        {
+        forceMarker({
           id: 'tank-1',
           lat: 54.18,
           lng: 22.85,
-          label: 'T-72B3 platoon (SAMPLE)',
           milSymbol: 'armor',
           commercialSymbol: 'vehicle',
           pmesii: ['Military'],
-        },
-        {
+          orbat: unitOrbat({
+            designation: sampleDesignation('3rd', 'Armor', 'platoon'),
+            echelon: 'platoon',
+            higherFormation: SG_HIGHER,
+            vehicles: [holding('tank', SAMPLE_PLATFORM.t72b3, 3)],
+          }),
+        }),
+        forceMarker({
           id: 'ifv-1',
           lat: 54.05,
           lng: 23.05,
-          label: 'BMP-2 section (SAMPLE)',
           milSymbol: 'ifv',
           commercialSymbol: 'vehicle',
           pmesii: ['Military', 'Physical'],
-        },
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Mech', 'section'),
+            echelon: 'section',
+            higherFormation: SG_HIGHER,
+            vehicles: [holding('ifv', SAMPLE_PLATFORM.bmp2, 3)],
+          }),
+        }),
       ],
     },
     {
@@ -146,15 +195,20 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
       domain: 'land',
       isFeeder: false,
       markers: [
-        {
+        forceMarker({
           id: 'mlrs-1',
           lat: 54.22,
           lng: 22.7,
-          label: 'BM-21 battery (SAMPLE)',
           milSymbol: 'arty',
           commercialSymbol: 'hazard',
           pmesii: ['Military', 'Time'],
-        },
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'Rocket', 'battery'),
+            echelon: 'battery',
+            higherFormation: SG_HIGHER,
+            vehicles: [holding('artillery', SAMPLE_PLATFORM.bm21, 4)],
+          }),
+        }),
       ],
     },
     {
@@ -182,15 +236,20 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
       domain: 'land',
       isFeeder: true,
       markers: [
-        {
+        forceMarker({
           id: 'uav-1',
           lat: 54.28,
           lng: 23.15,
-          label: 'Orlan analog orbit (SAMPLE — feeder)',
           milSymbol: 'uav',
           commercialSymbol: 'sensor',
           pmesii: ['Military', 'Information'],
-        },
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'ISR', 'flight'),
+            echelon: 'flight',
+            higherFormation: SG_HIGHER,
+            vehicles: [holding('aircraft', SAMPLE_PLATFORM.orlan, 1)],
+          }),
+        }),
       ],
     },
   ],
@@ -202,24 +261,48 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
       domain: 'land',
       isFeeder: false,
       markers: [
-        {
+        forceMarker({
           id: 'ue-bmp-1',
           lat: 49.28,
           lng: 37.35,
-          label: 'BMP-2 section (SAMPLE)',
           milSymbol: 'ifv',
           commercialSymbol: 'vehicle',
           pmesii: ['Military', 'Physical'],
-        },
-        {
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'Mech', 'section'),
+            echelon: 'section',
+            higherFormation: UE_HIGHER,
+            vehicles: [holding('ifv', SAMPLE_PLATFORM.bmp2, 3)],
+          }),
+        }),
+        forceMarker({
           id: 'ue-bmp-2',
           lat: 49.12,
           lng: 37.05,
-          label: 'BMP-2 section — south (SAMPLE)',
           milSymbol: 'ifv',
           commercialSymbol: 'vehicle',
           pmesii: ['Military'],
-        },
+          orbat: unitOrbat({
+            designation: sampleDesignation('4th', 'Mech', 'section'),
+            echelon: 'section',
+            higherFormation: UE_HIGHER,
+            vehicles: [holding('ifv', SAMPLE_PLATFORM.bmp2, 3)],
+          }),
+        }),
+        forceMarker({
+          id: 'ue-tank-1',
+          lat: 49.33,
+          lng: 37.18,
+          milSymbol: 'armor',
+          commercialSymbol: 'vehicle',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Armor', 'platoon'),
+            echelon: 'platoon',
+            higherFormation: UE_HIGHER,
+            vehicles: [holding('tank', SAMPLE_PLATFORM.t72b3, 3)],
+          }),
+        }),
       ],
     },
     {
@@ -247,15 +330,20 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
       domain: 'land',
       isFeeder: true,
       markers: [
-        {
+        forceMarker({
           id: 'ue-uav-1',
           lat: 49.45,
           lng: 37.55,
-          label: 'Orlan analog orbit (SAMPLE — feeder)',
           milSymbol: 'uav',
           commercialSymbol: 'sensor',
           pmesii: ['Military', 'Information'],
-        },
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'ISR', 'flight'),
+            echelon: 'flight',
+            higherFormation: UE_HIGHER,
+            vehicles: [holding('aircraft', SAMPLE_PLATFORM.orlan, 2)],
+          }),
+        }),
       ],
     },
     {
@@ -265,15 +353,49 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
       domain: 'land',
       isFeeder: false,
       markers: [
-        {
+        forceMarker({
           id: 'ue-mlrs-1',
           lat: 49.38,
           lng: 37.8,
-          label: 'BM-21 battery (SAMPLE)',
           milSymbol: 'arty',
           commercialSymbol: 'hazard',
           pmesii: ['Military', 'Time'],
-        },
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Rocket', 'battery'),
+            echelon: 'battery',
+            higherFormation: UE_HIGHER,
+            vehicles: [holding('artillery', SAMPLE_PLATFORM.bm21, 6)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ue-orbat',
+      label: 'OPFOR task force (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ue-tf-1',
+          lat: 49.22,
+          lng: 37.55,
+          milSymbol: 'armor',
+          commercialSymbol: 'vehicle',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('7th', 'Combined Arms', 'task-force'),
+            echelon: 'task-force',
+            higherFormation: 'SAMPLE Eastern Theater OPFOR',
+            vehicles: [
+              holding('tank', SAMPLE_PLATFORM.t72b3, 10),
+              holding('tank', SAMPLE_PLATFORM.t80, 4),
+              holding('ifv', SAMPLE_PLATFORM.bmp2, 16),
+              holding('artillery', SAMPLE_PLATFORM.bm21, 6),
+              holding('aircraft', SAMPLE_PLATFORM.orlan, 3),
+            ],
+          }),
+        }),
       ],
     },
   ],

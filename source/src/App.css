@@ -1151,3 +1151,99 @@
   display: block;
   height: 100%;
 }
+
+/* —— Order of battle —— */
+.orbat-panel {
+  position: absolute;
+  top: 4.6rem;
+  left: 0.55rem;
+  z-index: 1000;
+  width: min(340px, calc(100% - 1.2rem));
+  max-height: min(72%, 560px);
+  overflow: auto;
+  background: rgba(10, 16, 28, 0.94);
+  border: 1px solid #3a4e6e;
+  border-radius: 10px;
+  padding: 0.7rem 0.75rem 0.55rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.orbat-designation {
+  margin: 0.45rem 0 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f5d76e;
+}
+.orbat-meta,
+.orbat-total,
+.orbat-note {
+  margin: 0.2rem 0 0.45rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+.orbat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.orbat-table th {
+  text-align: left;
+  color: #8fa3bd;
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.25rem 0.3rem 0;
+  border-bottom: 1px solid #243044;
+}
+.orbat-table td {
+  padding: 0.28rem 0.35rem 0.28rem 0;
+  vertical-align: top;
+  border-bottom: 1px solid #1c283c;
+}
+.orbat-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #f5d76e;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.orbat-total {
+  color: #c5d4e8;
+}
+.orbat-pick-counts {
+  display: block;
+  opacity: 0.75;
+  font-size: 0.72rem;
+  margin-top: 0.12rem;
+}
+.leaflet-symbol-wrapper.is-selected {
+  filter: drop-shadow(0 0 4px #7cfc9a);
+}
+.leaflet-popup-content .orbat-designation {
+  color: #142033;
+  margin-top: 0;
+}
+.leaflet-popup-content .orbat-meta,
+.leaflet-popup-content .orbat-total {
+  color: #3d4d63;
+}
+.leaflet-popup-content .orbat-table th {
+  color: #5c6b80;
+  border-bottom-color: #d5deea;
+}
+.leaflet-popup-content .orbat-table td {
+  border-bottom-color: #e6edf5;
+}
+.leaflet-popup-content .orbat-count {
+  color: #8a5a12;
+}
+.leaflet-popup-content:has(.orbat-body) {
+  min-width: 240px;
+}
+@media (max-width: 720px) {
+  .orbat-panel {
+    top: auto;
+    bottom: 0.55rem;
+    max-height: 42%;
+  }
+}

@@ -12,6 +12,8 @@ import type {
   WargameOutcome,
   PmesiiChip,
   StrikeOverlayToggles,
+  ThreatMarker,
+  UnitOrbat,
 } from '../types';
 
 const ALL_PMESII: PmesiiChip[] = [
@@ -55,6 +57,7 @@ export function useAppState() {
   const [strikeOverlays, setStrikeOverlays] =
     useState<StrikeOverlayToggles>(DEFAULT_STRIKE_OVERLAYS);
   const [selectedStrikeId, setSelectedStrikeId] = useState<string | null>(null);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
 
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -122,10 +125,23 @@ export function useAppState() {
     hideCurrentUnitMarkers,
   ]);
 
+  const selectedUnit = useMemo(() => {
+    if (!selectedUnitId || killSwitch) return null;
+    for (const layer of visibleLayers) {
+      for (const marker of layer.markers) {
+        if (marker.id === selectedUnitId && marker.orbat) {
+          return marker as ThreatMarker & { orbat: UnitOrbat };
+        }
+      }
+    }
+    return null;
+  }, [selectedUnitId, visibleLayers, killSwitch]);
+
   const selectAo = useCallback(
     (aoId: string) => {
       setSelectedAoId(aoId);
       setSelectedStrikeId(null);
+      setSelectedUnitId(null);
       setWargameOutcome(null);
       setSelectedMitigationId(null);
       const layers = threatLayersByAo[aoId] ?? [];
@@ -168,6 +184,18 @@ export function useAppState() {
 
   const clearStrike = useCallback(() => {
     setSelectedStrikeId(null);
+  }, []);
+
+  const selectUnit = useCallback((id: string) => {
+    setSelectedUnitId(id);
+  }, []);
+
+  const toggleUnit = useCallback((id: string) => {
+    setSelectedUnitId((prev) => (prev === id ? null : id));
+  }, []);
+
+  const clearUnit = useCallback(() => {
+    setSelectedUnitId(null);
   }, []);
 
   const setSymbologyMutex = useCallback((mode: SymbologyMode) => {
@@ -271,6 +299,11 @@ export function useAppState() {
     selectStrike,
     clearStrike,
     munitionAssessment,
+    selectedUnitId,
+    selectedUnit,
+    selectUnit,
+    toggleUnit,
+    clearUnit,
   };
 }
 

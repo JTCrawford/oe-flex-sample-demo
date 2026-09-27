@@ -57,6 +57,8 @@ interface Props {
   selectedStrikeId?: string | null;
   onSelectStrike?: (id: string) => void;
   munitionAssessment?: StrikeMunitionAssessment | null;
+  selectedUnitId?: string | null;
+  onSelectUnit?: (id: string) => void;
 }
 
 type Point = {
@@ -69,6 +71,7 @@ type Point = {
   strikeId?: string;
   symbolKind?: string;
   color: string;
+  unitId?: string;
 };
 
 function milSvg(kind?: string): string {
@@ -123,13 +126,17 @@ export function GlobeView({
   selectedStrikeId = null,
   onSelectStrike,
   munitionAssessment = null,
+  selectedUnitId = null,
+  onSelectUnit,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
   const onSelectRef = useRef(onSelectAo);
   const onSelectStrikeRef = useRef(onSelectStrike);
+  const onSelectUnitRef = useRef(onSelectUnit);
   onSelectRef.current = onSelectAo;
   onSelectStrikeRef.current = onSelectStrike;
+  onSelectUnitRef.current = onSelectUnit;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -198,11 +205,12 @@ export function GlobeView({
             id: m.id,
             lat: m.lat,
             lng: m.lng,
-            label: m.label,
+            label: m.orbat?.designation ?? m.label,
             kind: 'threat',
             symbolKind:
               symbology === 'military' ? m.milSymbol : m.commercialSymbol,
             color: symbology === 'military' ? '#7CFC9A' : '#1e90ff',
+            unitId: m.orbat ? m.id : undefined,
           });
         }
       }
@@ -247,10 +255,14 @@ export function GlobeView({
         const p = d as unknown as Point;
         const el = document.createElement('div');
         const strikeSelected = !!p.strikeId && p.strikeId === selectedStrikeId;
-        el.className = `globe-marker ${p.kind}${strikeSelected ? ' selected' : ''}`;
+        const unitSelected = !!p.unitId && p.unitId === selectedUnitId;
+        el.className = `globe-marker ${p.kind}${strikeSelected || unitSelected ? ' selected' : ''}`;
         el.title = p.label;
         el.style.cursor =
-          p.kind === 'ao' || p.kind === 'strike-impact' || p.kind === 'strike-origin'
+          p.kind === 'ao' ||
+          p.kind === 'strike-impact' ||
+          p.kind === 'strike-origin' ||
+          !!p.unitId
             ? 'pointer'
             : 'default';
         el.style.pointerEvents = 'auto';
@@ -263,6 +275,9 @@ export function GlobeView({
             p.strikeId
           ) {
             onSelectStrikeRef.current?.(p.strikeId);
+          }
+          if (p.kind === 'threat' && p.unitId) {
+            onSelectUnitRef.current?.(p.unitId);
           }
         };
 
@@ -350,6 +365,7 @@ export function GlobeView({
       .pathTransitionDuration(0);
 
     const selectedStrike = strikes.find((s) => s.id === selectedStrikeId) ?? null;
+    const selectedUnitPoint = points.find((p) => p.unitId && p.unitId === selectedUnitId);
     if (selectedStrike) {
       globe.pointOfView(
         {
@@ -357,6 +373,11 @@ export function GlobeView({
           lng: (selectedStrike.originLng + selectedStrike.impactLng) / 2,
           altitude: 0.45,
         },
+        800,
+      );
+    } else if (selectedUnitPoint) {
+      globe.pointOfView(
+        { lat: selectedUnitPoint.lat, lng: selectedUnitPoint.lng, altitude: 0.55 },
         800,
       );
     } else if (selectedAoId) {
@@ -375,6 +396,7 @@ export function GlobeView({
     strikeOverlays,
     showStrikeOverlays,
     selectedStrikeId,
+    selectedUnitId,
     munitionAssessment,
   ]);
 
