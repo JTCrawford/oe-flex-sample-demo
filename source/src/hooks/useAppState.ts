@@ -3,6 +3,7 @@ import { aos, threatLayersByAo } from '../data/aos';
 import type { SphereTarget } from '../data/engagementSphere';
 import { profilesForOrbat, rangeRingsForProfiles } from '../data/munitionCatalog';
 import { inferMunitions } from '../data/munitionInference';
+import { locatedGeoHints, presentSignalsForAo } from '../data/socialSignals';
 import { strikesByAo } from '../data/strikes';
 import { vignetteForAo } from '../data/vignettes';
 import type {
@@ -59,11 +60,13 @@ export function useAppState() {
   const [strikeOverlays, setStrikeOverlays] =
     useState<StrikeOverlayToggles>(DEFAULT_STRIKE_OVERLAYS);
   const [selectedStrikeId, setSelectedStrikeId] = useState<string | null>(null);
-  const [selectionFocus, setSelectionFocus] = useState<'strike' | 'unit' | null>(
-    null,
-  );
+  const [selectionFocus, setSelectionFocus] = useState<
+    'strike' | 'unit' | 'social' | null
+  >(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [sphereTarget, setSphereTarget] = useState<SphereTarget | null>(null);
+  const [socialFeedOn, setSocialFeedOn] = useState(true);
+  const [selectedSocialId, setSelectedSocialId] = useState<string | null>(null);
 
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -85,6 +88,9 @@ export function useAppState() {
     !killSwitch &&
     !!selectedAoId;
 
+  /** Same Observe gates as strike history: AO, Military PMESII, military symbology, kill-switch. */
+  const socialFeedAvailable = strikeOverlayAvailable;
+
   const visibleStrikes = useMemo(() => {
     if (
       killSwitch ||
@@ -105,6 +111,21 @@ export function useAppState() {
   const munitionAssessment = useMemo(
     () => (selectedStrike ? inferMunitions(selectedStrike, visibleStrikes) : null),
     [selectedStrike, visibleStrikes],
+  );
+
+  const visibleSocialSignals = useMemo(() => {
+    if (!socialFeedAvailable || !socialFeedOn || !selectedAoId) return [];
+    return presentSignalsForAo(selectedAoId);
+  }, [socialFeedAvailable, socialFeedOn, selectedAoId]);
+
+  const selectedSocial = useMemo(() => {
+    if (!selectedSocialId) return null;
+    return visibleSocialSignals.find((signal) => signal.id === selectedSocialId) ?? null;
+  }, [selectedSocialId, visibleSocialSignals]);
+
+  const socialMapHints = useMemo(
+    () => locatedGeoHints(selectedSocial),
+    [selectedSocial],
   );
 
   const hideCurrentUnitMarkers =
@@ -180,6 +201,7 @@ export function useAppState() {
       setSelectedUnitId(null);
       setSphereTarget(null);
       setSelectionFocus(null);
+      setSelectedSocialId(null);
       setWargameOutcome(null);
       setSelectedMitigationId(null);
       const layers = threatLayersByAo[aoId] ?? [];
@@ -255,6 +277,20 @@ export function useAppState() {
 
   const closeSphere = useCallback(() => {
     setSphereTarget(null);
+  }, []);
+
+  const toggleSocialFeed = useCallback(() => {
+    setSocialFeedOn((prev) => !prev);
+  }, []);
+
+  const selectSocial = useCallback((id: string) => {
+    setSelectedSocialId(id);
+    setSelectionFocus('social');
+  }, []);
+
+  const clearSocial = useCallback(() => {
+    setSelectedSocialId(null);
+    setSelectionFocus((prev) => (prev === 'social' ? null : prev));
   }, []);
 
   const setSymbologyMutex = useCallback((mode: SymbologyMode) => {
@@ -369,6 +405,15 @@ export function useAppState() {
     activeSphere,
     openSphere,
     closeSphere,
+    socialFeedAvailable,
+    socialFeedOn,
+    toggleSocialFeed,
+    visibleSocialSignals,
+    selectedSocialId,
+    selectedSocial,
+    selectSocial,
+    clearSocial,
+    socialMapHints,
   };
 }
 

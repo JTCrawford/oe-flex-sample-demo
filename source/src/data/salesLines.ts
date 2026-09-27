@@ -26,6 +26,8 @@ export const salesLines: Record<string, string> = {
     'Inspect a unit pin and brief the order of battle — designation, vehicles, and the linked SAMPLE munition with its range — from one catalog.',
   engagementSphere:
     'Open a vehicle or linked munition and orbit the same SAMPLE engagement sphere — top, belly, and flanks — with known and believed points on that catalog id.',
+  socialIw:
+    'Read the information environment with the fight — Admiralty grades, claim status, and map hints on the same Observe picture.',
 };
 
 export type SalesCapabilityId = keyof typeof salesLines;

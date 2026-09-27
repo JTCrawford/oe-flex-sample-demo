@@ -1029,6 +1029,89 @@
 .leaflet-symbol-wrapper.strike-pin.is-selected {
   filter: drop-shadow(0 0 4px #f5d76e);
 }
+.leaflet-symbol-wrapper.social-pin,
+.globe-marker.social .social-pin {
+  filter: drop-shadow(0 0 4px #ffb703);
+}
+.globe-marker.social .social-pin {
+  pointer-events: none;
+}
+
+.admiralty-badge {
+  display: inline-block;
+  margin-top: 0.28rem;
+  padding: 0.08rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #ffe08a;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  font-size: 0.72rem;
+}
+.admiralty-raw {
+  display: block;
+  margin-top: 0.15rem;
+  opacity: 0.8;
+  font-size: 0.68rem;
+}
+.admiralty-badge-lg {
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.social-panel {
+  position: absolute;
+  left: 0.55rem;
+  bottom: 4.6rem;
+  z-index: 1000;
+  width: min(360px, calc(100% - 1.2rem));
+  max-height: min(46%, 420px);
+  overflow: auto;
+  background: rgba(10, 16, 28, 0.94);
+  border: 1px solid #6a5420;
+  border-radius: 10px;
+  padding: 0.7rem 0.75rem 0.55rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.social-headline {
+  margin: 0.4rem 0 0.15rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.social-meta,
+.social-grade,
+.social-body {
+  margin: 0.25rem 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.social-body {
+  font-size: 0.8rem;
+}
+.social-subhead {
+  margin: 0.45rem 0 0.15rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8fa3bd;
+}
+.social-links {
+  list-style: none;
+  padding: 0;
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.social-links code {
+  color: #8fa3bd;
+  font-size: 0.68rem;
+}
+@media (max-width: 720px) {
+  .social-panel {
+    bottom: 0.55rem;
+    max-height: 40%;
+  }
+}
 
 .strike-pick-list {
   list-style: none;

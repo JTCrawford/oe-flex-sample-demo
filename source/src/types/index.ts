@@ -338,3 +338,55 @@ export interface StrikeMunitionAssessment {
   candidates: MunitionCandidate[];
   rings: StrikeRangeRing[];
 }
+
+/** Admiralty source-reliability axis. A is strongest; F cannot be judged. */
+export type SourceReliability = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+
+/** Admiralty information-credibility axis. 1 is strongest; 6 cannot be judged. */
+export type InformationCredibility = 1 | 2 | 3 | 4 | 5 | 6;
+
+export type ClaimStatus =
+  | 'reported'
+  | 'corroborated'
+  | 'substantiated'
+  | 'refuted'
+  | 'unverified';
+
+export interface SocialGeoHint {
+  name: string;
+  lat?: number;
+  lon?: number;
+}
+
+/**
+ * Fictional social / SOCMINT indicators-and-warning card.
+ * UNCLASS SAMPLE — not a scrape or republication of a real post.
+ */
+export interface SocialSignal {
+  id: string;
+  platform: string;
+  headline: string;
+  body: string;
+  sourceLabel: string;
+  reliability: SourceReliability;
+  credibility: InformationCredibility;
+  claimStatus: ClaimStatus;
+  /** ISO capture time. */
+  capturedAt: string;
+  aoIds: string[];
+  geoHints: SocialGeoHint[];
+  relatedUnitIds?: string[];
+  relatedMunitionIds?: string[];
+  /** This card independently supports another signal in the same feed. */
+  corroboratesId?: string;
+  sampleLabel: 'SAMPLE';
+}
+
+/** Located hint drawn for the selected social card. */
+export interface SocialMapHint {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  headline: string;
+}

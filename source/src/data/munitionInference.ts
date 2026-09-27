@@ -132,6 +132,16 @@ const PROFILES: Profile[] = [
   },
 ];
 
+/**
+ * Display name for a munition id.
+ * Shared catalog designations win; inference class profiles remain as a fallback.
+ */
+export function munitionCatalogLabel(id: string): string | undefined {
+  const catalog = munitionProfileById(id);
+  if (catalog) return `${catalog.designation} — SAMPLE analog`;
+  return PROFILES.find((profile) => profile.id === id)?.name;
+}
+
 const FAMILY_MATCH_BONUS = 0.1;
 const KEYWORD_BONUS = 0.08;
 const FAMILY_MISMATCH_PENALTY = 0.34;

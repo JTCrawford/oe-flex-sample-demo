@@ -2,6 +2,7 @@ import type { AppState } from '../hooks/useAppState';
 import { profilesForOrbat } from '../data/munitionCatalog';
 import { orbatCountSummary } from '../data/orbat';
 import { PMESII_LETTERS, PMESII_TOOLTIPS } from '../data/pmesii';
+import { formatAdmiraltyBadge } from '../data/socialSignals';
 import type { StrikeOverlayToggles } from '../types';
 import { SalesCallout } from './SalesCallout';
 import { SymbolIcon } from './SymbologyIcons';
@@ -41,6 +42,13 @@ export function ObservePanel({ state }: Props) {
     visibleLayers,
     selectedUnitId,
     toggleUnit,
+    socialFeedAvailable,
+    socialFeedOn,
+    toggleSocialFeed,
+    visibleSocialSignals,
+    selectedSocialId,
+    selectSocial,
+    clearSocial,
   } = state;
 
   const unitPins = visibleLayers.flatMap((layer) =>
@@ -194,6 +202,64 @@ export function ObservePanel({ state }: Props) {
               <SalesCallout id="munitionInference" compact />
             </>
           )}
+        </section>
+      )}
+
+      {socialFeedAvailable && (
+        <section>
+          <h3>Social / SOCMINT</h3>
+          <p className="muted">
+            SAMPLE indicators-and-warning cards for this AO. Admiralty grades
+            rate source reliability (A–F) and information credibility (1–6)
+            separately. Same gates as strike history: Military filter, military
+            symbology, and kill-switch off. Fictional labels only.
+          </p>
+          <ul className="strike-overlay-list">
+            <li>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={socialFeedOn}
+                  onChange={toggleSocialFeed}
+                />
+                <span>Social / SOCMINT feed</span>
+              </label>
+            </li>
+          </ul>
+          {socialFeedOn && visibleSocialSignals.length === 0 ? (
+            <p className="muted">No SAMPLE social signals for this AO.</p>
+          ) : null}
+          {socialFeedOn && visibleSocialSignals.length > 0 ? (
+            <ul className="strike-pick-list">
+              {visibleSocialSignals.map((signal) => {
+                const selected = selectedSocialId === signal.id;
+                return (
+                  <li key={signal.id}>
+                    <button
+                      type="button"
+                      className={selected ? 'active' : ''}
+                      aria-pressed={selected}
+                      onClick={() =>
+                        selected ? clearSocial() : selectSocial(signal.id)
+                      }
+                    >
+                      {signal.headline}
+                      <small className="admiralty-badge">
+                        {formatAdmiraltyBadge(signal)}
+                      </small>
+                      {signal.upgraded ? (
+                        <small className="admiralty-raw">
+                          source grade {signal.reliability}
+                          {signal.credibility} · {signal.claimStatus}
+                        </small>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          <SalesCallout id="socialIw" compact />
         </section>
       )}
 
