@@ -71,6 +71,8 @@ export const SAMPLE_PLATFORM = {
   krazShrek: 'KrAZ Shrek (SAMPLE)',
   krazFiona: 'KrAZ Fiona (SAMPLE)',
   dismount: 'Dismount section (SAMPLE)',
+  coastalCraft: 'Coastal craft (SAMPLE)',
+  escortHull: 'Escort hull (SAMPLE)',
 } as const;
 
 export function categoryLabel(category: VehicleCategoryId): string {
@@ -106,6 +108,8 @@ const PLATFORM_SPHERE_MODEL: Record<string, string> = {
   [SAMPLE_PLATFORM.krazShrek]: 'sphere-kraz-shrek',
   [SAMPLE_PLATFORM.krazFiona]: 'sphere-kraz-fiona',
   [SAMPLE_PLATFORM.dismount]: 'sphere-soldier',
+  [SAMPLE_PLATFORM.coastalCraft]: 'sphere-vessel',
+  [SAMPLE_PLATFORM.escortHull]: 'sphere-vessel',
 };
 
 const CATEGORY_SPHERE_MODEL: Partial<Record<VehicleCategoryId, string>> = {

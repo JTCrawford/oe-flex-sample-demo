@@ -10,7 +10,14 @@ import {
 const UE_HIGHER = 'SAMPLE Ukraine East OPFOR Group';
 const UE_PARTNER = 'SAMPLE Ukraine East Partner Group';
 const SG_HIGHER = 'SAMPLE Suwałki OPFOR Group';
+const SG_PARTNER = 'SAMPLE Suwałki Partner Group';
 const HZ_HIGHER = 'SAMPLE Hormuz OPFOR Group';
+const BAB_HIGHER = 'SAMPLE Bab el-Mandeb OPFOR Group';
+const BAB_COALITION = 'SAMPLE Bab el-Mandeb Coalition';
+const PG_HIGHER = 'SAMPLE Persian Gulf OPFOR Group';
+const PG_COALITION = 'SAMPLE Persian Gulf Coalition';
+const BS_HIGHER = 'SAMPLE Black Sea OPFOR Group';
+const BS_PARTNER = 'SAMPLE Black Sea Partner Group';
 
 export const aos: AO[] = [
   {
@@ -36,6 +43,33 @@ export const aos: AO[] = [
     lat: 49.2,
     lng: 37.2,
     description: 'Unclassified SAMPLE eastern theater — current units + strike history / hot-zone vignette. Not real-time intel.',
+  },
+  {
+    id: 'bab-el-mandeb',
+    name: 'Bab el-Mandeb (SAMPLE)',
+    type: 'maritime',
+    lat: 15.0,
+    lng: 42.0,
+    description:
+      'Houthis / Yemen SAMPLE thread for the southern Red Sea and Bab el-Mandeb. Pins follow the existing Red Sea mock feed. Not real-time intel.',
+  },
+  {
+    id: 'persian-gulf',
+    name: 'Persian Gulf (SAMPLE)',
+    type: 'maritime',
+    lat: 27.5,
+    lng: 51.5,
+    description:
+      'Central Gulf SAMPLE thread from the existing fast-craft mock feed. Distinct from the Strait of Hormuz pins. Not a real unit picture.',
+  },
+  {
+    id: 'black-sea',
+    name: 'Black Sea (SAMPLE)',
+    type: 'maritime',
+    lat: 45.2,
+    lng: 31.0,
+    description:
+      'SAMPLE Black Sea picture for the Magura USV section and a patrol stand-in. Not a real fleet disposition.',
   },
 ];
 
@@ -344,6 +378,29 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
             echelon: 'flight',
             higherFormation: SG_HIGHER,
             vehicles: [holding('aircraft', SAMPLE_PLATFORM.orlan, 1)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'sg-partner-infantry',
+      label: 'Corridor defense (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'sg-partner-inf',
+          lat: 54.02,
+          lng: 23.18,
+          milSymbol: 'infantry',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Corridor', 'section'),
+            echelon: 'section',
+            higherFormation: SG_PARTNER,
+            vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
           }),
         }),
       ],
@@ -716,6 +773,296 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
               holding('aircraft', SAMPLE_PLATFORM.orlan, 3),
               holding('aircraft', SAMPLE_PLATFORM.fulcrum, 2),
             ],
+          }),
+        }),
+      ],
+    },
+  ],
+  'bab-el-mandeb': [
+    {
+      id: 'bab-shipping',
+      label: 'Red Sea shipping track (SAMPLE)',
+      pmesii: ['Economic', 'Infrastructure'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'bab-ship-1',
+          lat: 14.7,
+          lng: 42.5,
+          label: 'Merchant track (SAMPLE)',
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Economic'],
+        },
+      ],
+    },
+    {
+      id: 'bab-coastal',
+      label: 'Coastal section (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'bab-coastal-1',
+          lat: 15.5,
+          lng: 41.6,
+          milSymbol: 'infantry',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Coastal', 'section'),
+            echelon: 'section',
+            higherFormation: BAB_HIGHER,
+            vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'bab-craft',
+      label: 'Coastal craft (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'bab-craft-1',
+          lat: 15.2,
+          lng: 42.15,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'Coastal Craft', 'section'),
+            echelon: 'section',
+            higherFormation: BAB_HIGHER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.coastalCraft, 3)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'bab-escort',
+      label: 'Coalition escort (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'bab-escort-1',
+          lat: 14.9,
+          lng: 42.85,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Escort', 'section'),
+            echelon: 'section',
+            higherFormation: BAB_COALITION,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.escortHull, 1)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'bab-coalition-ground',
+      label: 'Coalition ground pin (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'bab-coalition-ground-1',
+          lat: 15.3,
+          lng: 42.3,
+          milSymbol: 'infantry',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Lane Watch', 'section'),
+            echelon: 'section',
+            higherFormation: BAB_COALITION,
+            vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
+          }),
+        }),
+      ],
+    },
+  ],
+  'persian-gulf': [
+    {
+      id: 'pg-platform',
+      label: 'Platform cluster (SAMPLE)',
+      pmesii: ['Economic', 'Infrastructure'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'pg-platform-1',
+          lat: 27.6,
+          lng: 51.8,
+          label: 'Energy platform cluster (SAMPLE)',
+          milSymbol: 'infra',
+          commercialSymbol: 'pipeline',
+          pmesii: ['Infrastructure', 'Economic'],
+        },
+      ],
+    },
+    {
+      id: 'pg-craft-a',
+      label: 'Fast-craft section A (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'pg-craft-a',
+          lat: 27.8,
+          lng: 50.9,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Fast Craft', 'section'),
+            echelon: 'section',
+            higherFormation: PG_HIGHER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.coastalCraft, 4)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'pg-craft-b',
+      label: 'Fast-craft section B (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'pg-craft-b',
+          lat: 27.2,
+          lng: 52.1,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'Fast Craft', 'section'),
+            echelon: 'section',
+            higherFormation: PG_HIGHER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.coastalCraft, 4)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'pg-escort',
+      label: 'Coalition screen (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'pg-escort-1',
+          lat: 27.7,
+          lng: 51.35,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Screen', 'section'),
+            echelon: 'section',
+            higherFormation: PG_COALITION,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.escortHull, 2)],
+          }),
+        }),
+      ],
+    },
+  ],
+  'black-sea': [
+    {
+      id: 'bs-shipping',
+      label: 'Black Sea shipping track (SAMPLE)',
+      pmesii: ['Economic', 'Infrastructure'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'bs-ship-1',
+          lat: 44.85,
+          lng: 31.35,
+          label: 'Merchant track (SAMPLE)',
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Economic'],
+        },
+      ],
+    },
+    {
+      id: 'bs-usv',
+      label: 'Magura USV section (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'bs-partner-usv',
+          lat: 45.15,
+          lng: 30.85,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'USV', 'section'),
+            echelon: 'section',
+            higherFormation: BS_PARTNER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.magura, 4)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'bs-patrol',
+      label: 'Patrol stand-in (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'bs-patrol-1',
+          lat: 45.35,
+          lng: 31.55,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Patrol', 'section'),
+            echelon: 'section',
+            higherFormation: BS_HIGHER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.coastalCraft, 2)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'bs-shore',
+      label: 'Partner shore section (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'bs-partner-inf',
+          lat: 45.55,
+          lng: 30.55,
+          milSymbol: 'infantry',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'Shore', 'section'),
+            echelon: 'section',
+            higherFormation: BS_PARTNER,
+            vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
           }),
         }),
       ],

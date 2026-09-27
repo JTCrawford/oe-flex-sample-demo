@@ -145,7 +145,9 @@ export function defaultSkinId(
   const partner =
     (unitId?.includes('partner') ?? false) || PARTNER_MODELS.has(modelId);
   if (NAVAL_MODELS.has(modelId)) return 'naval-grey';
-  if (aoId === 'hormuz') return 'desert-tan';
+  if (aoId === 'hormuz' || aoId === 'bab-el-mandeb' || aoId === 'persian-gulf') {
+    return 'desert-tan';
+  }
   if (aoId === 'ukraine-east' && partner) return 'ukrainian-digital';
   if (aoId === 'ukraine-east' || aoId === 'suwalki-gap') return 'temperate-woodland';
   if (partner) return 'ukrainian-digital';

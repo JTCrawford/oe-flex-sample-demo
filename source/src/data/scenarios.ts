@@ -1,14 +1,23 @@
 import type { ForceSide, ThreatLayer } from '../types';
 
-/** Two SAMPLE threads. Suwałki stays an AO and is not one of these. */
-export type ScenarioId = 'ukraine-russia' | 'iran-hormuz';
+/**
+ * SAMPLE hotspot tour. Each id selects one area of operations.
+ * Notes stay UNCLASS mock. They are not a real disposition.
+ */
+export type ScenarioId =
+  | 'ukraine-russia'
+  | 'iran-hormuz'
+  | 'bab-el-mandeb'
+  | 'persian-gulf'
+  | 'black-sea'
+  | 'suwalki-gap';
 
 export interface Scenario {
   id: ScenarioId;
   /** Button label. */
   label: string;
   kicker: string;
-  aoId: 'ukraine-east' | 'hormuz';
+  aoId: string;
   /** What the toggle should show. UNCLASS SAMPLE only. */
   summary: string;
 }
@@ -24,22 +33,61 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'iran-hormuz',
-    label: 'Iran / Hormuz',
-    kicker: 'Secondary',
+    label: 'Strait of Hormuz',
+    kicker: 'Iran',
     aoId: 'hormuz',
     summary:
-      'Hormuz SAMPLE thread. Coalition pins are blue. OPFOR pins are red. Engagement lines run from the strike flight and the patrol toward the shipping tracks, and from the coalition flight and ground section toward the OPFOR strike flight and coastal ground pin.',
+      'Strait of Hormuz SAMPLE thread. Coalition pins are blue. OPFOR pins are red. Engagement lines run from the strike flight and the patrol toward the shipping tracks, and from the coalition flight and ground section toward the OPFOR strike flight and coastal ground pin.',
+  },
+  {
+    id: 'bab-el-mandeb',
+    label: 'Bab el-Mandeb',
+    kicker: 'Houthis / Yemen',
+    aoId: 'bab-el-mandeb',
+    summary:
+      'Houthis / Yemen SAMPLE thread for the southern Red Sea and Bab el-Mandeb, using the existing Red Sea mock feed. Coastal pins are red. The escort and lane watch are blue. Lines run from the coastal section and coastal craft toward the merchant track, and from the escort and lane watch back toward those pins.',
+  },
+  {
+    id: 'persian-gulf',
+    label: 'Persian Gulf',
+    kicker: 'Fast craft',
+    aoId: 'persian-gulf',
+    summary:
+      'Persian Gulf SAMPLE thread from the existing fast-craft mock feed, separate from the Strait of Hormuz pins. Two red craft sections point at the energy platform cluster. The blue screen section points at the first craft section.',
+  },
+  {
+    id: 'black-sea',
+    label: 'Black Sea',
+    kicker: 'USV',
+    aoId: 'black-sea',
+    summary:
+      'Black Sea SAMPLE picture for the Magura USV section. The partner USV and shore section are blue. The patrol stand-in is red. Lines run from the patrol toward the merchant track, from the USV section toward the patrol, and from the shore section toward the patrol.',
+  },
+  {
+    id: 'suwalki-gap',
+    label: 'Suwałki Gap',
+    kicker: 'Land corridor',
+    aoId: 'suwalki-gap',
+    summary:
+      'Suwałki Gap SAMPLE land corridor. OPFOR armor, mech, and rockets are red. The corridor defense section is blue. Lines run from the armor and rockets toward the corridor node, from the mech section toward the defense section, and from the defense section toward the armor.',
   },
 ];
+
+const AO_TO_SCENARIO: Record<string, ScenarioId> = {
+  'ukraine-east': 'ukraine-russia',
+  hormuz: 'iran-hormuz',
+  'bab-el-mandeb': 'bab-el-mandeb',
+  'persian-gulf': 'persian-gulf',
+  'black-sea': 'black-sea',
+  'suwalki-gap': 'suwalki-gap',
+};
 
 export function scenarioById(id: ScenarioId): Scenario {
   return SCENARIOS.find((scenario) => scenario.id === id) ?? SCENARIOS[0];
 }
 
 export function scenarioIdForAo(aoId: string): ScenarioId | null {
-  if (aoId === 'ukraine-east') return 'ukraine-russia';
-  if (aoId === 'hormuz') return 'iran-hormuz';
-  return null;
+  return AO_TO_SCENARIO[aoId] ?? null;
 }
 
 interface EngagementSpec {
@@ -116,6 +164,112 @@ const LINES: Record<ScenarioId, EngagementSpec[]> = {
       toId: 'hormuz-coastal-1',
       side: 'friendly',
       label: 'SAMPLE coalition ground section toward the coastal ground pin',
+    },
+  ],
+  'bab-el-mandeb': [
+    {
+      id: 'bab-coast-ship',
+      fromId: 'bab-coastal-1',
+      toId: 'bab-ship-1',
+      side: 'adversary',
+      label: 'SAMPLE coastal section toward the merchant track',
+    },
+    {
+      id: 'bab-craft-ship',
+      fromId: 'bab-craft-1',
+      toId: 'bab-ship-1',
+      side: 'adversary',
+      label: 'SAMPLE coastal craft toward the merchant track',
+    },
+    {
+      id: 'bab-escort-craft',
+      fromId: 'bab-escort-1',
+      toId: 'bab-craft-1',
+      side: 'friendly',
+      label: 'SAMPLE escort toward the coastal craft',
+    },
+    {
+      id: 'bab-watch-coast',
+      fromId: 'bab-coalition-ground-1',
+      toId: 'bab-coastal-1',
+      side: 'friendly',
+      label: 'SAMPLE lane watch toward the coastal section',
+    },
+  ],
+  'persian-gulf': [
+    {
+      id: 'pg-a-platform',
+      fromId: 'pg-craft-a',
+      toId: 'pg-platform-1',
+      side: 'adversary',
+      label: 'SAMPLE fast-craft section toward the platform cluster',
+    },
+    {
+      id: 'pg-b-platform',
+      fromId: 'pg-craft-b',
+      toId: 'pg-platform-1',
+      side: 'adversary',
+      label: 'SAMPLE second fast-craft section toward the platform cluster',
+    },
+    {
+      id: 'pg-screen',
+      fromId: 'pg-escort-1',
+      toId: 'pg-craft-a',
+      side: 'friendly',
+      label: 'SAMPLE screen section toward the first fast-craft section',
+    },
+  ],
+  'black-sea': [
+    {
+      id: 'bs-patrol-ship',
+      fromId: 'bs-patrol-1',
+      toId: 'bs-ship-1',
+      side: 'adversary',
+      label: 'SAMPLE patrol stand-in toward the merchant track',
+    },
+    {
+      id: 'bs-usv-patrol',
+      fromId: 'bs-partner-usv',
+      toId: 'bs-patrol-1',
+      side: 'friendly',
+      label: 'SAMPLE USV section toward the patrol stand-in',
+    },
+    {
+      id: 'bs-shore-patrol',
+      fromId: 'bs-partner-inf',
+      toId: 'bs-patrol-1',
+      side: 'friendly',
+      label: 'SAMPLE shore section toward the patrol stand-in',
+    },
+  ],
+  'suwalki-gap': [
+    {
+      id: 'sg-armor-node',
+      fromId: 'tank-1',
+      toId: 'bridge-1',
+      side: 'adversary',
+      label: 'SAMPLE armor platoon toward the corridor node',
+    },
+    {
+      id: 'sg-rockets-node',
+      fromId: 'mlrs-1',
+      toId: 'bridge-1',
+      side: 'adversary',
+      label: 'SAMPLE rocket battery toward the corridor node',
+    },
+    {
+      id: 'sg-mech-defense',
+      fromId: 'ifv-1',
+      toId: 'sg-partner-inf',
+      side: 'adversary',
+      label: 'SAMPLE mech section toward the corridor defense section',
+    },
+    {
+      id: 'sg-defense-armor',
+      fromId: 'sg-partner-inf',
+      toId: 'tank-1',
+      side: 'friendly',
+      label: 'SAMPLE corridor defense toward the armor platoon',
     },
   ],
 };

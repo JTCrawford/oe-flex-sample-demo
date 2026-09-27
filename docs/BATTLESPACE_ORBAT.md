@@ -43,15 +43,18 @@ The sticky SAMPLE demo keeps the existing CC0 `sphere-*.glb` files as the render
 
 Verba is the first MANPADS / SHORAD row. Family label is `MANPADS / SHORAD`. Range rings use a 0.5–6 km span. A strike inference card picks Verba when the label names it. A short missile slant does not become Verba from envelope width alone.
 
-## Two SAMPLE scenarios
+## Hotspot tour
 
-The map column has a scenario toggle. Primary is **Ukraine–Russia** (Ukraine East). Secondary is **Iran / Hormuz**.
+The map column has one scenario selector. Military pins are blue for partner and coalition formations and red for OPFOR. Commercial symbology keeps commercial icons. Engagement lines draw only on the military picture. The defeat layer stays a training label and does not name a weapon or a procedure.
 
-Ukraine–Russia draws the existing eastern-theater pins. Partner formations are blue. OPFOR formations are red. Engagement lines join the missile battery to partner fires, the fighter flight to the OPFOR task force, the SHORAD section to that task force, the rocket battery to partner armor, and the partner infantry section to the OPFOR infantry section. Sphere cards for Tochka-U, Iskander 9K720, Magura V5, Liut, Verba, the MiG-29, the BTR-4E, and the dismount section use the Ukraine vignette.
-
-Iran / Hormuz draws the strait pins. Coalition formations are blue. OPFOR formations are red. Engagement lines join the strike flight and the patrol squadron to the SAMPLE shipping tracks, the coalition flight to the OPFOR strike flight, and the coalition ground section to the coastal ground pin. Sphere cards for the MiG-29, F-22, F/A-18, the Gulf patrol corvette, and the dismount section use the Hormuz vignette. Ukraine-only platforms keep their Ukraine card and say Hormuz does not add an assessment. The defeat layer stays a training label. It does not name a weapon or a procedure.
-
-Commercial symbology keeps commercial icons. Engagement lines draw only on the military picture, with the Military PMESII filter on and the kill-switch off. Suwałki Gap stays selectable and is not one of the two scenarios.
+| Toggle | What it shows |
+| --- | --- |
+| Ukraine–Russia | Ukraine East. Partner blue, OPFOR red. Lines among the missile battery, partner fires, fighter flight, task force, SHORAD, rocket battery, armor, and infantry. Sphere cards use the Ukraine vignette. |
+| Strait of Hormuz | Iran chokepoint. Coalition blue, OPFOR red. Lines from the strike flight and patrol toward shipping, and from the coalition flight and ground section toward the OPFOR pins. |
+| Bab el-Mandeb | Houthis / Yemen SAMPLE thread on the southern Red Sea, from the existing Red Sea mock feed. Coastal section and craft toward the merchant track. Escort and lane watch toward those pins. |
+| Persian Gulf | Central Gulf fast-craft SAMPLE feed, separate from Hormuz. Two craft sections toward the platform cluster. Screen section toward the first craft section. |
+| Black Sea | Magura USV section, a patrol stand-in, a merchant track, and a shore section. |
+| Suwałki Gap | Existing land-corridor AO. Armor and rockets toward the corridor node. Mech section and corridor defense section toward each other. |
 
 ## Infantry pins and soldier GLBs
 

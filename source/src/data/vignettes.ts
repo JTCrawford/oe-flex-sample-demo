@@ -194,6 +194,114 @@ export const vignettes: Vignette[] = [
       },
     ],
   },
+  {
+    id: 'vignette-bab-el-mandeb',
+    title: 'Bab el-Mandeb — merchant track (SAMPLE)',
+    aoId: 'bab-el-mandeb',
+    domain: 'sea',
+    durationSec: 36,
+    steps: [
+      {
+        t: 0,
+        title: 'Setup',
+        description: 'A SAMPLE merchant track is in the southern Red Sea under the existing mock feed.',
+        kind: 'attack',
+      },
+      {
+        t: 12,
+        title: 'Coastal picture',
+        description: 'SAMPLE coastal section and coastal craft sit on lines toward that track.',
+        kind: 'attack',
+      },
+      {
+        t: 24,
+        title: 'Mitigation: escort lane',
+        description: 'SAMPLE escort and lane watch stay on the blue side of the same picture.',
+        kind: 'mitigation',
+      },
+    ],
+    mitigations: [
+      {
+        id: 'mit-bab-escort',
+        label: 'Escort on the merchant track',
+        description: 'Keep the SAMPLE escort on the blue side of the track.',
+        cost: 'Med',
+        baseSuccess: 0.7,
+      },
+    ],
+  },
+  {
+    id: 'vignette-persian-gulf',
+    title: 'Persian Gulf — platform cluster (SAMPLE)',
+    aoId: 'persian-gulf',
+    domain: 'sea',
+    durationSec: 36,
+    steps: [
+      {
+        t: 0,
+        title: 'Setup',
+        description: 'SAMPLE energy platform cluster from the existing central Gulf mock feed.',
+        kind: 'attack',
+      },
+      {
+        t: 12,
+        title: 'Fast-craft picture',
+        description: 'Two SAMPLE craft sections sit on lines toward the cluster.',
+        kind: 'attack',
+      },
+      {
+        t: 24,
+        title: 'Mitigation: screen',
+        description: 'SAMPLE screen section stays between the cluster and the first craft section.',
+        kind: 'mitigation',
+      },
+    ],
+    mitigations: [
+      {
+        id: 'mit-pg-screen',
+        label: 'Screen the platform cluster',
+        description: 'Hold the SAMPLE screen on the blue side.',
+        cost: 'Med',
+        baseSuccess: 0.66,
+      },
+    ],
+  },
+  {
+    id: 'vignette-black-sea',
+    title: 'Black Sea — USV section (SAMPLE)',
+    aoId: 'black-sea',
+    domain: 'sea',
+    durationSec: 36,
+    steps: [
+      {
+        t: 0,
+        title: 'Setup',
+        description: 'SAMPLE merchant track with a Magura USV section and a patrol stand-in.',
+        kind: 'attack',
+      },
+      {
+        t: 12,
+        title: 'Patrol line',
+        description: 'The SAMPLE patrol stand-in sits on a line toward the merchant track.',
+        kind: 'attack',
+      },
+      {
+        t: 24,
+        title: 'Mitigation: USV and shore',
+        description: 'The partner USV section and shore section stay on lines toward the patrol stand-in.',
+        kind: 'mitigation',
+      },
+    ],
+    mitigations: [
+      {
+        id: 'mit-bs-usv',
+        label: 'Hold the USV section',
+        description: 'Keep the SAMPLE USV section on the blue side of the patrol line.',
+        cost: 'Med',
+        baseSuccess: 0.64,
+      },
+    ],
+  },
 ];
 
 export function vignetteForAo(aoId: string): Vignette | undefined {

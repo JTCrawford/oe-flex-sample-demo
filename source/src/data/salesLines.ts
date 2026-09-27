@@ -25,7 +25,7 @@ export const salesLines: Record<string, string> = {
   orbat:
     'Inspect a unit pin and brief the order of battle — designation, vehicles, and the linked SAMPLE munition with its range — from one catalog.',
   engagementSphere:
-    'Open a vehicle or linked munition and brief it in place — orbit the mesh, switch SAMPLE analysis layers, and keep the camouflage for that area of operations. Toggle Ukraine–Russia or Iran / Hormuz to move the dispositions, the engagement lines, and the layer notes.',
+    'Open a vehicle or linked munition and brief it in place — orbit the mesh, switch SAMPLE analysis layers, and keep the camouflage for that area of operations. The hotspot tour moves dispositions, engagement lines, and layer notes across the SAMPLE theaters.',
   socialIw:
     'Read the information environment with the fight — Admiralty grades, claim status, and map hints on the same Observe picture.',
 };

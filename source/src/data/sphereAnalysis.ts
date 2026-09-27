@@ -1,4 +1,5 @@
 import type { SphereModelId } from './engagementSphere';
+import { HOTSPOT_HOLD, HOTSPOT_NOTES } from './hotspotNotes';
 import type { ScenarioId } from './scenarios';
 
 /**
@@ -389,7 +390,7 @@ const HORMUZ: Partial<Record<SphereModelId, SphereAnalysis>> = {
       note(
         'flight',
         'Hormuz strike flight',
-        'Iran / Hormuz thread. SAMPLE 1st Strike Flight under SAMPLE Hormuz OPFOR Group. The public mesh is the CC0 MiG-29. Desert tan is the auto skin on this area.',
+        'Strait of Hormuz thread. SAMPLE 1st Strike Flight under SAMPLE Hormuz OPFOR Group. The public mesh is the CC0 MiG-29. Desert tan is the auto skin on this area.',
       ),
     ],
     weaknesses: [
@@ -419,7 +420,7 @@ const HORMUZ: Partial<Record<SphereModelId, SphereAnalysis>> = {
       note(
         'coalition',
         'Coalition bonus flight',
-        'Iran / Hormuz thread. SAMPLE 2nd Coalition Flight. Two F-22 rows sit beside the F/A-18 rows. Desert tan is the auto skin. Higher formation is SAMPLE Hormuz Coalition Air.',
+        'Strait of Hormuz thread. SAMPLE 2nd Coalition Flight. Two F-22 rows sit beside the F/A-18 rows. Desert tan is the auto skin. Higher formation is SAMPLE Hormuz Coalition Air.',
       ),
     ],
     weaknesses: [
@@ -450,7 +451,7 @@ const HORMUZ: Partial<Record<SphereModelId, SphereAnalysis>> = {
       note(
         'coalition',
         'Coalition bonus flight',
-        'Iran / Hormuz thread. The F/A-18 rows share SAMPLE 2nd Coalition Flight with the F-22 rows. Desert tan is the auto skin.',
+        'Strait of Hormuz thread. The F/A-18 rows share SAMPLE 2nd Coalition Flight with the F-22 rows. Desert tan is the auto skin.',
       ),
     ],
     weaknesses: [
@@ -481,7 +482,7 @@ const HORMUZ: Partial<Record<SphereModelId, SphereAnalysis>> = {
       note(
         'patrol',
         'Hormuz patrol squadron',
-        'Iran / Hormuz thread. SAMPLE 1st Patrol Squadron under SAMPLE Hormuz OPFOR Group. Two Gulf patrol corvette rows. Naval grey. The row does not name a pennant class.',
+        'Strait of Hormuz thread. SAMPLE 1st Patrol Squadron under SAMPLE Hormuz OPFOR Group. Two Gulf patrol corvette rows. Naval grey. The row does not name a pennant class.',
       ),
     ],
     weaknesses: [
@@ -511,7 +512,7 @@ const HORMUZ: Partial<Record<SphereModelId, SphereAnalysis>> = {
       note(
         'ground',
         'Two ground pins',
-        'Iran / Hormuz thread. The red pin is the SAMPLE coastal ground section. The blue pin is the SAMPLE coalition ground section. Both are fictional.',
+        'Strait of Hormuz thread. The red pin is the SAMPLE coastal ground section. The blue pin is the SAMPLE coalition ground section. Both are fictional.',
       ),
     ],
     weaknesses: [
@@ -548,11 +549,8 @@ function banner(analysis: SphereAnalysis, text: string): SphereAnalysis {
   return next;
 }
 
-const UKRAINE_HOLDS =
-  'Iran / Hormuz thread. This card stays the Ukraine–Russia SAMPLE vignette. Hormuz does not add a new assessment for this platform.';
-
 const HORMUZ_HOLDS =
-  'Ukraine–Russia thread. This platform sits on the Iran / Hormuz picture. This card does not reassess it.';
+  'Ukraine–Russia thread. This platform sits on the Strait of Hormuz picture. This card does not reassess it.';
 
 function emptyLayer(layer: SphereLayerId): SphereAnalysisNote[] {
   return [
@@ -577,17 +575,18 @@ export function sphereAnalysisFor(
   id: SphereModelId,
   scenario: ScenarioId = 'ukraine-russia',
 ): SphereAnalysis {
-  if (scenario === 'iran-hormuz') {
-    const hormuz = HORMUZ[id];
-    if (hormuz) return hormuz;
+  if (scenario !== 'ukraine-russia') {
+    const specific = scenario === 'iran-hormuz' ? HORMUZ[id] : HOTSPOT_NOTES[scenario]?.[id];
+    if (specific) return specific;
     const seeded = SEEDED[id];
-    if (seeded) return banner(seeded, UKRAINE_HOLDS);
-    return banner(unseeded(), UKRAINE_HOLDS);
+    const text = HOTSPOT_HOLD[scenario];
+    if (seeded) return banner(seeded, text);
+    return banner(unseeded(), text);
   }
   if (id === 'sphere-vessel') {
     return banner(
       unseeded(),
-      'Ukraine–Russia thread. The Gulf patrol corvette is the Hormuz patrol picture. The Ukraine naval row is the Magura section.',
+      'Ukraine–Russia thread. The Gulf patrol corvette is the Strait of Hormuz patrol picture. The Ukraine naval row is the Magura section.',
     );
   }
   if (HORMUZ_ONLY.has(id)) return banner(unseeded(), HORMUZ_HOLDS);
