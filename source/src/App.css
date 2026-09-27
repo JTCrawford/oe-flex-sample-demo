@@ -1473,6 +1473,27 @@
   border-color: #f5d76e;
   color: #f5d76e;
 }
+.sphere-layers {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+}
+.sphere-layers button {
+  background: #152033;
+  color: #e8eef7;
+  border: 1px solid #3a4e6e;
+  border-radius: 999px;
+  padding: 0.16rem 0.55rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.sphere-layers button[aria-pressed='true'] {
+  border-color: #f5d76e;
+  color: #1c1810;
+  background: #f5d76e;
+}
 .sphere-skins button small {
   font-size: 0.58rem;
   letter-spacing: 0.06em;
@@ -1637,6 +1658,91 @@
   inset: 0;
   width: 100% !important;
   height: 100% !important;
+  cursor: grab;
+  touch-action: none;
+}
+.sphere-stage canvas:active {
+  cursor: grabbing;
+}
+.sphere-orbit-hint {
+  position: absolute;
+  top: 0.45rem;
+  left: 0.55rem;
+  z-index: 2;
+  margin: 0;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(14, 22, 36, 0.88);
+  color: #e8eef7;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+.sphere-layer-float {
+  position: absolute;
+  top: 2rem;
+  right: 0.45rem;
+  z-index: 2;
+  width: min(240px, 46%);
+  max-height: calc(100% - 4.5rem);
+  overflow: auto;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(14, 22, 36, 0.9);
+  color: #e8eef7;
+  pointer-events: auto;
+}
+.sphere-layer-notes h5 {
+  margin: 0.35rem 0 0.15rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sphere-layer-notes ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sphere-layer-notes li {
+  margin: 0 0 0.35rem;
+}
+.sphere-layer-notes strong {
+  display: block;
+  font-size: 0.78rem;
+}
+.sphere-layer-notes em {
+  margin-left: 0.35rem;
+  font-style: normal;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1c1810;
+  background: #f5d76e;
+  border-radius: 2px;
+  padding: 0.02rem 0.25rem;
+}
+.sphere-layer-notes p,
+.sphere-layer-empty,
+.sphere-layer-fence {
+  margin: 0.12rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+.sphere-plates .sphere-layer-notes h5,
+.sphere-plates .sphere-layer-notes p,
+.sphere-plates .sphere-layer-empty,
+.sphere-plates .sphere-layer-fence {
+  color: #3e4654;
+}
+.sphere-plates .sphere-layer-notes {
+  margin-top: 0.45rem;
+}
+.sphere-layer-float .sphere-layer-notes p,
+.sphere-layer-float .sphere-layer-fence {
+  color: #c5d4e8;
+}
+.sphere-layer-float h5 {
+  color: #f5d76e;
 }
 .sphere-status {
   position: absolute;

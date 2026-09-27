@@ -43,6 +43,10 @@ The sticky SAMPLE demo keeps the existing CC0 `sphere-*.glb` files as the render
 
 Verba is the first MANPADS / SHORAD row. Family label is `MANPADS / SHORAD`. Range rings use a 0.5–6 km span. A strike inference card picks Verba when the label names it. A short missile slant does not become Verba from envelope width alone.
 
+## Sphere manipulation and analysis layers
+
+The engagement-sphere dialog orbits with a drag and zooms with the scroll wheel or a pinch. Four toggles sit on the card: Strengths, Weaknesses, How do I kill this?, and Capabilities. Seeded UNCLASS SAMPLE notes cover Tochka-U, Iskander 9K720, Magura V5, Liut, Verba 9K333, the MiG-29 (`sphere-fighter`), and the BTR-4E. Thin lines are marked Stub. The defeat layer is vignette language for the training card. It does not name a weapon or a procedure. Other sphere ids open the same toggles and say the card is not seeded yet. Camouflage selection is unchanged.
+
 ## Still needing geometry
 
 These are not placed as purchased-pack entries:

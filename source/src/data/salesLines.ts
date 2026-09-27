@@ -25,7 +25,7 @@ export const salesLines: Record<string, string> = {
   orbat:
     'Inspect a unit pin and brief the order of battle — designation, vehicles, and the linked SAMPLE munition with its range — from one catalog.',
   engagementSphere:
-    'Open a vehicle or linked munition and brief it in place — Janes-style 2D plates beside the 3D sphere, in the camouflage for that area of operations, with known and believed points on that catalog id.',
+    'Open a vehicle or linked munition and brief it in place — orbit the mesh, switch SAMPLE analysis layers, and keep the camouflage for that area of operations.',
   socialIw:
     'Read the information environment with the fight — Admiralty grades, claim status, and map hints on the same Observe picture.',
 };

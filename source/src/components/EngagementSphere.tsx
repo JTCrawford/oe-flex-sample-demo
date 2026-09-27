@@ -1,6 +1,11 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { BufferGeometry, Material, Mesh, Object3D, Texture, WebGLRenderer } from 'three';
 import { PLATE_VIEWS, renderMeshId, type SphereModel } from '../data/engagementSphere';
+import {
+  SPHERE_LAYERS,
+  sphereAnalysisFor,
+  type SphereLayerId,
+} from '../data/sphereAnalysis';
 import { defaultSkinId, OE_SKINS, oeSkinById } from '../data/oeSkins';
 import {
   bindOeSkin,
@@ -63,6 +68,12 @@ export default function EngagementSphere({
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const [showKnown, setShowKnown] = useState(true);
   const [showBelieved, setShowBelieved] = useState(true);
+  const [layersOn, setLayersOn] = useState<Record<SphereLayerId, boolean>>({
+    strengths: false,
+    weaknesses: false,
+    defeat: false,
+    capabilities: false,
+  });
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [narrow, setNarrow] = useState(false);
   const [tab, setTab] = useState<'brief' | 'mesh'>('brief');
@@ -248,9 +259,20 @@ export default function EngagementSphere({
 
         const controls = new OrbitControls(camera, gl.domElement);
         controls.enablePan = false;
+        controls.enableRotate = true;
+        controls.enableZoom = true;
         controls.enableDamping = false;
+        controls.zoomToCursor = false;
+        controls.rotateSpeed = 0.85;
+        controls.zoomSpeed = 0.9;
         controls.minDistance = Math.max(fitted.radius, 0.5) * 0.7;
         controls.maxDistance = Math.max(fitted.radius, 0.5) * 8;
+        controls.minPolarAngle = 0.02;
+        controls.maxPolarAngle = Math.PI - 0.02;
+        controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+        controls.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
+        controls.touches.ONE = THREE.TOUCH.ROTATE;
+        controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
         controls.target.copy(focus);
 
         let raf = 0;
@@ -387,6 +409,11 @@ export default function EngagementSphere({
   const visiblePoints = model.weakPoints.filter((point) =>
     point.confidence === 'known' ? showKnown : showBelieved,
   );
+  const analysis = useMemo(() => sphereAnalysisFor(model.id), [model.id]);
+  const activeLayers = SPHERE_LAYERS.filter((layer) => layersOn[layer.id]);
+  const toggleLayer = (id: SphereLayerId) => {
+    setLayersOn((current) => ({ ...current, [id]: !current[id] }));
+  };
 
   return (
     <div
@@ -484,6 +511,20 @@ export default function EngagementSphere({
               </button>
             ))}
           </div>
+          <div className="sphere-layers" role="group" aria-label="SAMPLE analysis layers">
+            <span className="sphere-skins-label">Layers</span>
+            {SPHERE_LAYERS.map((layer) => (
+              <button
+                key={layer.id}
+                type="button"
+                aria-pressed={layersOn[layer.id]}
+                data-testid={`sphere-layer-${layer.id}`}
+                onClick={() => toggleLayer(layer.id)}
+              >
+                {layer.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="sphere-tabs" role="tablist" aria-label="Sphere views">
           <button
@@ -513,6 +554,8 @@ export default function EngagementSphere({
             visiblePoints={visiblePoints}
             skinId={skinId}
             textureUrl={textureUrl}
+            activeLayers={activeLayers}
+            analysis={analysis}
           />
         </section>
         <div className="sphere-stage" ref={stageRef} hidden={narrow && tab !== 'mesh'}>
@@ -525,6 +568,12 @@ export default function EngagementSphere({
             <p className="sphere-status" role="alert">
               This browser could not start the SAMPLE 3D view.
             </p>
+          )}
+          <p className="sphere-orbit-hint">Drag to orbit. Scroll or pinch to zoom.</p>
+          {activeLayers.length > 0 && (
+            <div className="sphere-layer-float">
+              <AnalysisNotes activeLayers={activeLayers} analysis={analysis} />
+            </div>
           )}
           <div className="sphere-views" role="group" aria-label="Camera presets">
             {PRESETS.map((preset) => (
@@ -554,11 +603,15 @@ function RecognitionPlate({
   visiblePoints,
   skinId,
   textureUrl,
+  activeLayers,
+  analysis,
 }: {
   model: SphereModel;
   visiblePoints: SphereModel['weakPoints'];
   skinId: string;
   textureUrl: string;
+  activeLayers: { id: SphereLayerId; label: string }[];
+  analysis: ReturnType<typeof sphereAnalysisFor>;
 }) {
   const { briefing } = model;
   const skin = oeSkinById(skinId);
@@ -598,6 +651,7 @@ function RecognitionPlate({
         ))}
       </dl>
       <p className="sphere-summary">{model.summary}</p>
+      <AnalysisNotes activeLayers={activeLayers} analysis={analysis} />
       <p className="plate-points-label">Weak points</p>
       <ul className="sphere-points">
         {visiblePoints.map((point) => (
@@ -614,6 +668,48 @@ function RecognitionPlate({
       <p className="sphere-fence">{briefing.fidelity}</p>
       <SalesCallout id="engagementSphere" compact />
     </>
+  );
+}
+
+function AnalysisNotes({
+  activeLayers,
+  analysis,
+}: {
+  activeLayers: { id: SphereLayerId; label: string }[];
+  analysis: ReturnType<typeof sphereAnalysisFor>;
+}) {
+  if (activeLayers.length === 0) {
+    return (
+      <p className="sphere-layer-empty">
+        Turn on a layer for the SAMPLE vignette card.
+      </p>
+    );
+  }
+  return (
+    <div className="sphere-layer-notes" data-testid="sphere-layer-notes">
+      {activeLayers.map((layer) => (
+        <section key={layer.id} aria-label={layer.label}>
+          <h5>{layer.label}</h5>
+          {layer.id === 'defeat' && (
+            <p className="sphere-layer-fence">
+              UNCLASS SAMPLE vignette. Training labels only. Not a targeting solution
+              and not a procedure.
+            </p>
+          )}
+          <ul>
+            {analysis[layer.id].map((item) => (
+              <li key={item.id} data-stub={item.stub ? 'true' : 'false'}>
+                <strong>
+                  {item.title}
+                  {item.stub && <em>Stub</em>}
+                </strong>
+                <p>{item.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }
 
