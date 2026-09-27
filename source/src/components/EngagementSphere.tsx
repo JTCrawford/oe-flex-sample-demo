@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import type { BufferGeometry, Group, Material, Mesh, Object3D, WebGLRenderer } from 'three';
-import type { SphereModel, SphereModelId } from '../data/engagementSphere';
+import type { BufferGeometry, Material, Mesh, Object3D, Texture, WebGLRenderer } from 'three';
+import type { SphereModel } from '../data/engagementSphere';
 import { SalesCallout } from './SalesCallout';
 
 interface Props {
@@ -19,37 +19,9 @@ const PRESETS: { id: string; label: string; dir: readonly [number, number, numbe
   { id: 'back', label: 'Back', dir: [0, 0.14, -1] },
 ];
 
-async function loadSphereMesh(id: SphereModelId) {
-  switch (id) {
-    case 'sphere-mbt': {
-      const mod = await import('../sphere/mbt');
-      return { build: mod.buildMbt, anchors: mod.mbtAnchors };
-    }
-    case 'sphere-fighter': {
-      const mod = await import('../sphere/fighter');
-      return { build: mod.buildFighter, anchors: mod.fighterAnchors };
-    }
-    case 'sphere-vessel': {
-      const mod = await import('../sphere/vessel');
-      return { build: mod.buildVessel, anchors: mod.vesselAnchors };
-    }
-    case 'sphere-tochka-u':
-    case 'sphere-iskander-m':
-    case 'sphere-atacms-block-i':
-    case 'sphere-atacms-later-block': {
-      const mod = await import('../sphere/srbm');
-      const variant = mod.variantForModel(id);
-      return {
-        build: (root: Group) => mod.buildSrbm(root, variant),
-        anchors: mod.srbmAnchors(variant),
-      };
-    }
-  }
-}
-
 /**
- * Lazy three.js viewer. Geometry is built on open and the WebGL context is
- * released on close so the globe can keep its own context.
+ * Lazy three.js viewer. The photoreal GLB is fetched on open and the WebGL
+ * context is released on close so the globe can keep its own context.
  */
 export default function EngagementSphere({
   model,
@@ -94,7 +66,10 @@ export default function EngagementSphere({
         const { OrbitControls } = await import(
           'three/addons/controls/OrbitControls.js'
         );
-        const mesh = await loadSphereMesh(model.id);
+        const { RoomEnvironment } = await import(
+          'three/addons/environments/RoomEnvironment.js'
+        );
+        const { loadPhotoreal } = await import('../sphere/loadPhotoreal');
         if (disposed) return;
 
         const coarse = window.matchMedia('(pointer: coarse)').matches;
@@ -105,8 +80,11 @@ export default function EngagementSphere({
           preserveDrawingBuffer: true,
         });
         renderer = gl;
+        gl.outputColorSpace = THREE.SRGBColorSpace;
+        gl.toneMapping = THREE.ACESFilmicToneMapping;
+        gl.toneMappingExposure = 1.05;
         gl.setPixelRatio(Math.min(window.devicePixelRatio || 1, coarse ? 1.25 : 1.5));
-        gl.setClearColor(0x101820, 1);
+        gl.setClearColor(0x6a727c, 1);
         gl.domElement.style.width = '100%';
         gl.domElement.style.height = '100%';
         gl.domElement.style.display = 'block';
@@ -115,14 +93,51 @@ export default function EngagementSphere({
         stage.appendChild(gl.domElement);
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 200);
+        const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 8000);
         const modelRoot = new THREE.Group();
         scene.add(modelRoot);
-        mesh.build(modelRoot);
+        const loaded = await loadPhotoreal(model.id, modelRoot);
+        if (disposed) {
+          disposeHierarchy(modelRoot);
+          gl.dispose();
+          gl.forceContextLoss();
+          gl.domElement.remove();
+          return;
+        }
 
+        const pmrem = new THREE.PMREMGenerator(gl);
+        const envScene = new RoomEnvironment();
+        const envTex = pmrem.fromScene(envScene, 0.04).texture;
+        scene.environment = envTex;
+        scene.environmentIntensity = 1.05;
+        envScene.traverse((obj) => {
+          const mesh = obj as Mesh;
+          if (mesh.isMesh) {
+            mesh.geometry?.dispose();
+            const material = mesh.material;
+            if (Array.isArray(material)) material.forEach((item) => item.dispose());
+            else material?.dispose();
+          }
+        });
+
+        scene.add(new THREE.HemisphereLight(0xd5e2f2, 0x6a5a48, 0.35));
+        const key = new THREE.DirectionalLight(0xfff5e8, coarse ? 1.4 : 2.4);
+        key.position.set(4, 8, 6);
+        scene.add(key);
+        const fill = new THREE.DirectionalLight(0xb7c9dc, 0.45);
+        fill.position.set(-6, 2, -4);
+        scene.add(fill);
+
+        const bounds = new THREE.Box3().setFromObject(modelRoot);
+        const fitted = bounds.getBoundingSphere(new THREE.Sphere());
+        const span = Math.max(fitted.radius, 0.5);
+        camera.near = span * 0.01;
+        camera.far = span * 80;
+        camera.updateProjectionMatrix();
+        const markerR = span * 0.04;
         const known = new THREE.Group();
         const believed = new THREE.Group();
-        modelRoot.add(known, believed);
+        loaded.scene.add(known, believed);
         const knownMat = new THREE.MeshBasicMaterial({
           color: 0xf5a623,
           side: THREE.DoubleSide,
@@ -133,39 +148,44 @@ export default function EngagementSphere({
           side: THREE.DoubleSide,
         });
         for (const point of model.weakPoints) {
-          const at = mesh.anchors[point.id];
+          const at = loaded.anchors[point.id];
           if (!at) continue;
           const marker = new THREE.Mesh(
-            new THREE.OctahedronGeometry(point.confidence === 'known' ? 0.14 : 0.18, 0),
+            new THREE.OctahedronGeometry(
+              point.confidence === 'known' ? markerR : markerR * 1.25,
+              0,
+            ),
             point.confidence === 'known' ? knownMat : believedMat,
           );
           marker.position.set(at[0], at[1], at[2]);
           (point.confidence === 'known' ? known : believed).add(marker);
         }
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-        scene.add(new THREE.HemisphereLight(0xc5d4e8, 0x6a5a48, 0.75));
-        const key = new THREE.DirectionalLight(0xffffff, 1.3);
-        key.position.set(4, 7, 5);
-        scene.add(key);
-        const fill = new THREE.DirectionalLight(0x9eb6d0, 0.5);
-        fill.position.set(-5, 2, -3);
-        scene.add(fill);
-
-        const bounds = new THREE.Box3().setFromObject(modelRoot);
-        const fitted = bounds.getBoundingSphere(new THREE.Sphere());
+        const shadow = contactShadowTexture(THREE);
+        const footprint = Math.max(fitted.radius, 0.5) * 2.4;
+        const ground = new THREE.Mesh(
+          new THREE.PlaneGeometry(footprint, footprint),
+          new THREE.MeshBasicMaterial({
+            map: shadow,
+            transparent: true,
+            depthWrite: false,
+          }),
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.set(fitted.center.x, bounds.min.y - markerR * 0.15, fitted.center.z);
+        scene.add(ground);
         const focus = fitted.center.clone();
         const viewRadius =
           (Math.max(fitted.radius, 0.5) * 1.55) /
           Math.tan((camera.fov * Math.PI) / 360);
 
         const wire = new THREE.Mesh(
-          new THREE.SphereGeometry(Math.max(fitted.radius, 0.5) * 1.65, 16, 12),
+          new THREE.SphereGeometry(Math.max(fitted.radius, 0.5) * 1.65, 20, 14),
           new THREE.MeshBasicMaterial({
-            color: 0x6ec6ff,
+            color: 0x1d4e78,
             wireframe: true,
             transparent: true,
-            opacity: 0.16,
+            opacity: 0.28,
           }),
         );
         wire.position.copy(focus);
@@ -250,6 +270,9 @@ export default function EngagementSphere({
           controls.removeEventListener('change', onChange);
           controls.removeEventListener('start', onStart);
           controls.dispose();
+          scene.environment = null;
+          envTex.dispose();
+          pmrem.dispose();
           disposeHierarchy(scene);
           gl.dispose();
           gl.forceContextLoss();
@@ -295,12 +318,13 @@ export default function EngagementSphere({
       >
         <header className="sphere-head">
           <div>
-            <p className="munition-kicker">UNCLASS · SAMPLE · stylized model</p>
+            <p className="munition-kicker">UNCLASS · SAMPLE · photoreal analog</p>
             <h3 id={titleId}>Engagement sphere</h3>
             <p className="sphere-sub">
               {typeDesignation}
               <span> · {unitDesignation}</span>
             </p>
+            <p className="sphere-analog">{model.analog}</p>
             <p className="sphere-model-id">
               Model <code className="sphere-id">{model.id}</code>
             </p>
@@ -312,7 +336,7 @@ export default function EngagementSphere({
         <div className="sphere-stage" ref={stageRef}>
           {phase === 'loading' && (
             <p className="sphere-status" role="status">
-              Loading SAMPLE mesh…
+              Loading photoreal SAMPLE model…
             </p>
           )}
           {phase === 'error' && (
@@ -377,8 +401,9 @@ export default function EngagementSphere({
             <p className="muted">Both overlays are off. The mesh stays in view.</p>
           )}
           <p className="sphere-fence">
-            Fictional weak points on a stylized mesh. Not a photograph, not a
-            technical drawing, and not an assessment of any real vehicle.
+            Fictional weak points on an original photoreal SAMPLE analog. Not a
+            photograph, scan, or technical drawing, and not an assessment of any
+            fielded vehicle.
           </p>
           <SalesCallout id="engagementSphere" compact />
         </aside>
@@ -390,14 +415,50 @@ export default function EngagementSphere({
 function disposeHierarchy(root: Object3D) {
   const geos = new Set<BufferGeometry>();
   const mats = new Set<Material>();
+  const textures = new Set<Texture>();
   root.traverse((obj) => {
     const mesh = obj as Mesh;
     if (!mesh.isMesh) return;
     geos.add(mesh.geometry);
     const material = mesh.material;
-    if (Array.isArray(material)) material.forEach((item) => mats.add(item));
-    else mats.add(material);
+    const list = Array.isArray(material) ? material : [material];
+    list.forEach((item) => {
+      if (!item) return;
+      mats.add(item);
+      const maps = item as Material & Record<string, Texture | null | undefined>;
+      for (const key of [
+        'map',
+        'normalMap',
+        'roughnessMap',
+        'metalnessMap',
+        'aoMap',
+        'emissiveMap',
+        'alphaMap',
+        'bumpMap',
+      ]) {
+        const tex = maps[key];
+        if (tex && 'isTexture' in tex) textures.add(tex);
+      }
+    });
   });
   geos.forEach((geometry) => geometry.dispose());
   mats.forEach((material) => material.dispose());
+  textures.forEach((texture) => texture.dispose());
+}
+
+function contactShadowTexture(THREE: typeof import('three')) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const gradient = ctx.createRadialGradient(64, 64, 10, 64, 64, 64);
+    gradient.addColorStop(0, 'rgba(0,0,0,0.45)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }

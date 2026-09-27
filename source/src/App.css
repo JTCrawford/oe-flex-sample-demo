@@ -1406,6 +1406,12 @@
   color: #9ab;
   font-weight: 400;
 }
+.sphere-analog {
+  margin: 0.28rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f5d76e;
+}
 .sphere-model-id {
   margin: 0.15rem 0 0;
   font-size: 0.72rem;
@@ -1414,7 +1420,7 @@
 .sphere-stage {
   position: relative;
   min-height: 280px;
-  background: #101820;
+  background: #6a727c;
 }
 .sphere-stage canvas {
   position: absolute;
