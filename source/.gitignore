@@ -12,6 +12,25 @@ dist
 dist-ssr
 *.local
 
+# Purchased raw packs. The repo-root .gitignore is authoritative.
+**/models/skins/tochka-u/
+**/models/skins/iskander-9k720/
+**/models/skins/magura-v5/
+**/models/skins/liut-ugv/
+**/models/skins/manpads/
+**/models/skins/fighters/
+**/models/skins/ukrainian-armored-vehicles/
+**/models/**/*.fbx
+**/models/**/*.FBX
+**/models/**/*.obj
+**/models/**/*.OBJ
+**/models/**/*.tga
+**/models/**/*.TGA
+**/models/**/*.rar
+**/models/**/*.RAR
+**/models/**/*.mtl
+**/models/**/*.MTL
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

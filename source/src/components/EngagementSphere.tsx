@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { BufferGeometry, Material, Mesh, Object3D, Texture, WebGLRenderer } from 'three';
-import { PLATE_VIEWS, type SphereModel } from '../data/engagementSphere';
+import { PLATE_VIEWS, renderMeshId, type SphereModel } from '../data/engagementSphere';
 import { defaultSkinId, OE_SKINS, oeSkinById } from '../data/oeSkins';
 import {
   bindOeSkin,
@@ -418,6 +418,23 @@ export default function EngagementSphere({
             <p className="sphere-model-id">
               Model <code className="sphere-id">{model.id}</code>
             </p>
+            <p
+              className="sphere-geometry"
+              data-testid="sphere-geometry-status"
+              data-geometry-status={model.geometry.status}
+              data-render-mesh={model.geometry.renderMeshId}
+            >
+              {model.geometry.status === 'licensed-pending-embed'
+                ? 'Licensed geometry: Mac-local / pending optimized embed'
+                : 'CC0 recognition mesh'}
+              {model.geometry.renderMeshId !== model.id && (
+                <>
+                  {' '}
+                  · public stand-in{' '}
+                  <code className="sphere-id">{model.geometry.renderMeshId}</code>
+                </>
+              )}
+            </p>
           </div>
           <button ref={closeRef} type="button" onClick={onClose}>
             Close
@@ -559,7 +576,7 @@ function RecognitionPlate({
         {PLATE_VIEWS.map((view) => (
           <figure key={view.id} className="plate-still">
             <SkinnedStill
-              plateUrl={`${base}models/plates/${model.id}-${view.id}.png`}
+              plateUrl={`${base}models/plates/${renderMeshId(model.id)}-${view.id}.png`}
               textureUrl={textureUrl}
               tile={skin.plateTile}
               alt={`${briefing.designation}, ${view.label.toLowerCase()} view, ${skin.label}`}

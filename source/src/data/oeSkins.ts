@@ -1,4 +1,4 @@
-import type { SphereModelId } from './engagementSphere';
+import { renderMeshId, type SphereModelId } from './engagementSphere';
 
 /**
  * Operational-environment camouflage. Each skin is an original pattern
@@ -61,7 +61,8 @@ export const OE_SKINS: OeSkin[] = [
   {
     id: 'naval-grey',
     label: 'Naval grey',
-    summary: 'Haze-grey panel pattern for the Gulf patrol corvette. Hull grey, not a land scheme.',
+    summary:
+      'Haze-grey panel pattern for the Gulf patrol corvette and the Magura V5 USV. Hull grey, not a land scheme.',
     oeIds: ['hormuz'],
     file: 'naval-grey.png',
     repeatMeters: 16,
@@ -93,6 +94,22 @@ export const OE_SKINS: OeSkin[] = [
 const PARTNER_MODELS = new Set<SphereModelId>([
   'sphere-atacms-block-i',
   'sphere-atacms-later-block',
+  'sphere-liut',
+  'sphere-verba',
+  'sphere-btr-4e',
+  'sphere-dozor-b',
+  'sphere-novator',
+  'sphere-kraz-shrek',
+  'sphere-kraz-fiona',
+]);
+
+const NAVAL_MODELS = new Set<SphereModelId>(['sphere-vessel', 'sphere-magura']);
+
+const FIGHTER_MODELS = new Set<SphereModelId>([
+  'sphere-fighter',
+  'sphere-su27',
+  'sphere-f22',
+  'sphere-fa18',
 ]);
 
 export function oeSkinById(id: string): OeSkin {
@@ -106,17 +123,19 @@ export function skinFolder(skin: OeSkin, aoId: string | null): string {
 }
 
 export function repeatMetersFor(skin: OeSkin, modelId: SphereModelId): number {
-  if (modelId === 'sphere-vessel') {
+  const mesh = renderMeshId(modelId);
+  if (mesh === 'sphere-vessel') {
     return skin.id === 'naval-grey' ? skin.repeatMeters * 1.35 : skin.repeatMeters * 3;
   }
-  if (modelId === 'sphere-fighter') return skin.repeatMeters * 1.35;
+  if (mesh === 'sphere-fighter') return skin.repeatMeters * 1.35;
   return skin.repeatMeters;
 }
 
 /**
  * Skin the dialog selects when it opens. The analyst can pick another.
- * Vessel stays naval grey. Hormuz air and land go desert tan.
- * Ukraine East partner launchers go digital; other Ukraine and Suwałki vehicles go woodland.
+ * Vessels and the Magura USV stay naval grey. Hormuz air and land go desert tan.
+ * Ukraine East partner vehicles, including Liut, Verba, and Ukrainian armor, go
+ * digital; other Ukraine and Suwałki vehicles go woodland.
  */
 export function defaultSkinId(
   aoId: string | null,
@@ -125,11 +144,11 @@ export function defaultSkinId(
 ): string {
   const partner =
     (unitId?.includes('partner') ?? false) || PARTNER_MODELS.has(modelId);
-  if (modelId === 'sphere-vessel') return 'naval-grey';
+  if (NAVAL_MODELS.has(modelId)) return 'naval-grey';
   if (aoId === 'hormuz') return 'desert-tan';
   if (aoId === 'ukraine-east' && partner) return 'ukrainian-digital';
   if (aoId === 'ukraine-east' || aoId === 'suwalki-gap') return 'temperate-woodland';
   if (partner) return 'ukrainian-digital';
-  if (modelId === 'sphere-fighter') return 'desert-tan';
+  if (FIGHTER_MODELS.has(modelId)) return 'desert-tan';
   return 'temperate-woodland';
 }

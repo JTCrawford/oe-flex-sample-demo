@@ -1,5 +1,5 @@
 import type { Group, Object3D } from 'three';
-import type { SphereModelId } from '../data/engagementSphere';
+import { renderMeshId, type SphereModelId } from '../data/engagementSphere';
 
 /** Local anchors in model space: Y up, +Z front / bow / nose, +X starboard. */
 export type AnchorMap = Record<string, readonly [number, number, number]>;
@@ -19,7 +19,7 @@ export async function loadPhotoreal(
   const THREE = await import('three');
   const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
   const loader = new GLTFLoader();
-  const url = urlOverride || `${import.meta.env.BASE_URL}models/${id}.glb`;
+  const url = urlOverride || `${import.meta.env.BASE_URL}models/${renderMeshId(id)}.glb`;
   const gltf = await loader.loadAsync(url);
   const scene = gltf.scene;
   scene.updateMatrixWorld(true);

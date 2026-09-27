@@ -16,7 +16,9 @@ import type {
 export const VEHICLE_CATEGORY_LABEL: Record<VehicleCategoryId, string> = {
   tank: 'Tanks',
   ifv: 'IFVs',
+  ugv: 'UGVs',
   artillery: 'Artillery',
+  shorad: 'SHORAD',
   aircraft: 'Aircraft',
   ship: 'Ships',
 };
@@ -24,7 +26,9 @@ export const VEHICLE_CATEGORY_LABEL: Record<VehicleCategoryId, string> = {
 const CATEGORY_ORDER: VehicleCategoryId[] = [
   'tank',
   'ifv',
+  'ugv',
   'artillery',
+  'shorad',
   'aircraft',
   'ship',
 ];
@@ -48,10 +52,21 @@ export const SAMPLE_PLATFORM = {
   orlan: 'Orlan-10 analog (SAMPLE)',
   fulcrum: 'MiG-29 Fulcrum (SAMPLE)',
   corvette: 'Gulf patrol corvette (SAMPLE)',
-  tochkaTel: '9P129 Tochka-U TEL (SAMPLE)',
-  iskanderTel: '9P78-1 Iskander-M TEL (SAMPLE)',
+  tochkaTel: 'Tochka-U (SAMPLE)',
+  iskanderTel: 'Iskander 9K720 (SAMPLE)',
   himars: 'M142 HIMARS (SAMPLE)',
   m270: 'M270 MLRS (SAMPLE)',
+  magura: 'Magura V5 (SAMPLE)',
+  liut: 'Liut UGV (SAMPLE)',
+  verba: 'Verba 9K333 (SAMPLE)',
+  su27: 'Su-27 Flanker (SAMPLE)',
+  f22: 'F-22 Raptor (SAMPLE)',
+  fa18: 'F/A-18 Hornet (SAMPLE)',
+  btr4e: 'BTR-4E (SAMPLE)',
+  dozorB: 'Dozor-B (SAMPLE)',
+  novator: 'Novator (SAMPLE)',
+  krazShrek: 'KrAZ Shrek (SAMPLE)',
+  krazFiona: 'KrAZ Fiona (SAMPLE)',
 } as const;
 
 export function categoryLabel(category: VehicleCategoryId): string {
@@ -75,6 +90,17 @@ const PLATFORM_SPHERE_MODEL: Record<string, string> = {
   [SAMPLE_PLATFORM.t80]: 'sphere-mbt',
   [SAMPLE_PLATFORM.fulcrum]: 'sphere-fighter',
   [SAMPLE_PLATFORM.corvette]: 'sphere-vessel',
+  [SAMPLE_PLATFORM.magura]: 'sphere-magura',
+  [SAMPLE_PLATFORM.liut]: 'sphere-liut',
+  [SAMPLE_PLATFORM.verba]: 'sphere-verba',
+  [SAMPLE_PLATFORM.su27]: 'sphere-su27',
+  [SAMPLE_PLATFORM.f22]: 'sphere-f22',
+  [SAMPLE_PLATFORM.fa18]: 'sphere-fa18',
+  [SAMPLE_PLATFORM.btr4e]: 'sphere-btr-4e',
+  [SAMPLE_PLATFORM.dozorB]: 'sphere-dozor-b',
+  [SAMPLE_PLATFORM.novator]: 'sphere-novator',
+  [SAMPLE_PLATFORM.krazShrek]: 'sphere-kraz-shrek',
+  [SAMPLE_PLATFORM.krazFiona]: 'sphere-kraz-fiona',
 };
 
 const CATEGORY_SPHERE_MODEL: Partial<Record<VehicleCategoryId, string>> = {

@@ -8,7 +8,7 @@ These GLBs are **original models** made for this repository in `source/tools/bui
 
 License for the geometry, baked PBR textures, and the plate PNGs rendered from those meshes: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). No third-party model files are vendored.
 
-Paid packs that would replace these meshes, if authorized, are listed in [`docs/SPHERE_MODEL_PROCUREMENT.md`](docs/SPHERE_MODEL_PROCUREMENT.md). None of those files are in this repo.
+Paid packs that would replace these meshes are listed in [`docs/SPHERE_MODEL_PROCUREMENT.md`](docs/SPHERE_MODEL_PROCUREMENT.md) and [`docs/BATTLESPACE_ORBAT.md`](docs/BATTLESPACE_ORBAT.md). Purchased raw files stay on the authoring Mac. None of those FBX, OBJ, TGA, or RAR packs are in this repo. Catalog ids that do not yet have their own GLB render one of the CC0 files in the table below.
 
 Regenerate:
 

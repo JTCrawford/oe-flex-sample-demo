@@ -26,6 +26,7 @@ import { holdingsInCatalogOrder } from './orbat';
 export const MUNITION_FAMILY_LABEL: Record<MunitionFamily, string> = {
   srbm: 'Short-range ballistic',
   'tactical-ballistic': 'Tactical ballistic',
+  manpads: 'MANPADS / SHORAD',
 };
 
 /** Same palette as strike-inference envelopes: one color per linked profile. */
@@ -111,6 +112,23 @@ export const MUNITION_CATALOG: MunitionProfile[] = [
     engagementSphereModelId: 'sphere-atacms-later-block',
     matchKeywords: ['atacms later', 'later block', 'block ia'],
     inferenceBlurb: 'Later-block ATACMS tactical ballistic.',
+  },
+  {
+    id: 'verba',
+    designation: 'Verba 9K333',
+    shortName: 'Verba 9K333',
+    family: 'manpads',
+    role: 'MANPADS / SHORAD',
+    rangeMinKm: 0.5,
+    rangeMaxKm: 6,
+    ringMode: 'span',
+    notes:
+      'UNCLASS open-source SAMPLE analog — not a real formation or national attribution. Verba is often cited near 0.5–6 km. Inner ring is the 0.5 km minimum; outer ring is the 6 km maximum. Licensed geometry is Mac-local and pending an optimized private embed.',
+    sampleLabel: 'SAMPLE',
+    classification: 'UNCLASS',
+    engagementSphereModelId: 'sphere-verba',
+    matchKeywords: ['verba', '9k333', '9k-333', 'manpads'],
+    inferenceBlurb: 'Verba 9K333 class MANPADS.',
   },
 ];
 

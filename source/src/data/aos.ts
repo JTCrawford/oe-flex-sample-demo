@@ -8,6 +8,7 @@ import {
 } from './orbat';
 
 const UE_HIGHER = 'SAMPLE Ukraine East OPFOR Group';
+const UE_PARTNER = 'SAMPLE Ukraine East Partner Group';
 const SG_HIGHER = 'SAMPLE Suwałki OPFOR Group';
 const HZ_HIGHER = 'SAMPLE Hormuz OPFOR Group';
 
@@ -168,6 +169,32 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
             echelon: 'flight',
             higherFormation: HZ_HIGHER,
             vehicles: [holding('aircraft', SAMPLE_PLATFORM.fulcrum, 4)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'hormuz-coalition-air',
+      label: 'Coalition bonus airframes (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'air',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'hormuz-coalition-1',
+          lat: 26.92,
+          lng: 56.28,
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'Coalition', 'flight'),
+            echelon: 'flight',
+            higherFormation: 'SAMPLE Hormuz Coalition Air',
+            vehicles: [
+              holding('aircraft', SAMPLE_PLATFORM.f22, 2),
+              holding('aircraft', SAMPLE_PLATFORM.fa18, 2),
+            ],
           }),
         }),
       ],
@@ -442,6 +469,131 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
               holding('artillery', SAMPLE_PLATFORM.m270, 2, ['atacms-later-block']),
             ],
             linkedMunitionIds: ['atacms-block-i', 'atacms-later-block'],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ue-black-sea-usv',
+      label: 'Black Sea USV (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ue-partner-usv',
+          lat: 48.78,
+          lng: 36.95,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'USV', 'section'),
+            echelon: 'section',
+            higherFormation: UE_PARTNER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.magura, 4)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ue-partner-ugv',
+      label: 'Ukrainian UGV (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ue-partner-ugv',
+          lat: 49.05,
+          lng: 37.32,
+          milSymbol: 'armor',
+          commercialSymbol: 'vehicle',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'UGV', 'section'),
+            echelon: 'section',
+            higherFormation: UE_PARTNER,
+            vehicles: [holding('ugv', SAMPLE_PLATFORM.liut, 3)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ue-partner-shorad',
+      label: 'MANPADS / SHORAD (SAMPLE)',
+      pmesii: ['Military', 'Time'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ue-partner-shorad',
+          lat: 49.52,
+          lng: 37.08,
+          milSymbol: 'arty',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Time'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'SHORAD', 'section'),
+            echelon: 'section',
+            higherFormation: UE_PARTNER,
+            vehicles: [holding('shorad', SAMPLE_PLATFORM.verba, 6, ['verba'])],
+            linkedMunitionIds: ['verba'],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ue-partner-armor',
+      label: 'Ukrainian armored vehicles (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ue-partner-armor',
+          lat: 48.88,
+          lng: 37.58,
+          milSymbol: 'armor',
+          commercialSymbol: 'vehicle',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('4th', 'Armored', 'company'),
+            echelon: 'company',
+            higherFormation: UE_PARTNER,
+            vehicles: [
+              holding('ifv', SAMPLE_PLATFORM.btr4e, 4),
+              holding('ifv', SAMPLE_PLATFORM.dozorB, 4),
+              holding('ifv', SAMPLE_PLATFORM.novator, 3),
+              holding('ifv', SAMPLE_PLATFORM.krazShrek, 2),
+              holding('ifv', SAMPLE_PLATFORM.krazFiona, 2),
+            ],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ue-partner-air',
+      label: 'Ukrainian fighter flight (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'air',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ue-partner-air',
+          lat: 49.68,
+          lng: 37.42,
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Fighter', 'flight'),
+            echelon: 'flight',
+            higherFormation: UE_PARTNER,
+            vehicles: [
+              holding('aircraft', SAMPLE_PLATFORM.su27, 2),
+              holding('aircraft', SAMPLE_PLATFORM.fulcrum, 2),
+            ],
           }),
         }),
       ],

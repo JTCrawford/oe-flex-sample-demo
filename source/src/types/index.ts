@@ -52,7 +52,14 @@ export interface ThreatLayer {
  * Add a member here and a label in `VEHICLE_CATEGORY_LABEL` — the pin
  * detail panel iterates holdings and does not switch on category.
  */
-export type VehicleCategoryId = 'tank' | 'ifv' | 'artillery' | 'aircraft' | 'ship';
+export type VehicleCategoryId =
+  | 'tank'
+  | 'ifv'
+  | 'ugv'
+  | 'artillery'
+  | 'shorad'
+  | 'aircraft'
+  | 'ship';
 
 /** Echelon in the SAMPLE designation scheme. Extend the label map with the union. */
 export type UnitEchelon =
@@ -73,14 +80,14 @@ export interface VehicleHolding {
   /** Shared `MunitionProfile` ids this platform is assessed to carry. */
   linkedMunitionIds?: string[];
   /**
-   * Stable engagement-sphere mesh id (`sphere-mbt`, `sphere-fighter`, `sphere-vessel`).
+   * Stable engagement-sphere catalog id (`sphere-mbt`, `sphere-magura`, `sphere-verba`).
    * Linked munitions keep their id on `MunitionProfile` instead.
    */
   engagementSphereModelId?: string;
 }
 
 /** Open-source family for a shared SAMPLE munition record. */
-export type MunitionFamily = 'srbm' | 'tactical-ballistic';
+export type MunitionFamily = 'srbm' | 'tactical-ballistic' | 'manpads';
 
 /**
  * How min/max are drawn.

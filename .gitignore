@@ -1,1 +1,22 @@
 node_modules/
+
+# Purchased raw geometry stays on the authoring Mac.
+# CC0 OE skin PNGs under models/skins/<oe-id>/ stay tracked.
+# These directory names are the purchased packs. Do not commit them.
+**/models/skins/tochka-u/
+**/models/skins/iskander-9k720/
+**/models/skins/magura-v5/
+**/models/skins/liut-ugv/
+**/models/skins/manpads/
+**/models/skins/fighters/
+**/models/skins/ukrainian-armored-vehicles/
+**/models/**/*.fbx
+**/models/**/*.FBX
+**/models/**/*.obj
+**/models/**/*.OBJ
+**/models/**/*.tga
+**/models/**/*.TGA
+**/models/**/*.rar
+**/models/**/*.RAR
+**/models/**/*.mtl
+**/models/**/*.MTL
