@@ -6,6 +6,7 @@ import type {
   StrikeEvent,
   StrikeMunitionAssessment,
   StrikeOverlayToggles,
+  StrikeRangeRing,
   SymbologyMode,
   ThreatLayer,
 } from '../types';
@@ -59,6 +60,8 @@ interface Props {
   munitionAssessment?: StrikeMunitionAssessment | null;
   selectedUnitId?: string | null;
   onSelectUnit?: (id: string) => void;
+  unitRangeRings?: StrikeRangeRing[];
+  selectionFocus?: 'strike' | 'unit' | null;
 }
 
 type Point = {
@@ -128,6 +131,8 @@ export function GlobeView({
   munitionAssessment = null,
   selectedUnitId = null,
   onSelectUnit,
+  unitRangeRings = [],
+  selectionFocus = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
@@ -342,13 +347,16 @@ export function GlobeView({
       globe.ringsData([]);
     }
 
-    // Static engagement envelopes for the selected strike. Hot-zone rings stay on ringsData.
-    const ringPaths = (munitionAssessment?.rings ?? []).map((ring) => ({
+    // Static engagement envelopes for the selected strike and any linked unit profile.
+    // Hot-zone rings stay on ringsData.
+    const envelopeRings = [...(munitionAssessment?.rings ?? []), ...unitRangeRings];
+    const ringPaths = envelopeRings.map((ring) => ({
       id: ring.id,
       color: ring.color,
       points: circleRingPoints(ring.lat, ring.lng, ring.radiusKm),
-      dashLength: ring.kind === 'observed' ? 0.012 : 0.04,
-      dashGap: ring.kind === 'observed' ? 0.012 : 0.018,
+      dashLength:
+        ring.kind === 'observed' ? 0.012 : ring.band === 'min' ? 0.014 : 0.04,
+      dashGap: ring.kind === 'observed' ? 0.012 : ring.band === 'min' ? 0.02 : 0.018,
       stroke: ring.strokeDegrees,
     }));
     globe
@@ -366,7 +374,8 @@ export function GlobeView({
 
     const selectedStrike = strikes.find((s) => s.id === selectedStrikeId) ?? null;
     const selectedUnitPoint = points.find((p) => p.unitId && p.unitId === selectedUnitId);
-    if (selectedStrike) {
+    const unitRingKm = unitRangeRings.reduce((max, ring) => Math.max(max, ring.radiusKm), 0);
+    if (selectionFocus === 'strike' && selectedStrike) {
       globe.pointOfView(
         {
           lat: (selectedStrike.originLat + selectedStrike.impactLat) / 2,
@@ -375,9 +384,11 @@ export function GlobeView({
         },
         800,
       );
-    } else if (selectedUnitPoint) {
+    } else if (selectionFocus === 'unit' && selectedUnitPoint) {
+      const altitude =
+        unitRingKm > 0 ? Math.min(2.15, 0.32 + unitRingKm / 420) : 0.55;
       globe.pointOfView(
-        { lat: selectedUnitPoint.lat, lng: selectedUnitPoint.lng, altitude: 0.55 },
+        { lat: selectedUnitPoint.lat, lng: selectedUnitPoint.lng, altitude },
         800,
       );
     } else if (selectedAoId) {
@@ -398,6 +409,8 @@ export function GlobeView({
     selectedStrikeId,
     selectedUnitId,
     munitionAssessment,
+    unitRangeRings,
+    selectionFocus,
   ]);
 
   return <div className="map-surface" ref={containerRef} data-export-root />;

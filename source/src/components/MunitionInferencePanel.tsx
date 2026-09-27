@@ -67,6 +67,17 @@ export function MunitionInferencePanel({ assessment, onClear }: Props) {
               <p className="muted munition-envelope">
                 Envelope ring {c.envelopeMinKm}–{c.envelopeMaxKm} km from origin
               </p>
+              {c.catalogNotes && <p className="munition-note">{c.catalogNotes}</p>}
+              {c.engagementSphereModelId && (
+                <p
+                  className="linked-sphere"
+                  data-testid="engagement-sphere"
+                  data-sphere-model-id={c.engagementSphereModelId}
+                >
+                  Engagement sphere{' '}
+                  <code className="sphere-id">{c.engagementSphereModelId}</code>
+                </p>
+              )}
             </li>
           );
         })}

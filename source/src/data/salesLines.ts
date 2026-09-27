@@ -23,7 +23,7 @@ export const salesLines: Record<string, string> = {
   munitionInference:
     'Select a strike and brief the likely munitions — range, trajectory, and threat context, with confidence, on SAMPLE data.',
   orbat:
-    'Inspect a unit pin and brief the order of battle — designation, vehicle types, and counts — from one SAMPLE schema.',
+    'Inspect a unit pin and brief the order of battle — designation, vehicles, and the linked SAMPLE munition with its range — from one catalog.',
 };
 
 export type SalesCapabilityId = keyof typeof salesLines;
