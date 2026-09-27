@@ -78,7 +78,7 @@ Those GLBs are licensed local authoring assets. They are gitignored and are not 
 
 ## Sphere manipulation and analysis layers
 
-The engagement-sphere dialog orbits with a drag and zooms with the scroll wheel or a pinch. Four toggles sit on the card: Strengths, Weaknesses, How do I kill this?, and Capabilities. Seeded UNCLASS SAMPLE notes cover Tochka-U, Iskander 9K720, Magura V5, Liut, Verba 9K333, the MiG-29 (`sphere-fighter`), and the BTR-4E. Thin lines are marked Stub. The defeat layer is vignette language for the training card. It does not name a weapon or a procedure. Other sphere ids open the same toggles and say the card is not seeded yet. Camouflage selection is unchanged.
+The engagement-sphere dialog orbits with a drag, pans with a right-drag or the Pan control, and zooms with the scroll wheel, a pinch, or the Zoom controls. Reset and the side presets put the camera back. Four toggles sit on the card: Strengths, Weaknesses, How to kill, and Capabilities. An active layer draws color-coded callouts beside the mesh and writes the same notes on the recognition card. The callouts are labels. They are not a range ring, and the How to kill callouts do not touch the hull. Seeded UNCLASS SAMPLE notes cover the T-72B3 mesh, Tochka-U, Iskander 9K720, HIMARS, M270, Magura V5, Liut, Verba 9K333, the MiG-29 (`sphere-fighter`), the Su-27, and the Ukrainian armored rows (BTR-4E, Dozor-B, Novator, KrAZ Shrek, KrAZ Fiona). Thin lines are marked Stub. The defeat layer is vignette language for the training card. It does not name a weapon or a procedure. A platform without a card says so. Camouflage selection is unchanged.
 
 ## Still needing geometry
 

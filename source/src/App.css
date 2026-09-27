@@ -1530,6 +1530,9 @@
   gap: 0.28rem;
 }
 .sphere-layers button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
   background: #152033;
   color: #e8eef7;
   border: 1px solid #3a4e6e;
@@ -1537,6 +1540,15 @@
   padding: 0.16rem 0.55rem;
   font-size: 0.72rem;
   cursor: pointer;
+}
+.sphere-layers button[data-layer='defeat'] {
+  border-style: dashed;
+}
+.sphere-layer-swatch {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+  flex: none;
 }
 .sphere-layers button[aria-pressed='true'] {
   border-color: #f5d76e;
@@ -1713,11 +1725,16 @@
 .sphere-stage canvas:active {
   cursor: grabbing;
 }
+.sphere-stage canvas[data-pan='true'],
+.sphere-stage canvas[data-pan='true']:active {
+  cursor: move;
+}
 .sphere-orbit-hint {
   position: absolute;
   top: 0.45rem;
   left: 0.55rem;
   z-index: 2;
+  max-width: min(280px, 58%);
   margin: 0;
   padding: 0.18rem 0.45rem;
   border-radius: 999px;
@@ -1725,6 +1742,7 @@
   color: #e8eef7;
   font-size: 0.68rem;
   letter-spacing: 0.02em;
+  line-height: 1.3;
   pointer-events: none;
 }
 .sphere-layer-float {
@@ -1740,6 +1758,27 @@
   background: rgba(14, 22, 36, 0.9);
   color: #e8eef7;
   pointer-events: auto;
+}
+.sphere-layer-float-legend {
+  top: 0.45rem;
+  width: auto;
+  max-width: min(220px, 46%);
+  max-height: none;
+  overflow: visible;
+}
+.sphere-layer-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+.sphere-layer-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
 }
 .sphere-layer-notes h5 {
   margin: 0.35rem 0 0.15rem;

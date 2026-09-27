@@ -18,6 +18,12 @@ import {
   type ResolvedSkin,
 } from '../sphere/applyOeSkin';
 import { paintRecognitionPlate } from '../sphere/paintPlate';
+import {
+  createAnalysisOverlay,
+  LAYER_SWATCH,
+  type AnalysisOverlay,
+} from '../sphere/analysisOverlay';
+import type { SphereAnalysis } from '../data/sphereAnalysis';
 import { SalesCallout } from './SalesCallout';
 
 interface Props {
@@ -59,6 +65,13 @@ export default function EngagementSphere({
     go: (dir: readonly [number, number, number]) => void;
     setOverlay: (known: boolean, believed: boolean) => void;
     setSkin: (assets: ResolvedSkin) => void;
+    setAnalysis: (
+      analysis: SphereAnalysis,
+      visible: Record<SphereLayerId, boolean>,
+    ) => void;
+    zoom: (direction: -1 | 1) => void;
+    reset: () => void;
+    setPanMode: (on: boolean) => void;
   } | null>(null);
   const autoSkinId = useMemo(
     () => defaultSkinId(aoId, model.id, unitId),
@@ -80,10 +93,13 @@ export default function EngagementSphere({
     capabilities: false,
   });
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [panMode, setPanMode] = useState(false);
   const [narrow, setNarrow] = useState(false);
   const [tab, setTab] = useState<'brief' | 'mesh'>('brief');
   const skinRef = useRef(skinId);
   const aoRef = useRef(aoId);
+  const analysisRef = useRef<SphereAnalysis | null>(null);
+  const layersRef = useRef(layersOn);
   skinRef.current = skinId;
   aoRef.current = aoId;
 
@@ -265,22 +281,30 @@ export default function EngagementSphere({
         scene.add(wire);
 
         const controls = new OrbitControls(camera, gl.domElement);
-        controls.enablePan = false;
+        controls.enablePan = true;
         controls.enableRotate = true;
         controls.enableZoom = true;
         controls.enableDamping = false;
         controls.zoomToCursor = false;
+        controls.screenSpacePanning = true;
         controls.rotateSpeed = 0.85;
         controls.zoomSpeed = 0.9;
+        controls.panSpeed = 0.65;
         controls.minDistance = Math.max(fitted.radius, 0.5) * 0.7;
         controls.maxDistance = Math.max(fitted.radius, 0.5) * 8;
         controls.minPolarAngle = 0.02;
         controls.maxPolarAngle = Math.PI - 0.02;
         controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
         controls.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
+        controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
         controls.touches.ONE = THREE.TOUCH.ROTATE;
         controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
         controls.target.copy(focus);
+        const blockMenu = (event: Event) => event.preventDefault();
+        gl.domElement.addEventListener('contextmenu', blockMenu);
+
+        const overlay: AnalysisOverlay = createAnalysisOverlay(THREE, focus, span);
+        scene.add(overlay.object);
 
         let raf = 0;
         const render = () => {
@@ -314,7 +338,8 @@ export default function EngagementSphere({
           raf = requestAnimationFrame(tick);
         };
 
-        const initial = new THREE.Vector3(0.9, 0.55, 1).normalize().multiplyScalar(viewRadius);
+        const homeDir = new THREE.Vector3(0.9, 0.55, 1);
+        const initial = homeDir.clone().normalize().multiplyScalar(viewRadius);
         camera.position.copy(focus.clone().add(initial));
         camera.lookAt(focus);
         controls.update();
@@ -337,6 +362,12 @@ export default function EngagementSphere({
         observer.observe(stage);
         fit();
 
+        const applyPanMode = (on: boolean) => {
+          controls.mouseButtons.LEFT = on ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
+          controls.touches.ONE = on ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
+          gl.domElement.dataset.pan = on ? 'true' : 'false';
+        };
+
         apiRef.current = {
           go,
           setOverlay: (knownOn, believedOn) => {
@@ -344,6 +375,29 @@ export default function EngagementSphere({
             believed.visible = believedOn;
             render();
           },
+          setAnalysis: (analysis, visible) => {
+            overlay.setAnalysis(analysis, visible);
+            render();
+          },
+          zoom: (direction) => {
+            const offset = camera.position.clone().sub(controls.target);
+            const dist = offset.length();
+            const next = THREE.MathUtils.clamp(
+              dist * (direction < 0 ? 1.22 : 0.82),
+              controls.minDistance,
+              controls.maxDistance,
+            );
+            if (Math.abs(next - dist) < 1e-3) return;
+            offset.setLength(next);
+            camera.position.copy(controls.target).add(offset);
+            controls.update();
+            render();
+          },
+          reset: () => {
+            controls.target.copy(focus);
+            go([homeDir.x, homeDir.y, homeDir.z]);
+          },
+          setPanMode: applyPanMode,
           setSkin: (assets) => {
             if ((assets.glbUrl ?? null) !== meshOverride) {
               setMeshOverride(assets.glbUrl);
@@ -364,6 +418,10 @@ export default function EngagementSphere({
             });
           },
         };
+        if (analysisRef.current) {
+          overlay.setAnalysis(analysisRef.current, layersRef.current);
+        }
+        applyPanMode(false);
         if (!disposed) setPhase('ready');
 
         teardown = () => {
@@ -371,9 +429,11 @@ export default function EngagementSphere({
           cancelAnimationFrame(raf);
           apiRef.current = null;
           observer.disconnect();
+          gl.domElement.removeEventListener('contextmenu', blockMenu);
           controls.removeEventListener('change', onChange);
           controls.removeEventListener('start', onStart);
           controls.dispose();
+          overlay.dispose();
           scene.environment = null;
           envTex.dispose();
           pmrem.dispose();
@@ -421,6 +481,15 @@ export default function EngagementSphere({
     () => sphereAnalysisFor(model.id, scenarioId),
     [model.id, scenarioId],
   );
+  useEffect(() => {
+    analysisRef.current = analysis;
+    layersRef.current = layersOn;
+    apiRef.current?.setAnalysis(analysis, layersOn);
+  }, [analysis, layersOn, phase]);
+
+  useEffect(() => {
+    apiRef.current?.setPanMode(panMode);
+  }, [panMode, phase]);
   const activeLayers = SPHERE_LAYERS.filter((layer) => layersOn[layer.id]);
   const toggleLayer = (id: SphereLayerId) => {
     setLayersOn((current) => ({ ...current, [id]: !current[id] }));
@@ -440,7 +509,26 @@ export default function EngagementSphere({
         data-sphere-model-id={model.id}
         data-scenario={scenarioId}
         data-oe-skin={skinId}
+        data-overlay-layers={activeLayers.map((layer) => layer.id).join(' ')}
         onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget && (event.target as HTMLElement).tagName === 'INPUT') {
+            return;
+          }
+          if (event.key === '+' || event.key === '=') {
+            event.preventDefault();
+            setActivePreset(null);
+            apiRef.current?.zoom(1);
+          } else if (event.key === '-' || event.key === '_') {
+            event.preventDefault();
+            setActivePreset(null);
+            apiRef.current?.zoom(-1);
+          } else if (event.key === '0') {
+            event.preventDefault();
+            setActivePreset(null);
+            apiRef.current?.reset();
+          }
+        }}
       >
         <header className="sphere-head">
           <div>
@@ -539,9 +627,14 @@ export default function EngagementSphere({
                 key={layer.id}
                 type="button"
                 aria-pressed={layersOn[layer.id]}
+                data-layer={layer.id}
                 data-testid={`sphere-layer-${layer.id}`}
                 onClick={() => toggleLayer(layer.id)}
               >
+                <span
+                  className="sphere-layer-swatch"
+                  style={{ background: LAYER_SWATCH[layer.id] }}
+                />
                 {layer.label}
               </button>
             ))}
@@ -579,7 +672,12 @@ export default function EngagementSphere({
             analysis={analysis}
           />
         </section>
-        <div className="sphere-stage" ref={stageRef} hidden={narrow && tab !== 'mesh'}>
+        <div
+          className="sphere-stage"
+          ref={stageRef}
+          hidden={narrow && tab !== 'mesh'}
+          data-overlay-layers={activeLayers.map((layer) => layer.id).join(' ')}
+        >
           {phase === 'loading' && (
             <p className="sphere-status" role="status">
               Loading photoreal SAMPLE model…
@@ -590,13 +688,78 @@ export default function EngagementSphere({
               This browser could not start the SAMPLE 3D view.
             </p>
           )}
-          <p className="sphere-orbit-hint">Drag to orbit. Scroll or pinch to zoom.</p>
+          <p className="sphere-orbit-hint">
+            {panMode
+              ? 'Pan is on. Drag to slide. Turn Pan off to orbit.'
+              : 'Drag to orbit. Right-drag to pan. Scroll or pinch to zoom.'}
+          </p>
           {activeLayers.length > 0 && (
-            <div className="sphere-layer-float">
-              <AnalysisNotes activeLayers={activeLayers} analysis={analysis} />
+            <div className={`sphere-layer-float${narrow ? '' : ' sphere-layer-float-legend'}`}>
+              {narrow ? (
+                <AnalysisNotes activeLayers={activeLayers} analysis={analysis} />
+              ) : (
+                <ul className="sphere-layer-legend" data-testid="sphere-layer-legend">
+                  {activeLayers.map((layer) => (
+                    <li key={layer.id}>
+                      <span
+                        className="sphere-layer-swatch"
+                        style={{ background: LAYER_SWATCH[layer.id] }}
+                      />
+                      {layer.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!narrow && layersOn.defeat && (
+                <p className="sphere-layer-fence">
+                  UNCLASS SAMPLE training label. Not a targeting solution.
+                </p>
+              )}
             </div>
           )}
-          <div className="sphere-views" role="group" aria-label="Camera presets">
+          <div className="sphere-views" role="toolbar" aria-label="Sphere controls">
+            <button
+              type="button"
+              data-testid="sphere-zoom-out"
+              disabled={phase !== 'ready'}
+              onClick={() => {
+                setActivePreset(null);
+                apiRef.current?.zoom(-1);
+              }}
+            >
+              Zoom out
+            </button>
+            <button
+              type="button"
+              data-testid="sphere-zoom-in"
+              disabled={phase !== 'ready'}
+              onClick={() => {
+                setActivePreset(null);
+                apiRef.current?.zoom(1);
+              }}
+            >
+              Zoom in
+            </button>
+            <button
+              type="button"
+              data-testid="sphere-reset"
+              disabled={phase !== 'ready'}
+              onClick={() => {
+                setActivePreset(null);
+                apiRef.current?.reset();
+              }}
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              data-testid="sphere-pan-mode"
+              aria-pressed={panMode}
+              disabled={phase !== 'ready'}
+              onClick={() => setPanMode((value) => !value)}
+            >
+              Pan
+            </button>
             {PRESETS.map((preset) => (
               <button
                 key={preset.id}

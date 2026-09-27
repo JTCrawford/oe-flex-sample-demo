@@ -86,7 +86,7 @@ See the deliverable checklist in the agent handoff or keep this README as the so
 - [x] Kill-switch blanks Observe layers
 - [x] Domain pipeline panel: Land LIVE + WEG SAMPLE; others STUB
 - [x] Sales-line callouts; SAMPLE / claim fence in UI + README + ARCHITECTURE.md
-- [x] Engagement sphere: license-clear recognition GLBs (T-72B3, MiG-29, Gulf patrol corvette, Tochka-U, Iskander-M, HIMARS, M270) with matching 2D plates, OE camouflage skins, and known vs believed overlays. Later platforms (Magura V5, Liut, Verba 9K333, Su-27, F-22, F/A-18, BTR-4E, Dozor-B, Novator, KrAZ Shrek, KrAZ Fiona) are first-class catalog and ORBAT rows that still render those CC0 meshes. Licenses in repo-root `ATTRIBUTION.md`. Purchased raw packs and soldier GLBs stay Mac-local; the public demo falls back when those files are absent. See `docs/BATTLESPACE_ORBAT.md`.
+- [x] Engagement sphere: license-clear recognition GLBs (T-72B3, MiG-29, Gulf patrol corvette, Tochka-U, Iskander-M, HIMARS, M270) with matching 2D plates, OE camouflage skins, orbit/pan/zoom controls, and SAMPLE analysis layers (Strengths, Weaknesses, How to kill, Capabilities). Known vs believed overlays stay on the mesh. Later platforms (Magura V5, Liut, Verba 9K333, Su-27, F-22, F/A-18, BTR-4E, Dozor-B, Novator, KrAZ Shrek, KrAZ Fiona) are first-class catalog and ORBAT rows that still render those CC0 meshes. Licenses in repo-root `ATTRIBUTION.md`. Purchased raw packs and soldier GLBs stay Mac-local; the public demo falls back when those files are absent. See `docs/BATTLESPACE_ORBAT.md`.
 
 ## Remaining (next increments)
 
