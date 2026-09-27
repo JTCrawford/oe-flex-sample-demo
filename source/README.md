@@ -86,7 +86,7 @@ See the deliverable checklist in the agent handoff or keep this README as the so
 - [x] Kill-switch blanks Observe layers
 - [x] Domain pipeline panel: Land LIVE + WEG SAMPLE; others STUB
 - [x] Sales-line callouts; SAMPLE / claim fence in UI + README + ARCHITECTURE.md
-- [x] Engagement sphere: photoreal SAMPLE-analog GLBs (MBT, fighter/attack, surface vessel, SRBM/ATACMS launchers) with known vs believed weak-point overlays. Licenses in repo-root `ATTRIBUTION.md`.
+- [x] Engagement sphere: license-clear recognition GLBs (T-72B3, MiG-29, Gulf patrol corvette, Tochka-U, Iskander-M, HIMARS, M270) with matching 2D plates and known vs believed overlays. Licenses in repo-root `ATTRIBUTION.md`. Paid exact-replica packs, if authorized, are listed in `docs/SPHERE_MODEL_PROCUREMENT.md`.
 
 ## Remaining (next increments)
 

@@ -3,9 +3,10 @@
 Build original UNCLASS SAMPLE photoreal PBR GLBs for the engagement sphere.
 
 Geometry is original (not a scan, game rip, or third-party CAD). Proportions
-follow publicly published general arrangements so each stable id reads as the
-right class of SAMPLE analog. Materials are baked in this script (base color,
-roughness, metalness) plus an original tileable normal.
+follow publicly published general arrangements so each stable id reads as that
+vehicle. Materials are baked in this script (base color, roughness, metalness)
+plus an original tileable normal. Orthographic plates are rendered from the
+same scene into source/public/models/plates/.
 
 Run:
   blender -b -P source/tools/build_sphere_assets.py
@@ -279,11 +280,12 @@ def paint_material(name, color, roughness=0.48, metallic=0.02, dirt=0.4, coat=0.
     fine.inputs["Scale"].default_value = 18.0
     fine.inputs["Detail"].default_value = 4.0
 
+    dark = tuple(max(0.0, min(1.0, c * 0.62)) for c in color)
     base = nodes.new("ShaderNodeMixRGB")
-    base.blend_type = "MULTIPLY"
-    base.inputs["Fac"].default_value = 0.28
+    base.blend_type = "MIX"
     base.inputs["Color1"].default_value = rgba(color)
-    links.new(noise.outputs["Color"], base.inputs["Color2"])
+    base.inputs["Color2"].default_value = rgba(dark)
+    links.new(noise.outputs["Fac"], base.inputs["Fac"])
 
     dirt_amt = nodes.new("ShaderNodeMapRange")
     dirt_amt.inputs["From Min"].default_value = 0.05
@@ -297,7 +299,8 @@ def paint_material(name, color, roughness=0.48, metallic=0.02, dirt=0.4, coat=0.
     dirt_mix.blend_type = "MIX"
     links.new(dirt_amt.outputs["Result"], dirt_mix.inputs["Fac"])
     links.new(base.outputs["Color"], dirt_mix.inputs["Color1"])
-    dirt_mix.inputs["Color2"].default_value = rgba((0.28, 0.22, 0.14))
+    mud = tuple(max(0.0, min(1.0, c * 0.48)) for c in color)
+    dirt_mix.inputs["Color2"].default_value = rgba(mud)
 
     chips = nodes.new("ShaderNodeMapRange")
     chips.inputs["From Min"].default_value = 0.46
@@ -446,7 +449,7 @@ def bake(obj, bake_type):
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
-    scene.cycles.samples = 8 if bake_type == "AO" else 1
+    scene.cycles.samples = 4 if bake_type == "AO" else 1
     scene.cycles.use_denoising = False
     scene.render.bake.use_pass_direct = False
     scene.render.bake.use_pass_indirect = False
@@ -638,6 +641,115 @@ def render_preview(path, focus, cam_semantic):
     bpy.data.objects.remove(cam, do_unlink=True)
 
 
+def world_bbox(objects):
+    mn = mathutils.Vector((1e9, 1e9, 1e9))
+    mx = mathutils.Vector((-1e9, -1e9, -1e9))
+    found = False
+    for obj in objects:
+        if getattr(obj, "type", None) != "MESH" or obj.data is None:
+            continue
+        found = True
+        for vert in obj.data.vertices:
+            w = obj.matrix_world @ vert.co
+            mn.x, mn.y, mn.z = min(mn.x, w.x), min(mn.y, w.y), min(mn.z, w.z)
+            mx.x, mx.y, mx.z = max(mx.x, w.x), max(mx.y, w.y), max(mx.z, w.z)
+    if not found:
+        return None
+    return mn, mx
+
+
+def render_plates(model_id, objects):
+    """Orthographic side / front / top / undercarriage stills of this mesh."""
+    if os.environ.get("PLATES", "1") != "1":
+        return
+    bounds = world_bbox(objects)
+    if bounds is None:
+        return
+    mn, mx = bounds
+    center = (mn + mx) * 0.5
+    size = mx - mn
+    size = mathutils.Vector((max(size.x, 0.2), max(size.y, 0.2), max(size.z, 0.2)))
+    diag = max(size.x, size.y, size.z) * 2.4
+    default_plates = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "public", "models", "plates")
+    )
+    plate_dir = os.path.abspath(os.environ.get("PLATE_OUT", default_plates))
+    os.makedirs(plate_dir, exist_ok=True)
+
+    scene = bpy.context.scene
+    scene.render.engine = "BLENDER_EEVEE_NEXT"
+    scene.render.resolution_x = 1280
+    scene.render.resolution_y = 768
+    scene.render.film_transparent = False
+    scene.render.image_settings.file_format = "PNG"
+    scene.render.image_settings.color_mode = "RGB"
+    scene.view_settings.view_transform = "Standard"
+    if hasattr(scene, "eevee") and hasattr(scene.eevee, "taa_render_samples"):
+        scene.eevee.taa_render_samples = 8
+
+    world = bpy.data.worlds.new(f"PlateWorld_{model_id}")
+    scene.world = world
+    world.use_nodes = True
+    bg = world.node_tree.nodes["Background"]
+    bg.inputs["Color"].default_value = (0.90, 0.91, 0.92, 1.0)
+    bg.inputs["Strength"].default_value = 1.0
+
+    sun_data = bpy.data.lights.new(f"PlateSun_{model_id}", "SUN")
+    sun_data.energy = 4.4
+    sun_data.angle = math.radians(6)
+    sun = bpy.data.objects.new(f"PlateSun_{model_id}", sun_data)
+    bpy.context.collection.objects.link(sun)
+    sun.rotation_euler = (math.radians(50), math.radians(8), math.radians(32))
+    fill_data = bpy.data.lights.new(f"PlateFill_{model_id}", "SUN")
+    fill_data.energy = 1.5
+    fill = bpy.data.objects.new(f"PlateFill_{model_id}", fill_data)
+    bpy.context.collection.objects.link(fill)
+    fill.rotation_euler = (math.radians(68), 0.0, math.radians(150))
+
+    aspect = scene.render.resolution_x / scene.render.resolution_y
+    # offset from center, world up on the plate, horizontal extent, vertical extent
+    views = {
+        "side": (mathutils.Vector((1.0, 0.0, 0.0)), mathutils.Vector((0.0, 0.0, 1.0)), size.y, size.z),
+        "front": (mathutils.Vector((0.0, -1.0, 0.0)), mathutils.Vector((0.0, 0.0, 1.0)), size.x, size.z),
+        "top": (mathutils.Vector((0.0, 0.0, 1.0)), mathutils.Vector((0.0, -1.0, 0.0)), size.x, size.y),
+        "under": (mathutils.Vector((0.0, 0.0, -1.0)), mathutils.Vector((0.0, -1.0, 0.0)), size.x, size.y),
+    }
+    cam_data = bpy.data.cameras.new(f"PlateCam_{model_id}")
+    cam_data.type = "ORTHO"
+    cam_data.sensor_fit = "VERTICAL"
+    cam_data.clip_start = 0.01
+    cam_data.clip_end = max(diag * 8.0, 50.0)
+    cam = bpy.data.objects.new(f"PlateCam_{model_id}", cam_data)
+    bpy.context.collection.objects.link(cam)
+    scene.camera = cam
+
+    for name, (direction, up_world, wide, tall) in views.items():
+        cam_data.ortho_scale = max(tall, wide / aspect) * 1.34
+        eye = center + direction.normalized() * diag
+        forward = (center - eye).normalized()
+        z_axis = -forward
+        x_axis = up_world.cross(z_axis)
+        if x_axis.length < 1e-5:
+            x_axis = mathutils.Vector((1.0, 0.0, 0.0)).cross(z_axis)
+        x_axis.normalize()
+        y_axis = z_axis.cross(x_axis).normalized()
+        cam.matrix_world = mathutils.Matrix(
+            (
+                (x_axis.x, y_axis.x, z_axis.x, eye.x),
+                (x_axis.y, y_axis.y, z_axis.y, eye.y),
+                (x_axis.z, y_axis.z, z_axis.z, eye.z),
+                (0.0, 0.0, 0.0, 1.0),
+            )
+        )
+        scene.render.filepath = os.path.join(plate_dir, f"{model_id}-{name}.png")
+        bpy.ops.render.render(write_still=True)
+        print(f"PLATE {scene.render.filepath}")
+
+    bpy.data.objects.remove(sun, do_unlink=True)
+    bpy.data.objects.remove(fill, do_unlink=True)
+    bpy.data.objects.remove(cam, do_unlink=True)
+
+
 def finish(model_id, kit, focus, preview_cam):
     materials = []
     for obj in kit.opaque:
@@ -683,6 +795,7 @@ def finish(model_id, kit, focus, preview_cam):
     path = os.path.join(OUT_DIR, f"{model_id}.glb")
     export_glb(path, export_objects)
     print(f"WROTE {path}")
+    render_plates(model_id, export_objects)
     return path
 
 
@@ -875,10 +988,43 @@ def build_mbt(kit, paint, paint_dark, rubber, steel, soot, glass, lamp, label):
                 paint_dark,
                 bevel=0.004,
             )
+        # Kontakt-5 style cheek wedges — the T-72B / T-72B3 front silhouette.
+        kit.box(
+            f"k5_cheek_{sign}",
+            (0.48, 0.62, 0.95),
+            (sign * 0.82, 1.78, 0.72),
+            paint_dark,
+            bevel=0.012,
+        )
+        for k in range(3):
+            kit.box(
+                f"skirt_era_{sign}_{k}",
+                (0.08, 0.22, 0.72),
+                (sign * 1.6, 0.95, 1.5 - k * 0.9),
+                paint_dark,
+                bevel=0.004,
+            )
+
+    # Sosna-U housing on the port turret roof. Public recognition feature of the B3.
+    kit.box("sosna", (0.42, 0.32, 0.62), (-0.48, 2.18, 0.42), paint_dark, bevel=0.008)
+    kit.box("sosna_glass", (0.22, 0.12, 0.06), (-0.48, 2.22, 0.74), glass, kind="glass")
+    kit.box("bustle", (1.15, 0.28, 0.7), (0.05, 1.85, -0.85), paint, bevel=0.01)
+    kit.cyl("ir_lamp", 0.08, 0.18, (-0.38, 1.78, 1.22), "fwd", soot, segments=12)
+    kit.box("ir_lens", (0.1, 0.1, 0.04), (-0.38, 1.78, 1.34), lamp, kind="lamp")
 
     kit.box("mantlet", (0.42, 0.36, 0.34), (0, 1.62, 1.15), paint_dark, bevel=0.01)
     kit.cyl("barrel", 0.075, 4.3, (0, 1.64, 3.35), "fwd", steel, segments=20)
     kit.cyl("evacuator", 0.11, 0.42, (0, 1.64, 2.55), "fwd", steel, segments=20)
+    for i, fwd in enumerate((2.15, 3.05, 3.85, 4.65)):
+        kit.cyl(
+            f"sleeve_{i}",
+            0.084,
+            0.48,
+            (0, 1.64, fwd),
+            "fwd",
+            paint_dark if i % 2 == 0 else soot,
+            segments=16,
+        )
     kit.cyl("muzzle", 0.095, 0.12, (0, 1.64, 5.5), "fwd", steel, segments=20)
     kit.box("driver_hatch", (0.42, 0.06, 0.36), (0, 1.12, 2.05), paint, bevel=0.004)
     kit.box("periscope", (0.16, 0.08, 0.08), (0, 1.18, 2.28), glass, kind="glass")
@@ -910,6 +1056,31 @@ def airfoil_ring(chord, thick, n=7):
         y = -thick * 0.75 * math.sin(math.pi * t) ** 0.85
         pts.append((t, y))
     return pts
+
+
+def add_tailfin(kit, name, sign, mat):
+    """Outward-canted swept fin. MiG-29 twin-tail planform, original mesh."""
+    bm = bmesh.new()
+    root_x = sign * 0.48
+    tip_x = sign * 1.35
+    pts = [
+        (root_x, 0.22, -4.15),
+        (root_x, 0.16, -6.55),
+        (tip_x, 2.25, -6.15),
+        (tip_x, 2.05, -4.85),
+    ]
+    for p in pts:
+        bm.verts.new(P(*p))
+    bm.verts.ensure_lookup_table()
+    try:
+        bm.faces.new(list(bm.verts))
+    except ValueError:
+        bm.free()
+        return None
+    geom = bmesh.ops.extrude_face_region(bm, geom=list(bm.faces))
+    verts = [v for v in geom["geom"] if isinstance(v, bmesh.types.BMVert)]
+    bmesh.ops.translate(bm, verts=verts, vec=P(sign * 0.05, 0.0, 0.0))
+    return kit.from_bm(name, bm, mat, bevel=0.0)
 
 
 def add_wing(kit, name, side, root, span, root_chord, tip_chord, sweep, thick, up, mat, dihedral=0.08):
@@ -982,12 +1153,7 @@ def build_fighter(kit, paint, paint_dark, rubber, steel, soot, glass, lamp, labe
     add_wing(kit, "stab_port", -1, (-0.35, 0.15, -5.6), 2.1, 1.5, 0.7, 0.9, 0.08, 0.15, paint_dark, 0.02)
 
     for sign in (-1, 1):
-        # Canted twin tails
-        bm = bmesh.new()
-        res = bmesh.ops.create_cube(bm, size=1.0)
-        bmesh.ops.scale(bm, verts=res["verts"], vec=(0.08, 1.5, 1.7))
-        bmesh.ops.translate(bm, verts=res["verts"], vec=P(sign * 0.85, 1.15, -5.5))
-        kit.from_bm(f"tail_{sign}", bm, paint, bevel=0.01)
+        add_tailfin(kit, f"tail_{sign}", sign, paint)
         # Intake
         kit.box(f"intake_{sign}", (0.42, 0.55, 1.5), (sign * 0.72, -0.15, 2.6), soot, bevel=0.02)
         kit.box(f"duct_{sign}", (0.36, 0.22, 2.4), (sign * 0.78, -0.28, 0.6), paint_dark, bevel=0.015)
@@ -1004,6 +1170,26 @@ def build_fighter(kit, paint, paint_dark, rubber, steel, soot, glass, lamp, labe
             paint_dark,
             segments=12,
         )
+
+    # LERX volume and the over-intake louvers that mark a Fulcrum from above.
+    for sign in (-1, 1):
+        kit.box(
+            f"lerx_body_{sign}",
+            (0.62, 0.14, 3.8),
+            (sign * 0.62, 0.16, 3.7),
+            paint,
+            bevel=0.02,
+        )
+        for k in range(5):
+            kit.box(
+                f"louver_{sign}_{k}",
+                (0.34, 0.04, 0.42),
+                (sign * 0.58, 0.28, 4.55 - k * 0.22),
+                soot,
+                bevel=0.003,
+            )
+    kit.box("gun_bulge", (0.28, 0.18, 1.05), (-0.95, 0.02, 2.55), paint_dark, bevel=0.02)
+    kit.box("spine", (0.28, 0.16, 3.4), (0.0, 0.72, 1.2), paint_dark, bevel=0.01)
 
     # Canopy
     kit.lathe(
@@ -1034,108 +1220,138 @@ def build_fighter(kit, paint, paint_dark, rubber, steel, soot, glass, lamp, labe
 
 
 def ship_rings(length, beam, draft, deck):
+    """Wall-sided patrol-corvette sections. Flat deck, vertical topsides, not a body of revolution."""
     rings = []
-    stations = 22
-    around = 18
+    stations = 28
     for s in range(stations):
         t = s / (stations - 1)
         fwd = -length / 2 + t * length
-        bow = max(0.0, (t - 0.78) / 0.22)
-        stern = max(0.0, (0.08 - t) / 0.08)
-        half = (beam / 2) * (0.72 + 0.28 * math.sin(math.pi * min(t, 1) ) ** 0.65)
-        half *= 1 - bow ** 1.35
-        half *= 1 - 0.35 * stern
-        deck_h = deck * (1.0 + 0.28 * max(0.0, (t - 0.62) / 0.38))
-        keel = -draft * (1 - 0.35 * bow)
-        ring = []
-        for i in range(around):
-            a = 2 * math.pi * i / around
-            # a=0 at +up? Use sin/cos so bottom is keel and top is deck.
-            # Shape: x = sin * half, up blends keel..deck
-            ca = math.cos(a)
-            sa = math.sin(a)
-            up = (keel + deck_h) / 2 + ca * (deck_h - keel) / 2
-            # Fuller near the waterline
-            flare = 1.0 if ca > -0.2 else 0.72 + 0.28 * (ca + 1)
-            x = sa * half * flare
-            if up > deck_h:
-                up = deck_h
-            if up < keel:
-                up = keel
-            ring.append((x, up, fwd))
-        rings.append(ring)
+        bow = max(0.0, (t - 0.74) / 0.26)
+        stern = max(0.0, (0.05 - t) / 0.05)
+        half = (beam / 2.0) * (1.0 - bow ** 1.6) * (1.0 - 0.08 * stern)
+        half = max(half, 0.12)
+        deck_h = deck * (1.0 + 0.20 * max(0.0, (t - 0.64) / 0.36))
+        keel = -draft * (1.0 - 0.55 * bow)
+        bilge = keel + 0.55 + 0.25 * (1.0 - bow)
+        pts = [
+            (0.0, keel),
+            (half * 0.58, keel + 0.05),
+            (half * 0.92, bilge),
+            (half * 0.99, 0.02),
+            (half * 0.97, deck_h * 0.55),
+            (half * 0.90, deck_h),
+            (half * 0.2, deck_h),
+            (0.0, deck_h),
+            (-half * 0.2, deck_h),
+            (-half * 0.90, deck_h),
+            (-half * 0.97, deck_h * 0.55),
+            (-half * 0.99, 0.02),
+            (-half * 0.92, bilge),
+            (-half * 0.58, keel + 0.05),
+        ]
+        rings.append([(x, up, fwd) for x, up in pts])
     return rings
 
 
 def build_vessel(kit, haze, red, rubber, steel, soot, glass, lamp, label):
-    length, beam, draft, deck = 86.0, 12.2, 3.4, 4.2
+    # Gulf patrol corvette size band (public figures cluster near 71 m × 11 m × 2.8 m draft).
+    length, beam, draft, deck = 71.3, 11.0, 2.8, 3.35
     rings = ship_rings(length, beam, draft, deck)
     hull = kit.loft("hull", rings, haze, cap=True)
-    # Split red bottom vs gray topsides by face height.
     hull.data.materials.clear()
     hull.data.materials.append(red)
     hull.data.materials.append(haze)
     for poly in hull.data.polygons:
         zs = [hull.data.vertices[i].co.z for i in poly.vertices]
-        poly.material_index = 0 if (sum(zs) / len(zs)) < 0.15 else 1
-    kit.box("boot", (beam * 0.98, 0.18, length * 0.86), (0, 0.05, 0), flat_material("boot", (0.04, 0.04, 0.045), 0.55, 0.1))
+        poly.material_index = 0 if (sum(zs) / len(zs)) < -0.05 else 1
+    kit.box(
+        "boot",
+        (beam * 0.92, 0.16, length * 0.72),
+        (0, -0.02, -1),
+        flat_material("boot", (0.04, 0.04, 0.045), 0.55, 0.1),
+    )
 
-    # Bow gun
-    kit.cyl("gun_mount", 1.1, 0.7, (0, deck + 0.7, 30), "up", haze, segments=20)
-    kit.cyl("gun", 0.16, 4.2, (0, deck + 1.15, 33.2), "fwd", steel, segments=16)
-    # Breakwater
-    kit.box("breakwater", (6.5, 0.9, 0.12), (0, deck + 0.5, 24), haze, bevel=0.04)
-    # Bridge
-    kit.box("bridge", (7.2, 2.6, 8.5), (0, deck + 1.6, 12), haze, bevel=0.08)
-    kit.box("bridge_top", (5.5, 1.3, 5.5), (0, deck + 3.4, 12.4), haze, bevel=0.05)
-    for i in range(6):
+    bow = length * 0.5
+    fore = deck * 1.12
+    gun_fwd = bow - 8.5
+    kit.cyl("gun_mount", 1.05, 0.8, (0, fore + 0.55, gun_fwd), "up", haze, segments=22)
+    kit.box("gun_house", (1.7, 0.75, 2.3), (0, fore + 1.15, gun_fwd), haze, bevel=0.04)
+    kit.cyl("gun", 0.09, 3.4, (0, fore + 1.35, gun_fwd + 2.5), "fwd", steel, segments=16)
+    kit.box("breakwater", (beam * 0.52, 0.8, 0.12), (0, fore + 0.15, bow - 13.5), haze, bevel=0.03)
+
+    br_fwd = 8.5
+    face_z = br_fwd + 4.3
+    kit.box("bridge", (beam * 0.58, 2.7, 8.6), (0, deck + 1.55, br_fwd), haze, bevel=0.06)
+    kit.box("bridge_top", (beam * 0.38, 1.05, 5.6), (0, deck + 3.3, br_fwd + 0.3), haze, bevel=0.04)
+    for i in range(5):
         kit.box(
             f"window_{i}",
-            (0.7, 0.55, 0.08),
-            (-2.2 + i * 0.9, deck + 2.15, 16.3),
+            (0.7, 0.46, 0.08),
+            (-1.6 + i * 0.8, deck + 2.05, face_z),
             glass,
             kind="glass",
         )
-    # Mast and radar
-    kit.cyl("mast", 0.18, 7.5, (0, deck + 6.2, 8), "up", haze, segments=10)
-    kit.cyl("radar", 1.3, 0.18, (0, deck + 8.6, 8), "up", steel, segments=20)
-    kit.box("yard", (3.2, 0.08, 0.08), (0, deck + 7.4, 8), steel)
-    # Funnel
-    kit.box("funnel", (2.2, 3.2, 3.0), (0, deck + 2.2, -2), haze, bevel=0.05)
-    kit.box("uptake", (1.3, 0.15, 1.6), (0, deck + 3.85, -2), soot)
-    # Hangar and flight deck
-    kit.box("hangar", (8.0, 3.0, 12), (0, deck + 1.7, -18), haze, bevel=0.06)
-    kit.cyl("pad", 4.2, 0.06, (0, deck + 0.2, -32), "up", flat_material("pad", (0.55, 0.57, 0.58), 0.6, 0.05), segments=28)
-    kit.cyl("pad_ring", 3.3, 0.08, (0, deck + 0.28, -32), "up", label, segments=28)
-    # RHIB
-    kit.box("rhib", (1.2, 0.7, 4.2), (5.2, deck + 1.3, -6), haze, bevel=0.05)
-    # Rail posts
-    for fwd in range(-36, 34, 4):
-        for sign in (-1, 1):
-            x = sign * (beam * 0.36)
-            kit.cyl(f"post_{sign}_{fwd}", 0.05, 1.1, (x, deck + 0.7, fwd), "up", steel, segments=6)
-    # Props, shafts, rudder — undercarriage
     for sign in (-1, 1):
-        kit.cyl(f"shaft_{sign}", 0.18, 8, (sign * 1.6, -draft + 0.6, -38), "fwd", steel, segments=12)
-        kit.cyl(f"hub_{sign}", 0.35, 0.4, (sign * 1.6, -draft + 0.6, -42.2), "fwd", steel, segments=14)
-        for b in range(4):
-            ang = b * math.pi / 2
-            kit.box(
-                f"blade_{sign}_{b}",
-                (0.12, 0.9, 0.35),
-                (sign * 1.6 + math.cos(ang) * 0.15, -draft + 0.6 + math.sin(ang) * 0.7, -42.5),
-                steel,
-            )
-    kit.box("rudder", (0.12, 2.2, 1.1), (0, -draft + 1.2, -40), red, bevel=0.02)
-    kit.box("keel_bar", (0.16, 0.2, length * 0.7), (0, -draft - 0.05, -2), red)
-    # Magazine plate, starboard aft below waterline
-    kit.box("mag_hatch", (0.08, 1.4, 2.2), (beam * 0.28, -1.3, -16), red, bevel=0.02)
-    kit.label("SAMPLE", (0, deck + 3.1, -18), 0.9, label)
+        kit.box(
+            f"wing_{sign}",
+            (1.15, 0.28, 2.2),
+            (sign * beam * 0.34, deck + 2.35, br_fwd + 1.0),
+            haze,
+            bevel=0.02,
+        )
 
-    kit.anchor("bridge", 0.2, deck + 2.15, 16.35)
-    kit.anchor("funnel", 0.0, deck + 3.95, -2)
-    kit.anchor("keel", 0.0, -draft - 0.1, -2)
-    kit.anchor("magazine", beam * 0.32, -1.3, -16)
+    mast_fwd = br_fwd - 1.5
+    kit.cyl("mast", 0.14, 7.6, (0, deck + 6.4, mast_fwd), "up", haze, segments=10)
+    kit.box("yard", (4.4, 0.08, 0.1), (0, deck + 7.6, mast_fwd), steel)
+    kit.cyl("radar", 1.05, 0.14, (0, deck + 8.8, mast_fwd), "up", steel, segments=20)
+
+    fun_fwd = -4.0
+    kit.box("funnel", (2.3, 3.3, 2.8), (0, deck + 2.15, fun_fwd), haze, bevel=0.05)
+    kit.box("funnel_cap", (2.6, 0.16, 3.2), (0, deck + 3.85, fun_fwd), haze)
+    kit.box("uptake", (1.15, 0.1, 1.4), (0, deck + 4.02, fun_fwd), soot)
+
+    for sign in (-1, 1):
+        kit.box(
+            f"ssm_{sign}",
+            (0.85, 0.48, 4.4),
+            (sign * 2.2, deck + 1.05, 2.2),
+            haze,
+            bevel=0.025,
+        )
+
+    hangar_fwd = -length * 0.22
+    kit.box("hangar", (beam * 0.68, 2.9, 10.5), (0, deck + 1.6, hangar_fwd), haze, bevel=0.05)
+    pad_fwd = -length * 0.40
+    pad = flat_material("pad", (0.55, 0.57, 0.58), 0.6, 0.05)
+    kit.cyl("pad", 3.8, 0.05, (0, deck + 0.16, pad_fwd), "up", pad, segments=28)
+    kit.cyl("pad_ring", 2.9, 0.07, (0, deck + 0.22, pad_fwd), "up", label, segments=28)
+    kit.box("rhib", (1.1, 0.6, 3.8), (beam * 0.38, deck + 1.45, -6.5), haze, bevel=0.04)
+
+    for fwd in range(int(-length / 2 + 6), int(length / 2 - 8), 5):
+        for sign in (-1, 1):
+            kit.cyl(
+                f"post_{sign}_{fwd}",
+                0.04,
+                0.95,
+                (sign * beam * 0.40, deck + 0.55, fwd),
+                "up",
+                steel,
+                segments=6,
+            )
+
+    stern = -length / 2
+    for i, x in enumerate((-1.55, 0.0, 1.55)):
+        kit.box(f"jet_{i}", (0.62, 0.48, 1.3), (x, -draft + 0.65, stern + 1.1), steel, bevel=0.03)
+    kit.box("rudder", (0.1, 1.5, 0.65), (0, -draft + 0.85, stern + 0.2), red, bevel=0.02)
+    kit.box("keel_bar", (0.12, 0.14, length * 0.55), (0, -draft - 0.02, -2), red)
+    mag_fwd = -length * 0.18
+    kit.box("mag_hatch", (0.07, 1.15, 1.8), (beam * 0.40, -1.05, mag_fwd), red, bevel=0.02)
+    kit.label("SAMPLE", (0, deck + 3.2, hangar_fwd), 0.65, label)
+
+    kit.anchor("bridge", 0.15, deck + 2.05, face_z)
+    kit.anchor("funnel", 0.0, deck + 4.08, fun_fwd)
+    kit.anchor("keel", 0.0, -draft - 0.06, -2)
+    kit.anchor("magazine", beam * 0.46, -1.05, mag_fwd)
 
 
 def add_missile(kit, tail, elev_deg, length, radius, body, nose_mat, steel, soot, segments=28):
@@ -1213,31 +1429,32 @@ def wheel_row(kit, xs_fwd, x, radius, rubber, steel, up):
 
 
 def build_tochka(kit, paint, rubber, steel, soot, glass, lamp, label):
-    # Boat-hulled 6x6 TEL analog, missile elevated.
-    kit.box("hull", (2.5, 1.15, 9.4), (0, 1.15, 0), paint, bevel=0.03)
-    # Pointed nose
-    bm = bmesh.new()
-    verts = [
-        (-1.25, 1.7, 3.6),
-        (1.25, 1.7, 3.6),
-        (1.25, 0.6, 3.6),
-        (-1.25, 0.6, 3.6),
-        (0, 1.35, 5.3),
-        (0, 0.7, 5.3),
-    ]
-    for v in verts:
-        bm.verts.new(P(*v))
-    bm.verts.ensure_lookup_table()
-    for face in ((0, 1, 4), (2, 5, 1), (3, 5, 2), (0, 4, 5), (0, 5, 3), (1, 2, 5), (4, 1, 5) if False else (0, 1, 4)):
-        pass
-    faces = [(0, 1, 4), (1, 2, 5), (1, 5, 4), (2, 3, 5), (3, 0, 4), (3, 4, 5), (0, 3, 2, 1)]
-    for face in faces:
-        try:
-            bm.faces.new([bm.verts[i] for i in face])
-        except ValueError:
-            pass
-    kit.from_bm("bow", bm, paint, bevel=0.02)
-    kit.box("cab", (2.2, 1.15, 2.4), (0, 2.2, 2.3), paint, bevel=0.02)
+    # 9P129: amphibious boat hull, 6x6, elevated 9M79-class round.
+    length, beam = 9.5, 2.78
+    rings = []
+    stations = 18
+    for s in range(stations):
+        t = s / (stations - 1)
+        fwd = -length / 2 + t * length
+        bow = max(0.0, (t - 0.72) / 0.28)
+        half = max(0.08, (beam / 2) * (1.0 - bow ** 1.45))
+        keel = 0.38 + 0.28 * bow
+        deck = 1.78 - 0.12 * bow
+        pts = [
+            (0.0, keel),
+            (half * 0.55, keel + 0.04),
+            (half * 0.92, keel + 0.32),
+            (half, 0.95),
+            (half * 0.9, deck),
+            (0.0, deck),
+            (-half * 0.9, deck),
+            (-half, 0.95),
+            (-half * 0.92, keel + 0.32),
+            (-half * 0.55, keel + 0.04),
+        ]
+        rings.append([(x, up, fwd) for x, up in pts])
+    kit.loft("hull", rings, paint, cap=True)
+    kit.box("cab", (2.2, 1.05, 2.2), (0, 2.25, 2.15), paint, bevel=0.02)
     for i in range(3):
         kit.box(f"cab_glass_{i}", (0.45, 0.38, 0.05), (-0.55 + i * 0.55, 2.35, 3.52), glass, kind="glass")
     for sign in (-1, 1):
@@ -1252,74 +1469,91 @@ def build_tochka(kit, paint, rubber, steel, soot, glass, lamp, label):
 
 
 def build_iskander(kit, paint, rubber, steel, soot, glass, lamp, label):
-    # 8x8 TEL, twin pack, one round exposed.
-    kit.box("frame", (2.7, 0.42, 12.2), (0, 1.22, 0), paint, bevel=0.02)
-    kit.box("cab", (2.55, 1.7, 2.8), (0, 1.85, 4.6), paint, bevel=0.03)
-    kit.box("hood", (2.2, 0.7, 1.6), (0, 1.45, 6.5), paint, bevel=0.02)
-    for i in range(2):
-        kit.box(f"wind_{i}", (0.7, 0.55, 0.06), (-0.45 + i * 0.9, 2.15, 6.02), glass, kind="glass")
+    # 9P78-1 on an 8x8 chassis: high cab, twin canisters, one round exposed.
+    kit.box("frame", (2.9, 0.5, 12.6), (0, 1.28, -0.3), paint, bevel=0.02)
+    kit.box("cab", (2.65, 1.9, 2.5), (0, 2.2, 4.55), paint, bevel=0.03)
+    kit.box("cab_roof", (2.45, 0.1, 2.2), (0, 3.18, 4.45), paint)
+    kit.box("wind", (2.25, 0.78, 0.08), (0, 2.35, 5.85), glass, kind="glass", pitch=-0.35)
+    kit.box("hood", (2.3, 0.85, 1.7), (0, 1.65, 6.45), paint, bevel=0.03)
+    kit.box("bumper", (2.7, 0.32, 0.22), (0, 0.85, 7.4), steel)
     for sign in (-1, 1):
-        wheel_row(kit, (-4.5, -2.9, 0.4, 2.0), sign * 1.35, 0.55, rubber, steel, 0.55)
-        kit.box(f"tank_{sign}", (0.45, 0.7, 1.8), (sign * 1.15, 1.45, 2.2), paint)
-    # Closed canister + open round
-    kit.box("canister", (0.7, 0.7, 7.2), (-0.55, 2.15, -1.2), paint, bevel=0.02)
+        wheel_row(kit, (-5.3, -3.55, -0.15, 2.15), sign * 1.48, 0.62, rubber, steel, 0.62)
+        kit.box(f"tank_{sign}", (0.42, 0.8, 2.0), (sign * 1.28, 1.65, 2.4), paint, bevel=0.01)
+        kit.box(f"mirror_{sign}", (0.22, 0.16, 0.06), (sign * 1.55, 2.45, 5.4), steel)
+    pivot = (-0.55, 1.85, -5.15)
+    canister = kit.box("canister", (0.92, 0.92, 7.2), (-0.55, 1.85, -1.55), paint, bevel=0.02)
+    kit.elevate([canister], pivot, math.radians(52))
     nose, tail, joint, fin = add_missile(
-        kit, (0.6, 1.85, -4.4), 48, 7.3, 0.42, paint, steel, steel, soot, segments=32
+        kit, (0.62, 1.85, -5.05), 52, 7.3, 0.46, paint, steel, steel, soot, segments=32
     )
-    kit.label("SAMPLE", (0, 2.8, 4.5), 0.32, label)
+    kit.label("SAMPLE", (0, 3.15, 4.4), 0.28, label)
     for anchor_id, pt in (("seeker", nose), ("nozzle", tail), ("joint", joint), ("fin-root", fin)):
         kit.anchor(anchor_id, *pt)
 
 
 def build_m270(kit, paint, rubber, steel, soot, glass, lamp, label):
-    # Tracked MLRS-class SAMPLE analog with a longer later-block round.
-    kit.box("hull", (3.0, 1.35, 6.6), (0, 1.15, 0), paint, bevel=0.03)
-    kit.box("cab", (2.5, 1.15, 1.8), (0, 2.15, 2.15), paint, bevel=0.02)
+    # M270: tracked Bradley-derived hull, two pods, one later-block round erected.
+    kit.box("hull", (2.97, 1.2, 6.85), (0, 1.05, -0.15), paint, bevel=0.025)
+    kit.box("glacis", (2.6, 0.55, 1.3), (0, 1.35, 2.55), paint, bevel=0.02, pitch=0.45)
+    kit.box("cab", (2.45, 1.05, 1.65), (0, 2.05, 1.85), paint, bevel=0.02)
     for i in range(3):
-        kit.box(f"glass_{i}", (0.45, 0.4, 0.06), (-0.6 + i * 0.55, 2.25, 3.08), glass, kind="glass")
+        kit.box(f"glass_{i}", (0.48, 0.38, 0.06), (-0.6 + i * 0.58, 2.2, 2.72), glass, kind="glass")
     for sign in (-1, 1):
-        add_track(kit, sign * 1.45, -2.7, 2.7, 0.42, 0.55, rubber, steel)
-        add_wheel(kit, sign * 1.45, 0.48, 2.55, 0.32, 0.18, rubber, steel)
-        add_wheel(kit, sign * 1.45, 0.5, -2.55, 0.38, 0.22, rubber, steel)
-        for fwd in (-1.7, -0.7, 0.3, 1.3):
-            add_wheel(kit, sign * 1.45, 0.48, fwd, 0.34, 0.2, rubber, steel)
-    kit.box("pod", (1.55, 1.05, 4.0), (0, 2.15, -0.7), paint, bevel=0.02)
+        add_track(kit, sign * 1.42, -2.85, 2.75, 0.42, 0.52, rubber, steel)
+        add_wheel(kit, sign * 1.42, 0.48, 2.6, 0.32, 0.18, rubber, steel)
+        add_wheel(kit, sign * 1.42, 0.5, -2.7, 0.38, 0.22, rubber, steel)
+        for fwd in (-1.8, -0.75, 0.3, 1.35):
+            add_wheel(kit, sign * 1.42, 0.48, fwd, 0.34, 0.2, rubber, steel)
+    stowed = kit.box("pod_port", (1.05, 0.82, 3.9), (-0.58, 2.05, -0.85), paint, bevel=0.015)
+    kit.elevate([stowed], (-0.58, 1.7, 1.05), math.radians(8))
+    pivot = (0.58, 1.75, -2.7)
+    pod = kit.box("pod_stbd", (1.05, 0.82, 3.9), (0.58, 1.75, -0.75), paint, bevel=0.015)
+    kit.elevate([pod], pivot, math.radians(46))
     nose, tail, joint, fin = add_missile(
         kit,
-        (0.35, 2.05, 1.2),
-        42,
-        4.7,
-        0.3,
+        pivot,
+        46,
+        4.6,
+        0.305,
         flat_material("later", (0.78, 0.78, 0.74), 0.4, 0.3, coat=0.15),
         steel,
         steel,
         soot,
     )
-    kit.label("SAMPLE", (0, 2.8, 2.0), 0.22, label)
+    kit.label("SAMPLE", (0, 2.7, 1.7), 0.2, label)
     for anchor_id, pt in (("seeker", nose), ("nozzle", tail), ("joint", joint), ("fin-root", fin)):
         kit.anchor(anchor_id, *pt)
 
 
 def build_himars(kit, paint, rubber, steel, soot, glass, lamp, label):
-    # Wheeled HIMARS-class SAMPLE analog with a short Block I round.
-    kit.box("chassis", (2.45, 0.45, 7.2), (0, 0.95, 0), paint, bevel=0.02)
-    kit.box("cab", (2.35, 1.6, 2.3), (0, 1.75, 2.3), paint, bevel=0.025)
-    kit.box("wind", (2.0, 0.7, 0.06), (0, 2.05, 3.48), glass, kind="glass")
+    # M142: FMTV 6x6 cab, one pod, ATACMS Block I round erected.
+    kit.box("frame", (2.35, 0.32, 6.9), (0, 1.05, 0.05), paint, bevel=0.015)
+    kit.box("hood", (2.05, 0.62, 1.55), (0, 1.48, 2.55), paint, bevel=0.04)
+    kit.box("cab", (2.32, 1.35, 1.7), (0, 1.95, 1.15), paint, bevel=0.03)
+    kit.box("wind", (2.05, 0.7, 0.08), (0, 2.15, 2.05), glass, kind="glass", pitch=-0.5)
+    kit.box("bumper", (2.45, 0.28, 0.2), (0, 0.78, 3.45), steel)
+    kit.box("grille", (1.4, 0.38, 0.06), (0, 1.28, 3.3), soot)
+    kit.cyl("exhaust", 0.07, 0.7, (-1.05, 1.55, 0.4), "up", soot, segments=10)
     for sign in (-1, 1):
-        wheel_row(kit, (-2.5, -0.9, 1.6), sign * 1.2, 0.5, rubber, steel, 0.5)
-    kit.box("pod", (1.35, 0.95, 4.3), (0, 1.85, -1.3), paint, bevel=0.02)
+        kit.box(f"mirror_{sign}", (0.18, 0.14, 0.05), (sign * 1.32, 2.15, 1.85), steel)
+        for fwd in (2.35, -0.85, -2.15):
+            add_wheel(kit, sign * 1.18, 0.52, fwd, 0.52, 0.34, rubber, steel, segments=20)
+    kit.cyl("turn", 0.65, 0.22, (0, 1.32, -1.15), "up", steel, segments=18)
+    pivot = (0.0, 1.7, -3.15)
+    pod = kit.box("pod", (1.05, 0.78, 3.5), (0.0, 1.7, -1.4), paint, bevel=0.02)
+    kit.elevate([pod], pivot, math.radians(38))
     nose, tail, joint, fin = add_missile(
         kit,
-        (0.0, 2.15, -0.2),
-        18,
+        pivot,
+        38,
         4.0,
-        0.28,
-        flat_material("atk", (0.72, 0.73, 0.7), 0.42, 0.25),
+        0.305,
+        flat_material("atk", (0.82, 0.83, 0.8), 0.38, 0.35),
         steel,
         steel,
         soot,
     )
-    kit.label("SAMPLE", (0, 2.65, 2.2), 0.24, label)
+    kit.label("SAMPLE", (0, 2.55, 1.05), 0.2, label)
     for anchor_id, pt in (("seeker", nose), ("nozzle", tail), ("joint", joint), ("fin-root", fin)):
         kit.anchor(anchor_id, *pt)
 
@@ -1330,8 +1564,8 @@ def tel_mats():
 
 
 def mats():
-    paint = paint_material("paint", GREEN, 0.5, 0.04, dirt=0.45, coat=0.22)
-    paint_dark = paint_material("paint_dark", GREEN_DARK, 0.55, 0.06, dirt=0.35, coat=0.12)
+    paint = paint_material("paint", GREEN, 0.46, 0.05, dirt=0.12, coat=0.16)
+    paint_dark = paint_material("paint_dark", GREEN_DARK, 0.52, 0.08, dirt=0.1, coat=0.1)
     rubber = flat_material("rubber", RUBBER_C, 0.92, 0.0)
     steel = flat_material("steel", STEEL_C, 0.32, 0.92, coat=0.05)
     soot = flat_material("soot", SOOT_C, 0.72, 0.35)
@@ -1349,7 +1583,32 @@ def run_one(model_id, builder, focus, cam):
     finish(model_id, kit, focus, cam)
 
 
+def rerender_plates():
+    """Plate pass from the GLBs already written. Skips the Cycles bake."""
+    ids = [
+        "sphere-mbt",
+        "sphere-fighter",
+        "sphere-vessel",
+        "sphere-tochka-u",
+        "sphere-iskander-m",
+        "sphere-atacms-block-i",
+        "sphere-atacms-later-block",
+    ]
+    for model_id in ids:
+        if ONLY and ONLY not in model_id:
+            continue
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        path = os.path.join(OUT_DIR, f"{model_id}.glb")
+        bpy.ops.import_scene.gltf(filepath=path)
+        meshes = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+        print(f"RERENDER {model_id} {len(meshes)} meshes")
+        render_plates(model_id, meshes)
+
+
 def main():
+    if os.environ.get("RERENDER") == "1":
+        rerender_plates()
+        return
     jobs = {
         "sphere-mbt": (lambda k: build_mbt(k, *mats()), (0, 1.2, 0.4), (5.5, 3.2, 8.5)),
         "sphere-fighter": (lambda k: build_fighter(k, *mats()), (0, 0.4, 0.5), (10, 4.5, 14)),

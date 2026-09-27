@@ -1365,11 +1365,11 @@
   padding: 0.75rem;
 }
 .sphere-dialog {
-  width: min(1100px, 100%);
-  height: min(740px, 100%);
+  width: min(1240px, 100%);
+  height: min(860px, 100%);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   background: #0e1624;
   border: 1px solid #3a4e6e;
   border-radius: 12px;
@@ -1406,11 +1406,157 @@
   color: #9ab;
   font-weight: 400;
 }
-.sphere-analog {
-  margin: 0.28rem 0 0;
+.sphere-eyebrow {
+  margin: 0.15rem 0 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8fa3bd;
+}
+.sphere-badge {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 2px;
+  background: #8d1d1d;
+  color: #fff;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+}
+.sphere-badge-sample {
+  background: #c4a15a;
+  color: #1c1810;
+}
+.sphere-toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.35rem 0.85rem;
+  border-bottom: 1px solid #243044;
+  background: #10192a;
+}
+.sphere-toolbar .sphere-toggles {
+  flex-direction: row;
+  gap: 0.9rem;
+  margin: 0;
+}
+.sphere-tabs {
+  display: none;
+  grid-column: 1 / -1;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem 0;
+  background: #10192a;
+}
+.sphere-tabs button {
+  background: transparent;
+  color: #c5d4e8;
+  border: 1px solid #3a4e6e;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+}
+.sphere-tabs button[aria-selected='true'] {
+  color: #1c1810;
+  background: #f5d76e;
+  border-color: #f5d76e;
+}
+.sphere-plates {
+  overflow: auto;
+  background: #f3f0e6;
+  color: #1c2430;
+  padding: 0.7rem 0.8rem 1rem;
+  border-right: 1px solid #d9d1c0;
+}
+.sphere-plates[hidden],
+.sphere-stage[hidden] {
+  display: none !important;
+}
+.plate-banner {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0 0 0.35rem;
+}
+.plate-banner span {
+  background: #8d1d1d;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0.08rem 0.35rem;
+}
+.plate-banner span:last-child {
+  background: #c4a15a;
+  color: #1c1810;
+}
+.sphere-plates h4 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.plate-role {
+  margin: 0.1rem 0 0.45rem;
   font-size: 0.78rem;
-  font-weight: 700;
-  color: #f5d76e;
+  color: #5c5348;
+}
+.plate-stills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+.plate-still {
+  margin: 0;
+  background: #e7e8ea;
+  border: 1px solid #cfc8b8;
+}
+.plate-still img {
+  display: block;
+  width: 100%;
+  height: 96px;
+  object-fit: contain;
+  background: #e6e8eb;
+}
+.plate-still figcaption {
+  padding: 0.08rem 0.3rem 0.18rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5c5348;
+}
+.sphere-facts {
+  display: grid;
+  grid-template-columns: 8.4rem minmax(0, 1fr);
+  gap: 0.18rem 0.45rem;
+  margin: 0.55rem 0 0.35rem;
+  font-size: 0.74rem;
+}
+.sphere-facts dt {
+  color: #6a6256;
+}
+.sphere-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+.plate-points-label {
+  margin: 0.45rem 0 0.15rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6a6256;
+}
+.sphere-plates .sphere-summary,
+.sphere-plates .sphere-fence,
+.sphere-plates .sphere-points p {
+  color: #3e4654;
+}
+.sphere-plates .sphere-points li {
+  border-top-color: #ddd4c4;
+}
+.sphere-plates .sphere-points em {
+  color: #6a6256;
+}
+.sphere-plates .sales-callout,
+.sphere-plates .sales-callout p {
+  color: #3e4654;
 }
 .sphere-model-id {
   margin: 0.15rem 0 0;
@@ -1535,15 +1681,20 @@
 .sphere-fence {
   color: #8fa3bd;
 }
-@media (max-width: 800px) {
+@media (max-width: 860px) {
   .sphere-dialog {
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(240px, 48vh) minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
     height: 100%;
   }
-  .sphere-side {
-    border-left: none;
-    border-top: 1px solid #243044;
+  .sphere-tabs {
+    display: flex;
+  }
+  .sphere-plates {
+    border-right: none;
+  }
+  .plate-still img {
+    height: 120px;
   }
 }
 .orbat-linked-type {

@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import type { BufferGeometry, Material, Mesh, Object3D, Texture, WebGLRenderer } from 'three';
-import type { SphereModel } from '../data/engagementSphere';
+import { PLATE_VIEWS, type SphereModel } from '../data/engagementSphere';
 import { SalesCallout } from './SalesCallout';
 
 interface Props {
@@ -40,9 +40,19 @@ export default function EngagementSphere({
   const [showKnown, setShowKnown] = useState(true);
   const [showBelieved, setShowBelieved] = useState(true);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [narrow, setNarrow] = useState(false);
+  const [tab, setTab] = useState<'brief' | 'mesh'>('brief');
 
   useEffect(() => {
     closeRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 860px)');
+    const apply = () => setNarrow(query.matches);
+    apply();
+    query.addEventListener('change', apply);
+    return () => query.removeEventListener('change', apply);
   }, []);
 
   useEffect(() => {
@@ -318,13 +328,16 @@ export default function EngagementSphere({
       >
         <header className="sphere-head">
           <div>
-            <p className="munition-kicker">UNCLASS · SAMPLE · photoreal analog</p>
-            <h3 id={titleId}>Engagement sphere</h3>
+            <p className="munition-kicker">
+              <span className="sphere-badge">UNCLASS</span>
+              <span className="sphere-badge sphere-badge-sample">SAMPLE</span>
+            </p>
+            <p className="sphere-eyebrow">Engagement sphere</p>
+            <h3 id={titleId}>{model.title}</h3>
             <p className="sphere-sub">
               {typeDesignation}
               <span> · {unitDesignation}</span>
             </p>
-            <p className="sphere-analog">{model.analog}</p>
             <p className="sphere-model-id">
               Model <code className="sphere-id">{model.id}</code>
             </p>
@@ -333,7 +346,56 @@ export default function EngagementSphere({
             Close
           </button>
         </header>
-        <div className="sphere-stage" ref={stageRef}>
+        <div className="sphere-toolbar">
+          <div className="sphere-toggles" role="group" aria-label="Weak point overlays">
+            <label>
+              <input
+                type="checkbox"
+                data-testid="sphere-toggle-known"
+                checked={showKnown}
+                onChange={() => setShowKnown((value) => !value)}
+              />
+              <span className="sphere-swatch sphere-swatch-known" />
+              Known
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                data-testid="sphere-toggle-believed"
+                checked={showBelieved}
+                onChange={() => setShowBelieved((value) => !value)}
+              />
+              <span className="sphere-swatch sphere-swatch-believed" />
+              Believed
+            </label>
+          </div>
+        </div>
+        <div className="sphere-tabs" role="tablist" aria-label="Sphere views">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'brief'}
+            onClick={() => setTab('brief')}
+          >
+            2D plates
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'mesh'}
+            onClick={() => setTab('mesh')}
+          >
+            3D
+          </button>
+        </div>
+        <section
+          className="sphere-plates"
+          hidden={narrow && tab !== 'brief'}
+          aria-label="Recognition plates"
+        >
+          <RecognitionPlate model={model} visiblePoints={visiblePoints} />
+        </section>
+        <div className="sphere-stage" ref={stageRef} hidden={narrow && tab !== 'mesh'}>
           {phase === 'loading' && (
             <p className="sphere-status" role="status">
               Loading photoreal SAMPLE model…
@@ -362,53 +424,68 @@ export default function EngagementSphere({
             ))}
           </div>
         </div>
-        <aside className="sphere-side">
-          <p className="sphere-kind">{model.title}</p>
-          <p className="muted">{model.kind}</p>
-          <p className="sphere-summary">{model.summary}</p>
-          <div className="sphere-toggles" role="group" aria-label="Weak point overlays">
-            <label>
-              <input
-                type="checkbox"
-                data-testid="sphere-toggle-known"
-                checked={showKnown}
-                onChange={() => setShowKnown((value) => !value)}
-              />
-              <span className="sphere-swatch sphere-swatch-known" />
-              Known
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                data-testid="sphere-toggle-believed"
-                checked={showBelieved}
-                onChange={() => setShowBelieved((value) => !value)}
-              />
-              <span className="sphere-swatch sphere-swatch-believed" />
-              Believed
-            </label>
-          </div>
-          <ul className="sphere-points">
-            {visiblePoints.map((point) => (
-              <li key={point.id} data-testid={`sphere-point-${point.id}`}>
-                <strong>{point.label}</strong>
-                <em>{point.confidence}</em>
-                <p>{point.note}</p>
-              </li>
-            ))}
-          </ul>
-          {visiblePoints.length === 0 && (
-            <p className="muted">Both overlays are off. The mesh stays in view.</p>
-          )}
-          <p className="sphere-fence">
-            Fictional weak points on an original photoreal SAMPLE analog. Not a
-            photograph, scan, or technical drawing, and not an assessment of any
-            fielded vehicle.
-          </p>
-          <SalesCallout id="engagementSphere" compact />
-        </aside>
       </div>
     </div>
+  );
+}
+
+function RecognitionPlate({
+  model,
+  visiblePoints,
+}: {
+  model: SphereModel;
+  visiblePoints: SphereModel['weakPoints'];
+}) {
+  const { briefing } = model;
+  const base = import.meta.env.BASE_URL;
+  return (
+    <>
+      <p className="plate-banner">
+        <span>UNCLASS</span>
+        <span>SAMPLE</span>
+      </p>
+      <h4>{briefing.designation}</h4>
+      <p className="plate-role">{briefing.role}</p>
+      <div className="plate-stills">
+        {PLATE_VIEWS.map((view) => (
+          <figure key={view.id} className="plate-still">
+            <img
+              src={`${base}models/plates/${model.id}-${view.id}.png`}
+              alt={`${briefing.designation}, ${view.label.toLowerCase()} view`}
+            />
+            <figcaption>{view.label}</figcaption>
+          </figure>
+        ))}
+      </div>
+      <dl className="sphere-facts">
+        <dt>Propulsion</dt>
+        <dd>{briefing.propulsion}</dd>
+        <dt>Munition</dt>
+        <dd>{briefing.munition}</dd>
+        {briefing.dimensions.map((fact) => (
+          <Fragment key={fact.label}>
+            <dt>{fact.label}</dt>
+            <dd>{fact.value}</dd>
+          </Fragment>
+        ))}
+      </dl>
+      <p className="sphere-summary">{model.summary}</p>
+      <p className="plate-points-label">Weak points</p>
+      <ul className="sphere-points">
+        {visiblePoints.map((point) => (
+          <li key={point.id} data-testid={`sphere-point-${point.id}`}>
+            <strong>{point.label}</strong>
+            <em>{point.confidence}</em>
+            <p>{point.note}</p>
+          </li>
+        ))}
+      </ul>
+      {visiblePoints.length === 0 && (
+        <p className="sphere-summary">Both overlays are off. The mesh stays in view.</p>
+      )}
+      <p className="sphere-fence">{briefing.fidelity}</p>
+      <SalesCallout id="engagementSphere" compact />
+    </>
   );
 }
 
