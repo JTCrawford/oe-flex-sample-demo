@@ -67,6 +67,10 @@ Unit and force markers may carry a `UnitOrbat` (`designation`, `echelon`, `highe
 
 ORBAT rides the existing Observe gates: AO selection, layer toggles, PMESII-PT filters, Commercial Partner feeder hiding, the current-positions toggle, and the kill-switch. It does not replace strike history, origins, hot zones, or munition range rings.
 
+## Engagement sphere
+
+A vehicle row on a visible unit pin can open a lazy-loaded three.js viewer (`EngagementSphere`). The initial SAMPLE set is a stylized main battle tank, fighter/attack aircraft, and surface vessel. Meshes are procedural and built on open; the WebGL context is disposed on close. Known and believed weak points are fictional overlays with independent toggles. ISR UAVs, IFVs, and artillery stay on the order of battle without a mesh. The sphere does not replace strike history, munition rings, or ORBAT, and it closes when the unit leaves the Observe view.
+
 ## Symbology mutex
 
 `symbology: 'military' | 'commercial'` is exclusive. Military uses 2525-style SVG frames; Commercial uses ship/port/pipeline-style icons. Export burns in the active deck only.

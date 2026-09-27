@@ -1,18 +1,20 @@
+import { sphereButtonId, sphereModelForHolding } from '../data/engagementSphere';
 import {
   ECHELON_LABEL,
   categoryLabel,
   holdingsInCatalogOrder,
   vehicleTotal,
 } from '../data/orbat';
-import type { UnitOrbat } from '../types';
+import type { UnitOrbat, VehicleHolding } from '../types';
 
 interface InspectProps {
   orbat: UnitOrbat;
   variant: 'panel' | 'popup';
+  onOpenSphere?: (holding: VehicleHolding) => void;
 }
 
 /** Designation plus typed vehicle counts. Rows come from the holding list. */
-export function OrbatInspect({ orbat, variant }: InspectProps) {
+export function OrbatInspect({ orbat, variant, onOpenSphere }: InspectProps) {
   const rows = holdingsInCatalogOrder(orbat.vehicles);
   return (
     <div className={`orbat-body orbat-body-${variant}`}>
@@ -26,16 +28,36 @@ export function OrbatInspect({ orbat, variant }: InspectProps) {
             <th scope="col">Category</th>
             <th scope="col">Type</th>
             <th scope="col">Count</th>
+            <th scope="col">Sphere</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={`${row.category}:${row.typeDesignation}`}>
-              <td>{categoryLabel(row.category)}</td>
-              <td>{row.typeDesignation}</td>
-              <td className="orbat-count">{row.count}</td>
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const sphere = sphereModelForHolding(row);
+            return (
+              <tr key={`${row.category}:${row.typeDesignation}`}>
+                <td>{categoryLabel(row.category)}</td>
+                <td>{row.typeDesignation}</td>
+                <td className="orbat-count">{row.count}</td>
+                <td>
+                  {sphere && onOpenSphere ? (
+                    <button
+                      type="button"
+                      className="sphere-open"
+                      data-testid={`sphere-open-${sphereButtonId(row)}`}
+                      onClick={() => onOpenSphere(row)}
+                    >
+                      Sphere
+                    </button>
+                  ) : (
+                    <span className="orbat-no-sphere" title="Not in the initial SAMPLE sphere set">
+                      —
+                    </span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       <p className="orbat-total">
@@ -48,9 +70,10 @@ export function OrbatInspect({ orbat, variant }: InspectProps) {
 interface PanelProps {
   orbat: UnitOrbat;
   onClear: () => void;
+  onOpenSphere?: (holding: VehicleHolding) => void;
 }
 
-export function OrbatPanel({ orbat, onClear }: PanelProps) {
+export function OrbatPanel({ orbat, onClear, onOpenSphere }: PanelProps) {
   return (
     <aside
       className="orbat-panel"
@@ -67,11 +90,11 @@ export function OrbatPanel({ orbat, onClear }: PanelProps) {
           Clear
         </button>
       </header>
-      <OrbatInspect orbat={orbat} variant="panel" />
+      <OrbatInspect orbat={orbat} variant="panel" onOpenSphere={onOpenSphere} />
       <p className="muted orbat-note">
-        Fictional order of battle on this unit pin. Category labels come from the
-        shared catalog, so a new vehicle type renders here without a UI change.
-        Strike history and munition rings are unchanged.
+        Fictional order of battle on this unit pin. Sphere opens a stylized SAMPLE
+        model for a main battle tank, fighter/attack aircraft, or surface vessel.
+        Strike history and munition rings stay on the map.
       </p>
     </aside>
   );

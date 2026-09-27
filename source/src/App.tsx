@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
+import { sphereModelForHolding } from './data/engagementSphere';
 import { useAppState } from './hooks/useAppState';
 import { RoleSelector } from './components/RoleSelector';
 import { GlobeView } from './components/GlobeView';
@@ -15,10 +16,25 @@ import { AboutPanel } from './components/AboutPanel';
 import { TtpFeedsPanel } from './components/TtpFeedsPanel';
 import { Toast } from './components/Toast';
 import { SalesCallout } from './components/SalesCallout';
-import type { Stage } from './types';
+import type { Stage, VehicleHolding } from './types';
 import './App.css';
 
+const EngagementSphere = lazy(() => import('./components/EngagementSphere'));
+
 const STAGES: Stage[] = ['Observe', 'Mitigate', 'Wargame', 'Decide'];
+
+function openHoldingSphere(
+  state: ReturnType<typeof useAppState>,
+  unitId: string,
+  holding: VehicleHolding,
+) {
+  state.selectUnit(unitId);
+  state.openSphere({
+    unitId,
+    category: holding.category,
+    typeDesignation: holding.typeDesignation,
+  });
+}
 
 export default function App() {
   const state = useAppState();
@@ -27,6 +43,15 @@ export default function App() {
   const [showTtpFeeds, setShowTtpFeeds] = useState(() =>
     typeof window !== 'undefined' && window.location.hash === '#ttp',
   );
+
+  const sphereHolding = state.activeSphere
+    ? state.selectedUnit?.orbat.vehicles.find(
+        (row) =>
+          row.category === state.activeSphere?.category &&
+          row.typeDesignation === state.activeSphere.typeDesignation,
+      )
+    : undefined;
+  const sphereModel = sphereHolding ? sphereModelForHolding(sphereHolding) : null;
 
   if (!state.role) {
     return (
@@ -171,10 +196,19 @@ export default function App() {
               munitionAssessment={state.munitionAssessment}
               selectedUnitId={state.selectedUnitId}
               onSelectUnit={state.selectUnit}
+              onOpenSphere={(unitId, holding) => openHoldingSphere(state, unitId, holding)}
             />
           )}
           {state.selectedUnit?.orbat && (
-            <OrbatPanel orbat={state.selectedUnit.orbat} onClear={state.clearUnit} />
+            <OrbatPanel
+              orbat={state.selectedUnit.orbat}
+              onClear={state.clearUnit}
+              onOpenSphere={(holding) => {
+                const unitId = state.selectedUnit?.id;
+                if (!unitId) return;
+                openHoldingSphere(state, unitId, holding);
+              }}
+            />
           )}
           {state.munitionAssessment && (
             <MunitionInferencePanel
@@ -217,6 +251,23 @@ export default function App() {
             state.setStage(stage);
           }}
         />
+      )}
+      {sphereModel && sphereHolding && state.selectedUnit && (
+        <Suspense
+          fallback={
+            <div className="sphere-backdrop">
+              <p className="sphere-status">Loading SAMPLE engagement sphere…</p>
+            </div>
+          }
+        >
+          <EngagementSphere
+            key={`${state.selectedUnit.id}:${sphereHolding.typeDesignation}`}
+            model={sphereModel}
+            typeDesignation={sphereHolding.typeDesignation}
+            unitDesignation={state.selectedUnit.orbat.designation}
+            onClose={state.closeSphere}
+          />
+        </Suspense>
       )}
       <Toast message={state.toast} />
     </div>

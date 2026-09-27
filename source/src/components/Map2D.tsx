@@ -18,6 +18,7 @@ import type {
   SymbologyMode,
   ThreatLayer,
   UnitOrbat,
+  VehicleHolding,
 } from '../types';
 import { OrbatInspect } from './OrbatPanel';
 import 'leaflet/dist/leaflet.css';
@@ -37,6 +38,7 @@ interface Props {
   munitionAssessment?: StrikeMunitionAssessment | null;
   selectedUnitId?: string | null;
   onSelectUnit?: (id: string) => void;
+  onOpenSphere?: (unitId: string, holding: VehicleHolding) => void;
 }
 
 function FlyTo({ ao, suspend }: { ao: AO | null; suspend: boolean }) {
@@ -163,6 +165,7 @@ export function Map2D({
   munitionAssessment = null,
   selectedUnitId = null,
   onSelectUnit,
+  onOpenSphere,
 }: Props) {
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -265,7 +268,15 @@ export function Map2D({
           >
             <Popup>
               {m.orbat ? (
-                <OrbatInspect orbat={m.orbat} variant="popup" />
+                <OrbatInspect
+                  orbat={m.orbat}
+                  variant="popup"
+                  onOpenSphere={
+                    onOpenSphere
+                      ? (holding) => onOpenSphere(m.id, holding)
+                      : undefined
+                  }
+                />
               ) : (
                 m.label
               )}

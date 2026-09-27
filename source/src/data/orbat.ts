@@ -46,6 +46,7 @@ export const SAMPLE_PLATFORM = {
   bmp2: 'BMP-2 (SAMPLE)',
   bm21: 'BM-21 Grad (SAMPLE)',
   orlan: 'Orlan-10 analog (SAMPLE)',
+  fulcrum: 'Fulcrum analog (SAMPLE)',
   corvette: 'Corvette analog (SAMPLE)',
 } as const;
 

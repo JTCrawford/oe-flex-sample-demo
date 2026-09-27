@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { aos, threatLayersByAo } from '../data/aos';
+import type { SphereTarget } from '../data/engagementSphere';
 import { inferMunitions } from '../data/munitionInference';
 import { strikesByAo } from '../data/strikes';
 import { vignetteForAo } from '../data/vignettes';
@@ -58,6 +59,7 @@ export function useAppState() {
     useState<StrikeOverlayToggles>(DEFAULT_STRIKE_OVERLAYS);
   const [selectedStrikeId, setSelectedStrikeId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [sphereTarget, setSphereTarget] = useState<SphereTarget | null>(null);
 
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -137,6 +139,13 @@ export function useAppState() {
     return null;
   }, [selectedUnitId, visibleLayers, killSwitch]);
 
+  if (sphereTarget && selectedUnit?.id !== sphereTarget.unitId) {
+    setSphereTarget(null);
+  }
+
+  const activeSphere =
+    sphereTarget && selectedUnit?.id === sphereTarget.unitId ? sphereTarget : null;
+
   const selectAo = useCallback(
     (aoId: string) => {
       setSelectedAoId(aoId);
@@ -196,6 +205,14 @@ export function useAppState() {
 
   const clearUnit = useCallback(() => {
     setSelectedUnitId(null);
+  }, []);
+
+  const openSphere = useCallback((target: SphereTarget) => {
+    setSphereTarget(target);
+  }, []);
+
+  const closeSphere = useCallback(() => {
+    setSphereTarget(null);
   }, []);
 
   const setSymbologyMutex = useCallback((mode: SymbologyMode) => {
@@ -304,6 +321,9 @@ export function useAppState() {
     selectUnit,
     toggleUnit,
     clearUnit,
+    activeSphere,
+    openSphere,
+    closeSphere,
   };
 }
 

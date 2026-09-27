@@ -149,6 +149,29 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
         }),
       ],
     },
+    {
+      id: 'hormuz-strike-air',
+      label: 'OPFOR strike flight (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'air',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'hormuz-strike-1',
+          lat: 26.78,
+          lng: 56.05,
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Strike', 'flight'),
+            echelon: 'flight',
+            higherFormation: HZ_HIGHER,
+            vehicles: [holding('aircraft', SAMPLE_PLATFORM.fulcrum, 4)],
+          }),
+        }),
+      ],
+    },
   ],
   'suwalki-gap': [
     {
@@ -393,6 +416,7 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
               holding('ifv', SAMPLE_PLATFORM.bmp2, 16),
               holding('artillery', SAMPLE_PLATFORM.bm21, 6),
               holding('aircraft', SAMPLE_PLATFORM.orlan, 3),
+              holding('aircraft', SAMPLE_PLATFORM.fulcrum, 2),
             ],
           }),
         }),

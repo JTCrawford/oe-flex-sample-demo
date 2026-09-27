@@ -200,8 +200,9 @@ export function ObservePanel({ state }: Props) {
         <h3>Order of battle</h3>
         <p className="muted">
           Unit pins carry a SAMPLE designation and typed vehicle counts. Select a
-          pin on the map or a unit below. The list follows the AO, layer toggles,
-          PMESII filters, and the kill-switch. Strike history stays on the map.
+          pin on the map or a unit below, then open Sphere on a tank, fighter, or
+          ship row. The list follows the AO, layer toggles, PMESII filters, and
+          the kill-switch. Strike history stays on the map.
         </p>
         {unitPins.length === 0 ? (
           <p className="muted">No unit pins in the current Observe view.</p>
@@ -228,6 +229,7 @@ export function ObservePanel({ state }: Props) {
           </ul>
         )}
         <SalesCallout id="orbat" compact />
+        <SalesCallout id="engagementSphere" compact />
       </section>
 
       <section>

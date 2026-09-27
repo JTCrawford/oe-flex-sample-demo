@@ -24,6 +24,8 @@ export const salesLines: Record<string, string> = {
     'Select a strike and brief the likely munitions — range, trajectory, and threat context, with confidence, on SAMPLE data.',
   orbat:
     'Inspect a unit pin and brief the order of battle — designation, vehicle types, and counts — from one SAMPLE schema.',
+  engagementSphere:
+    'Open a vehicle row and orbit a SAMPLE engagement sphere — top, belly, and flanks — with known and believed weak points on the same pin.',
 };
 
 export type SalesCapabilityId = keyof typeof salesLines;
