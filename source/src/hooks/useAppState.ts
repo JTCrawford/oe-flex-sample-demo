@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { aos, threatLayersByAo } from '../data/aos';
+import type { SphereTarget } from '../data/engagementSphere';
 import { profilesForOrbat, rangeRingsForProfiles } from '../data/munitionCatalog';
 import { inferMunitions } from '../data/munitionInference';
 import { strikesByAo } from '../data/strikes';
@@ -62,6 +63,7 @@ export function useAppState() {
     null,
   );
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [sphereTarget, setSphereTarget] = useState<SphereTarget | null>(null);
 
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -141,6 +143,14 @@ export function useAppState() {
     return null;
   }, [selectedUnitId, visibleLayers, killSwitch]);
 
+  const sphereStale =
+    !!sphereTarget &&
+    (killSwitch ||
+      (sphereTarget.unitId !== null && selectedUnit?.id !== sphereTarget.unitId));
+  if (sphereStale) setSphereTarget(null);
+
+  const activeSphere = sphereStale ? null : sphereTarget;
+
   const linkedMunitionProfiles = useMemo(
     () => (selectedUnit ? profilesForOrbat(selectedUnit.orbat) : []),
     [selectedUnit],
@@ -168,6 +178,7 @@ export function useAppState() {
       setSelectedAoId(aoId);
       setSelectedStrikeId(null);
       setSelectedUnitId(null);
+      setSphereTarget(null);
       setSelectionFocus(null);
       setWargameOutcome(null);
       setSelectedMitigationId(null);
@@ -236,6 +247,14 @@ export function useAppState() {
   const clearUnit = useCallback(() => {
     setSelectedUnitId(null);
     setSelectionFocus((prev) => (prev === 'unit' ? null : prev));
+  }, []);
+
+  const openSphere = useCallback((target: SphereTarget) => {
+    setSphereTarget(target);
+  }, []);
+
+  const closeSphere = useCallback(() => {
+    setSphereTarget(null);
   }, []);
 
   const setSymbologyMutex = useCallback((mode: SymbologyMode) => {
@@ -347,6 +366,9 @@ export function useAppState() {
     selectUnit,
     toggleUnit,
     clearUnit,
+    activeSphere,
+    openSphere,
+    closeSphere,
   };
 }
 

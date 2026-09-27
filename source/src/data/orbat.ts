@@ -46,6 +46,7 @@ export const SAMPLE_PLATFORM = {
   bmp2: 'BMP-2 (SAMPLE)',
   bm21: 'BM-21 Grad (SAMPLE)',
   orlan: 'Orlan-10 analog (SAMPLE)',
+  fulcrum: 'Fulcrum analog (SAMPLE)',
   corvette: 'Corvette analog (SAMPLE)',
   tochkaTel: '9P129 Tochka-U TEL analog (SAMPLE)',
   iskanderTel: '9P78-1 Iskander-M TEL analog (SAMPLE)',
@@ -65,12 +66,31 @@ export function sampleDesignation(
   return `SAMPLE ${ordinal} ${functionName} ${ECHELON_LABEL[echelon]}`;
 }
 
+/**
+ * Vehicle meshes. Linked SRBM/ATACMS holdings do not set this — they open
+ * `MunitionProfile.engagementSphereModelId` for the same catalog id.
+ */
+const PLATFORM_SPHERE_MODEL: Record<string, string> = {
+  [SAMPLE_PLATFORM.t72b3]: 'sphere-mbt',
+  [SAMPLE_PLATFORM.t80]: 'sphere-mbt',
+  [SAMPLE_PLATFORM.fulcrum]: 'sphere-fighter',
+  [SAMPLE_PLATFORM.corvette]: 'sphere-vessel',
+};
+
+const CATEGORY_SPHERE_MODEL: Partial<Record<VehicleCategoryId, string>> = {
+  tank: 'sphere-mbt',
+  ship: 'sphere-vessel',
+};
+
 export function holding(
   category: VehicleCategoryId,
   typeDesignation: string,
   count: number,
   linkedMunitionIds?: string[],
 ): VehicleHolding {
+  const engagementSphereModelId =
+    PLATFORM_SPHERE_MODEL[typeDesignation] ??
+    (category === 'aircraft' ? undefined : CATEGORY_SPHERE_MODEL[category]);
   return {
     category,
     typeDesignation,
@@ -78,6 +98,7 @@ export function holding(
     ...(linkedMunitionIds && linkedMunitionIds.length > 0
       ? { linkedMunitionIds }
       : {}),
+    ...(engagementSphereModelId ? { engagementSphereModelId } : {}),
   };
 }
 

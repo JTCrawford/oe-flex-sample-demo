@@ -201,8 +201,9 @@ export function ObservePanel({ state }: Props) {
         <h3>Order of battle</h3>
         <p className="muted">
           Unit pins carry a SAMPLE designation, typed vehicle counts, and any
-          linked munition profiles. Select a pin on the map or a unit below. The
-          list follows the AO, layer toggles, PMESII filters, and the kill-switch.
+          linked munition profiles. Open Sphere on a tank, fighter, ship, or
+          linked SRBM row — the model id is the shared catalog id. The list
+          follows the AO, layer toggles, PMESII filters, and the kill-switch.
           Range rings need Military symbology. Strike history stays on the map.
         </p>
         {unitPins.length === 0 ? (
@@ -236,6 +237,7 @@ export function ObservePanel({ state }: Props) {
           </ul>
         )}
         <SalesCallout id="orbat" compact />
+        <SalesCallout id="engagementSphere" compact />
       </section>
 
       <section>

@@ -72,6 +72,11 @@ export interface VehicleHolding {
   count: number;
   /** Shared `MunitionProfile` ids this platform is assessed to carry. */
   linkedMunitionIds?: string[];
+  /**
+   * Stable engagement-sphere mesh id (`sphere-mbt`, `sphere-fighter`, `sphere-vessel`).
+   * Linked munitions keep their id on `MunitionProfile` instead.
+   */
+  engagementSphereModelId?: string;
 }
 
 /** Open-source family for a shared SAMPLE munition record. */
@@ -103,7 +108,7 @@ export interface MunitionProfile {
   notes: string;
   sampleLabel: 'SAMPLE';
   classification: 'UNCLASS';
-  /** Stable placeholder id for the 3D engagement-sphere viewer. */
+  /** Stable id resolved by the engagement-sphere viewer (`sphere-tochka-u`, …). */
   engagementSphereModelId: string;
   /** Strike-label tokens that resolve inference onto this profile. */
   matchKeywords: string[];

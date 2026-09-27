@@ -78,6 +78,10 @@ Ring UX, one rule for every profile: an outer ring at `rangeMaxKm` and an inner 
 - Tochka-U, ATACMS Block I, and ATACMS later block use `span`: inner is minimum range, outer is maximum (70–120, 25–165, and 70–300 km).
 - Iskander-M uses `cited-bounds`. Open-source export figures are often ~280 km and domestic figures are often ~400–500 km. The demo draws **280 km (believed export)** and **500 km (upper domestic cite)**. It does not draw a third ring at 400 km.
 
+## Engagement sphere
+
+A vehicle row or a linked munition on a visible unit pin opens a lazy-loaded three.js viewer (`EngagementSphere`). The mesh id is the stable catalog id: `sphere-mbt`, `sphere-fighter`, and `sphere-vessel` on the vehicle profile, and `MunitionProfile.engagementSphereModelId` (`sphere-tochka-u`, `sphere-iskander-m`, `sphere-atacms-block-i`, `sphere-atacms-later-block`) for a linked round. A TEL row without its own mesh id opens that same munition id, so the unit does not grow a second card. Meshes are procedural and built on open; the WebGL context is disposed on close. Known and believed points are fictional overlays. ISR UAVs, IFVs, and unlinked artillery stay on the order of battle without a mesh. The sphere does not replace strike history, unit range rings, or ORBAT, and a unit-opened sphere closes when that unit leaves the Observe view.
+
 ## Symbology mutex
 
 `symbology: 'military' | 'commercial'` is exclusive. Military uses 2525-style SVG frames; Commercial uses ship/port/pipeline-style icons. Export burns in the active deck only.

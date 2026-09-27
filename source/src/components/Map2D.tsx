@@ -18,7 +18,9 @@ import type {
   StrikeRangeRing,
   SymbologyMode,
   ThreatLayer,
+  MunitionProfile,
   UnitOrbat,
+  VehicleHolding,
 } from '../types';
 import { OrbatInspect } from './OrbatPanel';
 import 'leaflet/dist/leaflet.css';
@@ -38,6 +40,8 @@ interface Props {
   munitionAssessment?: StrikeMunitionAssessment | null;
   selectedUnitId?: string | null;
   onSelectUnit?: (id: string) => void;
+  onOpenSphere?: (unitId: string, holding: VehicleHolding) => void;
+  onOpenMunitionSphere?: (unitId: string, profile: MunitionProfile) => void;
   unitRangeRings?: StrikeRangeRing[];
   selectionFocus?: 'strike' | 'unit' | null;
 }
@@ -179,6 +183,8 @@ export function Map2D({
   munitionAssessment = null,
   selectedUnitId = null,
   onSelectUnit,
+  onOpenSphere,
+  onOpenMunitionSphere,
   unitRangeRings = [],
   selectionFocus = null,
 }: Props) {
@@ -300,6 +306,16 @@ export function Map2D({
                 <OrbatInspect
                   orbat={m.orbat}
                   variant="popup"
+                  onOpenSphere={
+                    onOpenSphere
+                      ? (holding) => onOpenSphere(m.id, holding)
+                      : undefined
+                  }
+                  onOpenMunitionSphere={
+                    onOpenMunitionSphere
+                      ? (profile) => onOpenMunitionSphere(m.id, profile)
+                      : undefined
+                  }
                   rangeRingsOn={selectedUnitId === m.id && unitRangeRings.length > 0}
                 />
               ) : (
