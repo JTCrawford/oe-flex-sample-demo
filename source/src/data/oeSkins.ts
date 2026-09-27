@@ -72,7 +72,8 @@ export const OE_SKINS: OeSkin[] = [
   {
     id: 'arctic',
     label: 'Arctic',
-    summary: 'White and grey disruptive pattern. No SAMPLE AO auto-selects it yet. Drop a folder to bind one.',
+    summary:
+      'White and grey disruptive pattern. GIUK Gap air and land auto-select it. Ships on that picture stay naval grey.',
     oeIds: ['arctic'],
     file: 'arctic.png',
     repeatMeters: 5.5,
@@ -82,7 +83,8 @@ export const OE_SKINS: OeSkin[] = [
   {
     id: 'jungle',
     label: 'Jungle',
-    summary: 'Deep-green blotch. No SAMPLE AO auto-selects it yet. Drop a folder to bind one.',
+    summary:
+      'Deep-green blotch. South China Sea air and land auto-select it. Hulls on that picture stay naval grey.',
     oeIds: ['jungle'],
     file: 'jungle.png',
     repeatMeters: 4.4,
@@ -133,9 +135,12 @@ export function repeatMetersFor(skin: OeSkin, modelId: SphereModelId): number {
 
 /**
  * Skin the dialog selects when it opens. The analyst can pick another.
- * Vessels and the Magura USV stay naval grey. Hormuz air and land go desert tan.
- * Ukraine East partner vehicles, including Liut, Verba, and Ukrainian armor, go
- * digital; other Ukraine and Suwałki vehicles go woodland.
+ * Vessels and the Magura USV stay naval grey. Hormuz, Bab el-Mandeb, and the
+ * Persian Gulf air and land pictures go desert tan. Taiwan Strait and the
+ * Korean Peninsula go temperate woodland. South China Sea air and land go
+ * jungle. GIUK Gap air and land go arctic. Ukraine East partner vehicles,
+ * including Liut, Verba, and Ukrainian armor, go digital; other Ukraine and
+ * Suwałki vehicles go woodland.
  */
 export function defaultSkinId(
   aoId: string | null,
@@ -148,8 +153,17 @@ export function defaultSkinId(
   if (aoId === 'hormuz' || aoId === 'bab-el-mandeb' || aoId === 'persian-gulf') {
     return 'desert-tan';
   }
+  if (aoId === 'south-china-sea') return 'jungle';
+  if (aoId === 'giuk-gap') return 'arctic';
   if (aoId === 'ukraine-east' && partner) return 'ukrainian-digital';
-  if (aoId === 'ukraine-east' || aoId === 'suwalki-gap') return 'temperate-woodland';
+  if (
+    aoId === 'ukraine-east' ||
+    aoId === 'suwalki-gap' ||
+    aoId === 'taiwan-strait' ||
+    aoId === 'korean-peninsula'
+  ) {
+    return 'temperate-woodland';
+  }
   if (partner) return 'ukrainian-digital';
   if (FIGHTER_MODELS.has(modelId)) return 'desert-tan';
   return 'temperate-woodland';

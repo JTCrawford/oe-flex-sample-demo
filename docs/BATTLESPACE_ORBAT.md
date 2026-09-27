@@ -49,9 +49,9 @@ This PR ships Phase 1 only. Public meshes are the CC0 `sphere-*.glb` files alrea
 
 ## Hotspot tour
 
-The map column has one scenario selector. Required stops are Ukraine–Russia, Strait of Hormuz, and Bab el-Mandeb (Houthis / Yemen). Persian Gulf, Black Sea, and Suwałki Gap stay because they render those same CC0 meshes. Military pins are blue for partner and coalition formations and red for OPFOR. Commercial symbology keeps commercial icons. Engagement lines draw only on the military picture. The defeat layer stays a training label and does not name a weapon or a procedure.
+The map column has one scenario selector. Phase 1 stops are Ukraine–Russia, Strait of Hormuz, and Bab el-Mandeb (Houthis / Yemen), plus Persian Gulf, Black Sea, and Suwałki Gap. Phase 2a adds Taiwan Strait, the Korean Peninsula, the South China Sea, and the GIUK Gap on those same CC0 meshes. Military pins are blue for partner and coalition formations and red for OPFOR. Commercial symbology keeps commercial icons. Engagement lines draw only on the military picture. The defeat layer stays a training label and does not name a weapon or a procedure.
 
-The Observe Social / SOCMINT list is the same fictional feed. Ukraine East keeps its original cards. Strait of Hormuz, Bab el-Mandeb, and the CC0 stops add a few more. Badges use SAMPLE Admiralty stamps from A1 through F6. Nothing is scraped and no vendor API is called.
+The Observe Social / SOCMINT list is the same fictional feed. Ukraine East keeps its original cards. Each other stop adds a few more. Badges use SAMPLE Admiralty stamps from A1 through F6. Nothing is scraped and no vendor API is called.
 
 | Toggle | What it shows |
 | --- | --- |
@@ -61,6 +61,10 @@ The Observe Social / SOCMINT list is the same fictional feed. Ukraine East keeps
 | Persian Gulf | Central Gulf fast-craft SAMPLE feed, separate from Hormuz. Two craft sections toward the platform cluster. Screen section toward the first craft section. |
 | Black Sea | CC0 corvette mesh for a USV stand-in and a patrol stand-in, plus a merchant track and a shore section. |
 | Suwałki Gap | Existing land-corridor AO. Armor and rockets toward the corridor node. Mech section and corridor defense section toward each other. |
+| Taiwan Strait | Phase 2a. CC0 fighter and corvette. Strike flight and patrol toward the strait track. Coalition flight and ground section toward the OPFOR pins. |
+| Korean Peninsula | Phase 2a. CC0 T-72B3 and fighter. Armor, rockets, and the flight toward the corridor node. Corridor defense toward the armor. |
+| South China Sea | Phase 2a. Separate from the Taiwan Strait pins. Two craft sections toward an unnamed outpost cluster. Screen and shore sections toward the first craft section. Jungle on the shore pin. |
+| GIUK Gap | Phase 2a. CC0 corvette and fighter. Patrol toward the transit track. Coalition flight and picket toward the patrol. Arctic on air and land. |
 
 ## Infantry pins and soldier GLBs
 
@@ -78,7 +82,7 @@ Those GLBs are licensed local authoring assets. They are gitignored and are not 
 
 ## Sphere manipulation and analysis layers
 
-The engagement-sphere dialog orbits with a drag and zooms with the scroll wheel or a pinch. Four toggles sit on the card: Strengths, Weaknesses, How do I kill this?, and Capabilities. Seeded UNCLASS SAMPLE notes cover Tochka-U, Iskander 9K720, Magura V5, Liut, Verba 9K333, the MiG-29 (`sphere-fighter`), and the BTR-4E. Thin lines are marked Stub. The defeat layer is vignette language for the training card. It does not name a weapon or a procedure. Other sphere ids open the same toggles and say the card is not seeded yet. Camouflage selection is unchanged.
+The engagement-sphere dialog orbits with a drag, pans with a right-drag or the Pan control, and zooms with the scroll wheel, a pinch, or the Zoom controls. Reset and the side presets put the camera back. Four toggles sit on the card: Strengths, Weaknesses, How to kill, and Capabilities. An active layer draws color-coded callouts beside the mesh and writes the same notes on the recognition card. The callouts are labels. They are not a range ring, and the How to kill callouts do not touch the hull. Seeded UNCLASS SAMPLE notes cover the T-72B3 mesh, Tochka-U, Iskander 9K720, HIMARS, M270, Magura V5, Liut, Verba 9K333, the MiG-29 (`sphere-fighter`), the Su-27, and the Ukrainian armored rows (BTR-4E, Dozor-B, Novator, KrAZ Shrek, KrAZ Fiona). Thin lines are marked Stub. The defeat layer is vignette language for the training card. It does not name a weapon or a procedure. A platform without a card says so. Camouflage selection is unchanged.
 
 ## Still needing geometry
 

@@ -11,8 +11,8 @@ import type {
 /**
  * UNCLASS SAMPLE social / SOCMINT indicators-and-warning cards.
  * Fictional labels only — not a scrape or republication of any real post.
- * Ukraine East keeps the original four cards. Hormuz, Bab el-Mandeb, and the
- * CC0 hotspot stops each have a few more. Grades are SAMPLE training labels
+ * Ukraine East keeps the original four cards. Hormuz, Bab el-Mandeb, the
+ * Phase 1 CC0 stops, and the Phase 2a stops each have a few more. Grades are SAMPLE training labels
  * in the A1–F6 shape. Nothing here is scraped or bought from a vendor.
  */
 
@@ -253,6 +253,98 @@ export const SOCIAL_SIGNALS: SocialSignal[] = [
       { name: 'SAMPLE armor approach', lat: 54.18, lon: 22.85 },
     ],
     relatedUnitIds: ['tank-1', 'mlrs-1', 'sg-partner-inf'],
+    sampleLabel: 'SAMPLE',
+  },
+  {
+    id: 'soc-ts-tracks',
+    platform: 'SAMPLE Social',
+    headline: 'SAMPLE channel: the strait track does not match the posted lane',
+    body:
+      'Fictional Taiwan Strait note. A fairly reliable SAMPLE channel says the track sketch and the posted lane disagree. No ship name, no imagery, and no copied account.',
+    sourceLabel: 'SAMPLE Open Channel — Strait Desk',
+    reliability: 'C',
+    credibility: 3,
+    claimStatus: 'reported',
+    capturedAt: capturedAgo(3 * HOUR_MS),
+    aoIds: ['taiwan-strait'],
+    geoHints: [
+      { name: 'SAMPLE strait track', lat: 24.35, lon: 119.55 },
+      { name: 'SAMPLE patrol pin', lat: 24.55, lon: 119.85 },
+    ],
+    relatedUnitIds: ['ts-patrol-1', 'ts-strike-1'],
+    sampleLabel: 'SAMPLE',
+  },
+  {
+    id: 'soc-ts-rumor',
+    platform: 'SAMPLE Forum',
+    headline: 'SAMPLE rumor: the coalition flight left the strait',
+    body:
+      'One SAMPLE handle. No second source. The line is improbable from what this card contains.',
+    sourceLabel: 'SAMPLE anonymous handle gray-lane',
+    reliability: 'E',
+    credibility: 5,
+    claimStatus: 'unverified',
+    capturedAt: capturedAgo(16 * HOUR_MS),
+    aoIds: ['taiwan-strait'],
+    geoHints: [{ name: 'SAMPLE coalition flight talk', lat: 24.15, lon: 118.75 }],
+    relatedUnitIds: ['ts-coalition-air'],
+    sampleLabel: 'SAMPLE',
+  },
+  {
+    id: 'soc-kp-node',
+    platform: 'SAMPLE Social',
+    headline: 'SAMPLE channel: corridor node named in local traffic talk',
+    body:
+      'Fictional peninsula note. A not-usually-reliable SAMPLE channel mentions the corridor node and vehicle movement. Possibly true, and not a copied post.',
+    sourceLabel: 'SAMPLE Open Channel — Peninsula Talk',
+    reliability: 'D',
+    credibility: 3,
+    claimStatus: 'reported',
+    capturedAt: capturedAgo(6 * HOUR_MS),
+    aoIds: ['korean-peninsula'],
+    geoHints: [
+      { name: 'SAMPLE corridor node', lat: 38.05, lon: 127.05 },
+      { name: 'SAMPLE armor approach', lat: 38.35, lon: 127.45 },
+    ],
+    relatedUnitIds: ['kp-armor-1', 'kp-rockets-1', 'kp-coalition-inf'],
+    sampleLabel: 'SAMPLE',
+  },
+  {
+    id: 'soc-scs-cluster',
+    platform: 'SAMPLE Social',
+    headline: 'SAMPLE channel: small-craft talk around the outpost cluster',
+    body:
+      'Fictional South China Sea note, separate from the Taiwan Strait cards. Fairly reliable channel, doubtful detail. The cluster is not a named reef.',
+    sourceLabel: 'SAMPLE Open Channel — Outpost Watch',
+    reliability: 'C',
+    credibility: 4,
+    claimStatus: 'reported',
+    capturedAt: capturedAgo(5 * HOUR_MS),
+    aoIds: ['south-china-sea'],
+    geoHints: [
+      { name: 'SAMPLE outpost cluster', lat: 10.0, lon: 114.5 },
+      { name: 'SAMPLE craft section A', lat: 10.4, lon: 113.6 },
+    ],
+    relatedUnitIds: ['scs-craft-a', 'scs-craft-b', 'scs-screen-1'],
+    sampleLabel: 'SAMPLE',
+  },
+  {
+    id: 'soc-giuk-picket',
+    platform: 'SAMPLE Wire',
+    headline: 'SAMPLE desk: picket section still marked on the patrol line',
+    body:
+      'Fictional GIUK note. A usually reliable SAMPLE desk says the picket is still on the line toward the patrol. Possibly true on this card alone. CC0 picture only.',
+    sourceLabel: 'SAMPLE Maritime Desk — GIUK',
+    reliability: 'B',
+    credibility: 3,
+    claimStatus: 'reported',
+    capturedAt: capturedAgo(80 * MINUTE_MS),
+    aoIds: ['giuk-gap'],
+    geoHints: [
+      { name: 'SAMPLE picket section', lat: 64.15, lon: -15.4 },
+      { name: 'SAMPLE patrol', lat: 63.2, lon: -11.0 },
+    ],
+    relatedUnitIds: ['giuk-picket-1', 'giuk-patrol-1', 'giuk-coalition-air'],
     sampleLabel: 'SAMPLE',
   },
 ];

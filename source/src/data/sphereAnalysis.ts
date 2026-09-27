@@ -22,7 +22,7 @@ export type SphereAnalysis = Record<SphereLayerId, SphereAnalysisNote[]>;
 export const SPHERE_LAYERS: { id: SphereLayerId; label: string }[] = [
   { id: 'strengths', label: 'Strengths' },
   { id: 'weaknesses', label: 'Weaknesses' },
-  { id: 'defeat', label: 'How do I kill this?' },
+  { id: 'defeat', label: 'How to kill' },
   { id: 'capabilities', label: 'Capabilities' },
 ];
 
@@ -37,7 +37,97 @@ function note(id: string, title: string, body: string, stubNote = false): Sphere
   return { id, title, body, ...(stubNote ? { stub: true } : {}) };
 }
 
+/** Partner armor rows that share the CC0 T-72B3 mesh. */
+function partnerArmor(name: string, role: string): SphereAnalysis {
+  return {
+    strengths: [
+      note(
+        'role',
+        role,
+        `SAMPLE partner armored company. ${name} uses the same skin rule as the BTR-4E. Ukrainian digital is the auto skin.`,
+      ),
+    ],
+    weaknesses: [
+      stub(
+        'protection',
+        'Protection level',
+        'SAMPLE stub. Protection level is not in this dataset.',
+      ),
+      note(
+        'stand-in',
+        'Stand-in hull',
+        `SAMPLE: the public mesh is the CC0 T-72B3. The silhouette is not a ${name}.`,
+        true,
+      ),
+    ],
+    defeat: [
+      stub(
+        'none',
+        'No defeat method named',
+        'SAMPLE stub. This vignette does not name a defeat method. The card is a recognition label.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'company',
+        'Company holding',
+        'SAMPLE 4th Armored Company holds this row with the other Ukrainian armored vehicles.',
+      ),
+    ],
+  };
+}
+
 const SEEDED: Partial<Record<SphereModelId, SphereAnalysis>> = {
+  'sphere-mbt': {
+    strengths: [
+      note(
+        'silhouette',
+        'Low turret, six road wheels',
+        'SAMPLE recognition brief: Kontakt-5 cheeks and a Sosna-U housing. T-80 rows in this ORBAT open the same mesh.',
+      ),
+      note(
+        'crew',
+        'Crew of three',
+        'The recognition card lists a crew of 3 and a 125 mm smoothbore. That is the public brief, not a combat assessment.',
+      ),
+    ],
+    weaknesses: [
+      note(
+        'markers',
+        'Fictional SAMPLE markers',
+        'The known and believed pins on this mesh are SAMPLE overlays. They are not an assessment of protection.',
+      ),
+      stub(
+        'protection',
+        'Protection level',
+        'SAMPLE stub. Protection level is not in this dataset.',
+      ),
+    ],
+    defeat: [
+      note(
+        'approach',
+        'Still on the approach',
+        'SAMPLE vignette: the training question is whether the armor is still on the line. This card does not name a weapon or a procedure.',
+      ),
+      note(
+        'label',
+        'Training label only',
+        'UNCLASS SAMPLE. The markers stay recognition cues. They are not a firing solution.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'role',
+        'Main battle tank',
+        'Brief line: T-72B3, V-92S2F diesel band, 125 mm 2A46M-5. Public arrangement only.',
+      ),
+      note(
+        'shared',
+        'Shared mesh',
+        'T-80 rows use this CC0 file until a separate sphere id exists.',
+      ),
+    ],
+  },
   'sphere-tochka-u': {
     strengths: [
       note(
@@ -349,6 +439,132 @@ const SEEDED: Partial<Record<SphereModelId, SphereAnalysis>> = {
       ),
     ],
   },
+  'sphere-atacms-block-i': {
+    strengths: [
+      note(
+        'wheeled',
+        'Wheeled launcher',
+        'SAMPLE partner fires. FMTV 6×6 with one pod. The recognition mesh shows an ATACMS Block I round erected.',
+      ),
+    ],
+    weaknesses: [
+      note(
+        'cue',
+        'Erected round is the cue',
+        'SAMPLE: the raised round is a recognition cue on this card. It is not an assessment of protection.',
+      ),
+      stub(
+        'drill',
+        'Crew drill',
+        'SAMPLE stub. Crew drill and reload are not in this dataset.',
+      ),
+    ],
+    defeat: [
+      note(
+        'hide',
+        'Before it shoots',
+        'SAMPLE vignette: the training question is whether the launcher is still in the hide. This card does not name a weapon or a procedure.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'envelope',
+        'Cited envelope 25–165 km',
+        'Catalog atacms-block-i. The inner ring is the 25 km minimum. The outer ring is the 165 km maximum.',
+      ),
+      note(
+        'role',
+        'Wheeled rocket launcher',
+        'M142 HIMARS. One round in the MFOM pod on this SAMPLE mesh.',
+      ),
+    ],
+  },
+  'sphere-atacms-later-block': {
+    strengths: [
+      note(
+        'tracked',
+        'Tracked launcher',
+        'SAMPLE partner fires. Two pods, one later-block round erected on this mesh.',
+      ),
+    ],
+    weaknesses: [
+      note(
+        'cue',
+        'Erected round is the cue',
+        'SAMPLE: the raised round is a recognition cue. It is not an assessment of protection.',
+      ),
+      stub(
+        'drill',
+        'Crew drill',
+        'SAMPLE stub. Crew drill and reload are not in this dataset.',
+      ),
+    ],
+    defeat: [
+      note(
+        'hide',
+        'Before it shoots',
+        'SAMPLE vignette: the training question is whether the launcher is still in the hide. This card does not name a weapon or a procedure.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'envelope',
+        'Cited envelope 70–300 km',
+        'Catalog atacms-later-block. Inner ring 70 km. Outer ring 300 km.',
+      ),
+      note(
+        'role',
+        'Tracked rocket launcher',
+        'M270 MLRS. The later-block round is the SAMPLE catalog row.',
+      ),
+    ],
+  },
+  'sphere-su27': {
+    strengths: [
+      note(
+        'flight',
+        'Partner fighter flight',
+        'SAMPLE Ukraine East partner flight, beside the MiG-29. Ukrainian digital is the auto skin on that pin.',
+      ),
+    ],
+    weaknesses: [
+      note(
+        'stand-in',
+        'Fighter stand-in',
+        'The public mesh is the CC0 MiG-29. It is not a Flanker silhouette.',
+        true,
+      ),
+      stub(
+        'sensors',
+        'Sensors',
+        'SAMPLE stub. Sensors and countermeasures are not in this dataset.',
+      ),
+    ],
+    defeat: [
+      note(
+        'named',
+        'Named in the flight',
+        'SAMPLE vignette: the card names the jet in the flight. It does not describe an engagement.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'role',
+        'Air-superiority role',
+        'Brief line: Su-27 Flanker, two Saturn AL-31F engines. Public arrangement only.',
+      ),
+      note(
+        'stores',
+        'Recognition stores',
+        'SAMPLE stores are a placeholder. They are not a loadout.',
+        true,
+      ),
+    ],
+  },
+  'sphere-dozor-b': partnerArmor('Dozor-B', 'Light armored car'),
+  'sphere-novator': partnerArmor('Novator', 'Light armored vehicle'),
+  'sphere-kraz-shrek': partnerArmor('KrAZ Shrek', 'Mine-resistant vehicle'),
+  'sphere-kraz-fiona': partnerArmor('KrAZ Fiona', 'Mine-resistant vehicle'),
   'sphere-soldier': {
     strengths: [
       note(
