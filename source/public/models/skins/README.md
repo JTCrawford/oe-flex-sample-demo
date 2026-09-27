@@ -2,7 +2,7 @@
 
 UNCLASS SAMPLE. Patterns in these folders are original CC0 textures from `source/tools/build_oe_skins.py`. They are not issued-fabric scans.
 
-The sphere dialog auto-selects a skin from the open area of operations. Ukraine East OPFOR uses temperate woodland. Ukraine East partner fires, Liut, Verba, and Ukrainian armored vehicles use Ukrainian digital. Suwałki Gap uses temperate woodland. Hormuz air and land use desert tan. The corvette and the Magura V5 use naval grey. Arctic and jungle are selectable and not tied to a SAMPLE AO yet.
+The sphere dialog auto-selects a skin from the open area of operations. Ukraine East OPFOR uses temperate woodland. Ukraine East partner fires, Liut, Verba, and Ukrainian armored vehicles use Ukrainian digital. Suwałki Gap, the Taiwan Strait, and the Korean Peninsula use temperate woodland. Hormuz, Bab el-Mandeb, and Persian Gulf air and land use desert tan. The corvette and the Magura V5 use naval grey on every theater. South China Sea air and land use jungle. GIUK Gap air and land use arctic.
 
 ## Replace a pattern
 

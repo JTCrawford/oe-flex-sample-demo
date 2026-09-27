@@ -18,6 +18,14 @@ const PG_HIGHER = 'SAMPLE Persian Gulf OPFOR Group';
 const PG_COALITION = 'SAMPLE Persian Gulf Coalition';
 const BS_HIGHER = 'SAMPLE Black Sea OPFOR Group';
 const BS_PARTNER = 'SAMPLE Black Sea Partner Group';
+const TS_HIGHER = 'SAMPLE Taiwan Strait OPFOR Group';
+const TS_COALITION = 'SAMPLE Taiwan Strait Coalition';
+const KP_HIGHER = 'SAMPLE Peninsula OPFOR Group';
+const KP_COALITION = 'SAMPLE Peninsula Coalition';
+const SCS_HIGHER = 'SAMPLE South China Sea OPFOR Group';
+const SCS_COALITION = 'SAMPLE South China Sea Coalition';
+const GIUK_HIGHER = 'SAMPLE GIUK OPFOR Group';
+const GIUK_COALITION = 'SAMPLE GIUK Coalition';
 
 export const aos: AO[] = [
   {
@@ -70,6 +78,42 @@ export const aos: AO[] = [
     lng: 31.0,
     description:
       'SAMPLE Black Sea picture on the CC0 corvette mesh. Not a real fleet disposition.',
+  },
+  {
+    id: 'taiwan-strait',
+    name: 'Taiwan Strait (SAMPLE)',
+    type: 'maritime',
+    lat: 24.4,
+    lng: 119.2,
+    description:
+      'SAMPLE strait thread on the CC0 fighter and corvette meshes. Not a real order of battle.',
+  },
+  {
+    id: 'korean-peninsula',
+    name: 'Korean Peninsula (SAMPLE)',
+    type: 'land',
+    lat: 38.05,
+    lng: 127.1,
+    description:
+      'SAMPLE peninsula corridor. Armor and rockets use the CC0 land meshes. Not a real unit picture.',
+  },
+  {
+    id: 'south-china-sea',
+    name: 'South China Sea (SAMPLE)',
+    type: 'maritime',
+    lat: 10.2,
+    lng: 114.3,
+    description:
+      'SAMPLE outpost thread, separate from the Taiwan Strait pins. The public hull is the CC0 corvette. Not a named reef or navy.',
+  },
+  {
+    id: 'giuk-gap',
+    name: 'GIUK Gap (SAMPLE)',
+    type: 'maritime',
+    lat: 63.0,
+    lng: -12.0,
+    description:
+      'SAMPLE North Atlantic gap picture on the CC0 corvette and fighter meshes. Not a real patrol line.',
   },
 ];
 
@@ -1062,6 +1106,457 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
             designation: sampleDesignation('2nd', 'Shore', 'section'),
             echelon: 'section',
             higherFormation: BS_PARTNER,
+            vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
+          }),
+        }),
+      ],
+    },
+  ],
+  'taiwan-strait': [
+    {
+      id: 'ts-shipping',
+      label: 'Strait track (SAMPLE)',
+      pmesii: ['Economic', 'Infrastructure'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'ts-track-1',
+          lat: 24.35,
+          lng: 119.55,
+          label: 'Strait track (SAMPLE)',
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Economic'],
+        },
+      ],
+    },
+    {
+      id: 'ts-patrol',
+      label: 'OPFOR patrol (SAMPLE)',
+      pmesii: ['Military'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ts-patrol-1',
+          lat: 24.55,
+          lng: 119.85,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Patrol', 'squadron'),
+            echelon: 'squadron',
+            higherFormation: TS_HIGHER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.corvette, 2)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ts-strike',
+      label: 'OPFOR strike flight (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'air',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ts-strike-1',
+          lat: 24.7,
+          lng: 119.25,
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Strike', 'flight'),
+            echelon: 'flight',
+            higherFormation: TS_HIGHER,
+            vehicles: [holding('aircraft', SAMPLE_PLATFORM.fulcrum, 4)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ts-coalition-flight',
+      label: 'Coalition flight (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'air',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ts-coalition-air',
+          lat: 24.15,
+          lng: 118.75,
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'Coalition', 'flight'),
+            echelon: 'flight',
+            higherFormation: TS_COALITION,
+            vehicles: [
+              holding('aircraft', SAMPLE_PLATFORM.f22, 2),
+              holding('aircraft', SAMPLE_PLATFORM.fa18, 2),
+            ],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ts-coastal',
+      label: 'Coastal section (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ts-coastal-1',
+          lat: 24.82,
+          lng: 118.95,
+          milSymbol: 'infantry',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Coastal', 'section'),
+            echelon: 'section',
+            higherFormation: TS_HIGHER,
+            vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ts-coalition-ground-layer',
+      label: 'Coalition ground section (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ts-coalition-ground',
+          lat: 24.05,
+          lng: 119.15,
+          milSymbol: 'infantry',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Coalition Ground', 'section'),
+            echelon: 'section',
+            higherFormation: TS_COALITION,
+            vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
+          }),
+        }),
+      ],
+    },
+  ],
+  'korean-peninsula': [
+    {
+      id: 'kp-infra',
+      label: 'Peninsula corridor node (SAMPLE)',
+      pmesii: ['Infrastructure', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'kp-node-1',
+          lat: 38.05,
+          lng: 127.05,
+          label: 'Peninsula corridor node (SAMPLE)',
+          milSymbol: 'infra',
+          commercialSymbol: 'pipeline',
+          pmesii: ['Infrastructure'],
+        },
+      ],
+    },
+    {
+      id: 'kp-armor',
+      label: 'OPFOR armor (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'kp-armor-1',
+          lat: 38.35,
+          lng: 127.45,
+          milSymbol: 'armor',
+          commercialSymbol: 'vehicle',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Armor', 'platoon'),
+            echelon: 'platoon',
+            higherFormation: KP_HIGHER,
+            vehicles: [holding('tank', SAMPLE_PLATFORM.t72b3, 3)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'kp-rockets',
+      label: 'OPFOR rockets (SAMPLE)',
+      pmesii: ['Military', 'Time'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'kp-rockets-1',
+          lat: 38.5,
+          lng: 126.75,
+          milSymbol: 'arty',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Time'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'Rocket', 'battery'),
+            echelon: 'battery',
+            higherFormation: KP_HIGHER,
+            vehicles: [holding('artillery', SAMPLE_PLATFORM.bm21, 4)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'kp-air',
+      label: 'OPFOR flight (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'air',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'kp-flight-1',
+          lat: 38.62,
+          lng: 127.85,
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Fighter', 'flight'),
+            echelon: 'flight',
+            higherFormation: KP_HIGHER,
+            vehicles: [holding('aircraft', SAMPLE_PLATFORM.fulcrum, 2)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'kp-defense',
+      label: 'Corridor defense (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'kp-coalition-inf',
+          lat: 37.75,
+          lng: 126.9,
+          milSymbol: 'infantry',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Corridor Defense', 'section'),
+            echelon: 'section',
+            higherFormation: KP_COALITION,
+            vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
+          }),
+        }),
+      ],
+    },
+  ],
+  'south-china-sea': [
+    {
+      id: 'scs-outposts',
+      label: 'Outpost cluster (SAMPLE)',
+      pmesii: ['Infrastructure', 'Economic'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'scs-outpost-1',
+          lat: 10.0,
+          lng: 114.5,
+          label: 'Outpost cluster (SAMPLE)',
+          milSymbol: 'infra',
+          commercialSymbol: 'port',
+          pmesii: ['Infrastructure'],
+        },
+      ],
+    },
+    {
+      id: 'scs-craft-a-layer',
+      label: 'Craft section A (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'scs-craft-a',
+          lat: 10.4,
+          lng: 113.6,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Craft', 'section'),
+            echelon: 'section',
+            higherFormation: SCS_HIGHER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.coastalCraft, 3)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'scs-craft-b-layer',
+      label: 'Craft section B (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'scs-craft-b',
+          lat: 9.6,
+          lng: 115.1,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('2nd', 'Craft', 'section'),
+            echelon: 'section',
+            higherFormation: SCS_HIGHER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.coastalCraft, 2)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'scs-screen',
+      label: 'Screen section (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'scs-screen-1',
+          lat: 10.8,
+          lng: 114.0,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Screen', 'section'),
+            echelon: 'section',
+            higherFormation: SCS_COALITION,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.escortHull, 1)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'scs-shore',
+      label: 'Shore section (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'scs-shore-1',
+          lat: 10.15,
+          lng: 113.9,
+          milSymbol: 'infantry',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Shore', 'section'),
+            echelon: 'section',
+            higherFormation: SCS_COALITION,
+            vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
+          }),
+        }),
+      ],
+    },
+  ],
+  'giuk-gap': [
+    {
+      id: 'giuk-transit',
+      label: 'Transit track (SAMPLE)',
+      pmesii: ['Economic', 'Infrastructure'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        {
+          id: 'giuk-track-1',
+          lat: 62.4,
+          lng: -14.5,
+          label: 'Transit track (SAMPLE)',
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Economic'],
+        },
+      ],
+    },
+    {
+      id: 'giuk-patrol',
+      label: 'OPFOR patrol (SAMPLE)',
+      pmesii: ['Military'],
+      domain: 'sea',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'giuk-patrol-1',
+          lat: 63.2,
+          lng: -11.0,
+          milSymbol: 'ship',
+          commercialSymbol: 'ship',
+          pmesii: ['Military'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Patrol', 'squadron'),
+            echelon: 'squadron',
+            higherFormation: GIUK_HIGHER,
+            vehicles: [holding('ship', SAMPLE_PLATFORM.corvette, 2)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'giuk-air',
+      label: 'Coalition flight (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'air',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'giuk-coalition-air',
+          lat: 62.8,
+          lng: -8.5,
+          milSymbol: 'uav',
+          commercialSymbol: 'sensor',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Coalition', 'flight'),
+            echelon: 'flight',
+            higherFormation: GIUK_COALITION,
+            vehicles: [holding('aircraft', SAMPLE_PLATFORM.fulcrum, 2)],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'giuk-picket',
+      label: 'Picket section (SAMPLE)',
+      pmesii: ['Military', 'Physical'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'giuk-picket-1',
+          lat: 64.15,
+          lng: -15.4,
+          milSymbol: 'infantry',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Physical'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Picket', 'section'),
+            echelon: 'section',
+            higherFormation: GIUK_COALITION,
             vehicles: [holding('infantry', SAMPLE_PLATFORM.dismount, 1)],
           }),
         }),

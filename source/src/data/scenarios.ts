@@ -10,7 +10,11 @@ export type ScenarioId =
   | 'bab-el-mandeb'
   | 'persian-gulf'
   | 'black-sea'
-  | 'suwalki-gap';
+  | 'suwalki-gap'
+  | 'taiwan-strait'
+  | 'korean-peninsula'
+  | 'south-china-sea'
+  | 'giuk-gap';
 
 export interface Scenario {
   id: ScenarioId;
@@ -71,6 +75,38 @@ export const SCENARIOS: Scenario[] = [
     summary:
       'Suwałki Gap SAMPLE land corridor. OPFOR armor, mech, and rockets are red. The corridor defense section is blue. Lines run from the armor and rockets toward the corridor node, from the mech section toward the defense section, and from the defense section toward the armor.',
   },
+  {
+    id: 'taiwan-strait',
+    label: 'Taiwan Strait',
+    kicker: 'Strait',
+    aoId: 'taiwan-strait',
+    summary:
+      'Taiwan Strait SAMPLE thread on the CC0 fighter and corvette meshes. Coalition pins are blue. OPFOR pins are red. Lines run from the strike flight and the patrol toward the strait track, and from the coalition flight and ground section toward the OPFOR strike flight and coastal pin.',
+  },
+  {
+    id: 'korean-peninsula',
+    label: 'Korean Peninsula',
+    kicker: 'Peninsula',
+    aoId: 'korean-peninsula',
+    summary:
+      'Korean Peninsula SAMPLE land thread. OPFOR armor, rockets, and the flight are red. The corridor defense section is blue. Lines run from the armor, rockets, and fighter flight toward the corridor node, and from the defense section toward the armor.',
+  },
+  {
+    id: 'south-china-sea',
+    label: 'South China Sea',
+    kicker: 'Outposts',
+    aoId: 'south-china-sea',
+    summary:
+      'South China Sea SAMPLE thread, separate from the Taiwan Strait pins. Two red craft sections point at the outpost cluster. The blue screen section points at the first craft section, and the shore section points at that same craft section. The public mesh is the CC0 corvette.',
+  },
+  {
+    id: 'giuk-gap',
+    label: 'GIUK Gap',
+    kicker: 'North Atlantic',
+    aoId: 'giuk-gap',
+    summary:
+      'GIUK Gap SAMPLE picture on the CC0 corvette and fighter meshes. The patrol is red. The coalition flight and the picket section are blue. Lines run from the patrol toward the transit track, and from the flight and the picket toward the patrol.',
+  },
 ];
 
 const AO_TO_SCENARIO: Record<string, ScenarioId> = {
@@ -80,6 +116,10 @@ const AO_TO_SCENARIO: Record<string, ScenarioId> = {
   'persian-gulf': 'persian-gulf',
   'black-sea': 'black-sea',
   'suwalki-gap': 'suwalki-gap',
+  'taiwan-strait': 'taiwan-strait',
+  'korean-peninsula': 'korean-peninsula',
+  'south-china-sea': 'south-china-sea',
+  'giuk-gap': 'giuk-gap',
 };
 
 export function scenarioById(id: ScenarioId): Scenario {
@@ -270,6 +310,119 @@ const LINES: Record<ScenarioId, EngagementSpec[]> = {
       toId: 'tank-1',
       side: 'friendly',
       label: 'SAMPLE corridor defense toward the armor platoon',
+    },
+  ],
+  'taiwan-strait': [
+    {
+      id: 'ts-strike-track',
+      fromId: 'ts-strike-1',
+      toId: 'ts-track-1',
+      side: 'adversary',
+      label: 'SAMPLE strike flight toward the strait track',
+    },
+    {
+      id: 'ts-patrol-track',
+      fromId: 'ts-patrol-1',
+      toId: 'ts-track-1',
+      side: 'adversary',
+      label: 'SAMPLE patrol toward the strait track',
+    },
+    {
+      id: 'ts-coalition-strike',
+      fromId: 'ts-coalition-air',
+      toId: 'ts-strike-1',
+      side: 'friendly',
+      label: 'SAMPLE coalition flight toward the OPFOR strike flight',
+    },
+    {
+      id: 'ts-ground',
+      fromId: 'ts-coalition-ground',
+      toId: 'ts-coastal-1',
+      side: 'friendly',
+      label: 'SAMPLE coalition ground section toward the coastal pin',
+    },
+  ],
+  'korean-peninsula': [
+    {
+      id: 'kp-armor-node',
+      fromId: 'kp-armor-1',
+      toId: 'kp-node-1',
+      side: 'adversary',
+      label: 'SAMPLE armor platoon toward the corridor node',
+    },
+    {
+      id: 'kp-rockets-node',
+      fromId: 'kp-rockets-1',
+      toId: 'kp-node-1',
+      side: 'adversary',
+      label: 'SAMPLE rocket battery toward the corridor node',
+    },
+    {
+      id: 'kp-defense-armor',
+      fromId: 'kp-coalition-inf',
+      toId: 'kp-armor-1',
+      side: 'friendly',
+      label: 'SAMPLE corridor defense toward the armor platoon',
+    },
+    {
+      id: 'kp-flight-node',
+      fromId: 'kp-flight-1',
+      toId: 'kp-node-1',
+      side: 'adversary',
+      label: 'SAMPLE fighter flight toward the corridor node',
+    },
+  ],
+  'south-china-sea': [
+    {
+      id: 'scs-a-outpost',
+      fromId: 'scs-craft-a',
+      toId: 'scs-outpost-1',
+      side: 'adversary',
+      label: 'SAMPLE craft section toward the outpost cluster',
+    },
+    {
+      id: 'scs-b-outpost',
+      fromId: 'scs-craft-b',
+      toId: 'scs-outpost-1',
+      side: 'adversary',
+      label: 'SAMPLE second craft section toward the outpost cluster',
+    },
+    {
+      id: 'scs-screen',
+      fromId: 'scs-screen-1',
+      toId: 'scs-craft-a',
+      side: 'friendly',
+      label: 'SAMPLE screen section toward the first craft section',
+    },
+    {
+      id: 'scs-shore-craft',
+      fromId: 'scs-shore-1',
+      toId: 'scs-craft-a',
+      side: 'friendly',
+      label: 'SAMPLE shore section toward the first craft section',
+    },
+  ],
+  'giuk-gap': [
+    {
+      id: 'giuk-patrol-track',
+      fromId: 'giuk-patrol-1',
+      toId: 'giuk-track-1',
+      side: 'adversary',
+      label: 'SAMPLE patrol toward the transit track',
+    },
+    {
+      id: 'giuk-flight-patrol',
+      fromId: 'giuk-coalition-air',
+      toId: 'giuk-patrol-1',
+      side: 'friendly',
+      label: 'SAMPLE coalition flight toward the patrol',
+    },
+    {
+      id: 'giuk-picket-patrol',
+      fromId: 'giuk-picket-1',
+      toId: 'giuk-patrol-1',
+      side: 'friendly',
+      label: 'SAMPLE picket section toward the patrol',
     },
   ],
 };
