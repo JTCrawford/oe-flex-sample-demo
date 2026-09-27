@@ -1,21 +1,51 @@
 # Engagement sphere model attribution
 
-UNCLASS SAMPLE demo only. These meshes are **original models** made for this repository. They are not photographs, scans, game rips, or CAD of fielded vehicles. Proportions follow publicly published general arrangements so each stable id reads as the named class of analog. Weak-point markers in the viewer are fictional overlays, not an assessment.
+UNCLASS SAMPLE demo only. Weak-point markers are fictional overlays, not an assessment of any fielded vehicle.
 
-License for the geometry and baked PBR textures: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) — public domain dedication. No third-party model files are vendored.
+## Geometry and textures
 
-Regenerate from `source/tools/build_sphere_assets.py` (Blender 4 headless). Published files live in `source/public/models/` and are copied into the static app on build.
+These GLBs are **original models** made for this repository in `source/tools/build_sphere_assets.py` (Blender 4 headless). They are not photographs, scans, game rips, or third-party CAD. Proportions follow publicly published general arrangements so each stable id reads as the named vehicle. They are recognition meshes, not exact-replica scans.
 
-| Stable id | What it depicts | File | Author | License |
-| --- | --- | --- | --- | --- |
-| `sphere-mbt` | T-72/T-80 family SAMPLE analog (low cast turret, six road wheels, rear drive sprocket) | `source/public/models/sphere-mbt.glb` | OE Flex SAMPLE demo | CC0 |
-| `sphere-fighter` | Fulcrum-family SAMPLE analog (twin tail, twin engine, gear down) | `source/public/models/sphere-fighter.glb` | OE Flex SAMPLE demo | CC0 |
-| `sphere-vessel` | Corvette-class SAMPLE analog (bridge, funnel, flight deck, underhull) | `source/public/models/sphere-vessel.glb` | OE Flex SAMPLE demo | CC0 |
-| `sphere-tochka-u` | Tochka-U TEL SAMPLE analog (6x6 boat hull, elevated round) | `source/public/models/sphere-tochka-u.glb` | OE Flex SAMPLE demo | CC0 |
-| `sphere-iskander-m` | Iskander-M TEL SAMPLE analog (8x8, one exposed round, one closed canister) | `source/public/models/sphere-iskander-m.glb` | OE Flex SAMPLE demo | CC0 |
-| `sphere-atacms-block-i` | HIMARS-class / ATACMS Block I SAMPLE analog (wheeled launcher, short round) | `source/public/models/sphere-atacms-block-i.glb` | OE Flex SAMPLE demo | CC0 |
-| `sphere-atacms-later-block` | M270 / later-block ATACMS SAMPLE analog (tracked launcher, longer round) | `source/public/models/sphere-atacms-later-block.glb` | OE Flex SAMPLE demo | CC0 |
+License for the geometry, baked PBR textures, and the plate PNGs rendered from those meshes: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). No third-party model files are vendored.
 
-Each GLB carries base color, roughness/metal, and a normal map baked in the build script, plus glass and lamp materials where the silhouette needs them. Image-based lighting in the viewer uses three.js `RoomEnvironment` (MIT, part of the `three` dependency), not an external HDRI.
+Paid packs that would replace these meshes, if authorized, are listed in [`docs/SPHERE_MODEL_PROCUREMENT.md`](docs/SPHERE_MODEL_PROCUREMENT.md). None of those files are in this repo.
 
-No Sketchfab, CGTrader, or other CDN models are hotlinked.
+Regenerate:
+
+```bash
+blender -b -P source/tools/build_sphere_assets.py
+```
+
+`ONLY=sphere-mbt` builds one id. Plates are written to `source/public/models/plates/` from the same scene (orthographic side, front, top, undercarriage). Published GLBs live in `source/public/models/`.
+
+| Stable id | What it depicts | GLB | Plates | Author | License |
+| --- | --- | --- | --- | --- | --- |
+| `sphere-mbt` | T-72B3 (low turret, six road wheels, Kontakt-5 cheeks, Sosna-U housing). SAMPLE T-80 rows open this same mesh. | `source/public/models/sphere-mbt.glb` | `sphere-mbt-side.png`, `sphere-mbt-front.png`, `sphere-mbt-top.png`, `sphere-mbt-under.png` | OE Flex SAMPLE demo | CC0 |
+| `sphere-fighter` | MiG-29 Fulcrum (twin tail, twin engine, LERX louvers, gear down) | `source/public/models/sphere-fighter.glb` | `sphere-fighter-side.png`, `sphere-fighter-front.png`, `sphere-fighter-top.png`, `sphere-fighter-under.png` | OE Flex SAMPLE demo | CC0 |
+| `sphere-vessel` | Gulf patrol corvette (forecastle gun, bridge, funnel, flight deck, waterjets). Not a named pennant. | `source/public/models/sphere-vessel.glb` | `sphere-vessel-side.png`, `sphere-vessel-front.png`, `sphere-vessel-top.png`, `sphere-vessel-under.png` | OE Flex SAMPLE demo | CC0 |
+| `sphere-tochka-u` | 9P129 Tochka-U TEL (amphibious 6×6, elevated round) | `source/public/models/sphere-tochka-u.glb` | `sphere-tochka-u-side.png`, `sphere-tochka-u-front.png`, `sphere-tochka-u-top.png`, `sphere-tochka-u-under.png` | OE Flex SAMPLE demo | CC0 |
+| `sphere-iskander-m` | 9P78-1 Iskander-M TEL (8×8, one closed canister, one exposed round) | `source/public/models/sphere-iskander-m.glb` | `sphere-iskander-m-side.png`, `sphere-iskander-m-front.png`, `sphere-iskander-m-top.png`, `sphere-iskander-m-under.png` | OE Flex SAMPLE demo | CC0 |
+| `sphere-atacms-block-i` | M142 HIMARS with one ATACMS Block I round erected | `source/public/models/sphere-atacms-block-i.glb` | `sphere-atacms-block-i-side.png`, `sphere-atacms-block-i-front.png`, `sphere-atacms-block-i-top.png`, `sphere-atacms-block-i-under.png` | OE Flex SAMPLE demo | CC0 |
+| `sphere-atacms-later-block` | M270 MLRS, two pods, one later-block round erected | `source/public/models/sphere-atacms-later-block.glb` | `sphere-atacms-later-block-side.png`, `sphere-atacms-later-block-front.png`, `sphere-atacms-later-block-top.png`, `sphere-atacms-later-block-under.png` | OE Flex SAMPLE demo | CC0 |
+
+Plate files are under `source/public/models/plates/`.
+
+Each GLB carries base color, roughness, metalness, and a normal map baked in the build script, plus glass and lamp materials where the silhouette needs them. Image-based lighting in the viewer uses three.js `RoomEnvironment` (MIT, part of the `three` dependency), not an external HDRI.
+
+No Sketchfab, CGTrader, or other CDN models are hotlinked or vendored.
+
+## OE camouflage textures
+
+Original patterns generated by `source/tools/build_oe_skins.py`. Not scans of issued fabric and not copies of EMR, MM-14, MARPAT, or CARC artwork. License: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+
+| File | OE folder | What it is |
+| --- | --- | --- |
+| `temperate-woodland.png` | `ukraine-east`, `suwalki-gap` | Russian-green family blotch for OPFOR land vehicles |
+| `ukrainian-digital.png` | `ukraine-east` | Original temperate pixel pattern for partner fires |
+| `desert-tan.png` | `hormuz` | Sand and brown blotch for Hormuz air and land |
+| `naval-grey.png` | `hormuz` | Haze-grey panels for the Gulf patrol corvette |
+| `arctic.png` | `arctic` | White and grey disruptive pattern, not auto-bound to a SAMPLE AO |
+| `jungle.png` | `jungle` | Deep-green blotch, not auto-bound to a SAMPLE AO |
+
+The 2D plates are the recognition stills in `source/public/models/plates/`, recolored in the browser from the same PNG the 3D viewer samples. Replacing a PNG in `source/public/models/skins/<oe-id>/` (see that folder's README and `index.json`) changes both views. A purchased mesh, if one is later authorized, drops in as `<sphere-id>.glb` named from `index.json`.
+

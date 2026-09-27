@@ -46,12 +46,12 @@ export const SAMPLE_PLATFORM = {
   bmp2: 'BMP-2 (SAMPLE)',
   bm21: 'BM-21 Grad (SAMPLE)',
   orlan: 'Orlan-10 analog (SAMPLE)',
-  fulcrum: 'Fulcrum analog (SAMPLE)',
-  corvette: 'Corvette analog (SAMPLE)',
-  tochkaTel: '9P129 Tochka-U TEL analog (SAMPLE)',
-  iskanderTel: '9P78-1 Iskander-M TEL analog (SAMPLE)',
-  himars: 'M142 HIMARS analog (SAMPLE)',
-  m270: 'M270 MLRS analog (SAMPLE)',
+  fulcrum: 'MiG-29 Fulcrum (SAMPLE)',
+  corvette: 'Gulf patrol corvette (SAMPLE)',
+  tochkaTel: '9P129 Tochka-U TEL (SAMPLE)',
+  iskanderTel: '9P78-1 Iskander-M TEL (SAMPLE)',
+  himars: 'M142 HIMARS (SAMPLE)',
+  m270: 'M270 MLRS (SAMPLE)',
 } as const;
 
 export function categoryLabel(category: VehicleCategoryId): string {

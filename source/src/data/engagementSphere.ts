@@ -25,14 +25,43 @@ export interface ArmorWeakPoint {
   note: string;
 }
 
+export interface SphereFact {
+  label: string;
+  value: string;
+}
+
+/** Janes-style facts shown beside the orthographic plates. */
+export interface SphereBriefing {
+  designation: string;
+  role: string;
+  propulsion: string;
+  munition: string;
+  dimensions: SphereFact[];
+  /** Honest limit of the license-clear mesh. Not the dialog title. */
+  fidelity: string;
+}
+
 export interface SphereModel {
   id: SphereModelId;
+  /** Exact vehicle name. Primary title in the dialog. */
   title: string;
-  /** Short SAMPLE-analog label shown in the viewer. */
+  /** Exact designation line under the title. */
   analog: string;
   kind: string;
   summary: string;
   weakPoints: ArmorWeakPoint[];
+  briefing: SphereBriefing;
+}
+
+export const PLATE_VIEWS: { id: 'side' | 'front' | 'top' | 'under'; label: string }[] = [
+  { id: 'side', label: 'Side' },
+  { id: 'front', label: 'Front' },
+  { id: 'top', label: 'Top' },
+  { id: 'under', label: 'Undercarriage' },
+];
+
+export function plateFile(id: SphereModelId, view: string): string {
+  return `${id}-${view}.png`;
 }
 
 export interface SphereTarget {
@@ -47,7 +76,7 @@ const SRBM_POINTS: ArmorWeakPoint[] = [
     id: 'seeker',
     label: 'Nose fairing',
     confidence: 'known',
-    note: 'SAMPLE: nose fairing on this analog round. Not a real assessment.',
+    note: 'SAMPLE: nose fairing on this round. Not a real assessment.',
   },
   {
     id: 'nozzle',
@@ -69,30 +98,49 @@ const SRBM_POINTS: ArmorWeakPoint[] = [
   },
 ];
 
+const FIDELITY =
+  'Original recognition mesh in this repo, built to published general arrangement. OE skins are original camouflage textures in this repo, not scans of issued fabric. Not a photograph, scan, or third-party CAD. Fictional SAMPLE weak points are overlays, not an assessment.';
+
 function srbmModel(
   id: SphereModelId,
   title: string,
   analog: string,
   summary: string,
+  briefing: SphereBriefing,
 ): SphereModel {
   return {
     id,
     title,
     analog,
-    kind: 'Munition · photoreal SAMPLE analog',
+    kind: 'Launcher',
     summary,
     weakPoints: SRBM_POINTS,
+    briefing,
   };
 }
 
 export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
   'sphere-mbt': {
     id: 'sphere-mbt',
-    title: 'Main battle tank',
-    analog: 'T-72/T-80 family SAMPLE analog',
-    kind: 'Land · photoreal SAMPLE analog',
+    title: 'T-72B3',
+    analog: 'T-72B / T-72B3',
+    kind: 'Land · main battle tank',
     summary:
-      'Original photoreal model shared by SAMPLE T-72 and T-80 holdings. Orbit for the glacis, turret roof, flanks, rear deck, and belly.',
+      'Ukraine East SAMPLE armor opens this T-72B3 mesh (low turret, six road wheels, Kontakt-5 cheeks, Sosna-U housing). T-80 rows in this ORBAT use the same mesh until a separate id exists. Orbit the glacis, turret roof, flanks, rear deck, and belly.',
+    briefing: {
+      designation: 'T-72B3',
+      role: 'Main battle tank',
+      propulsion: 'V-92S2F diesel, 1,130 hp (public B3-family figure; sub-variants differ)',
+      munition: '125 mm 2A46M-5 smoothbore, autoloader',
+      dimensions: [
+        { label: 'Length, gun forward', value: '9.53 m' },
+        { label: 'Width', value: '3.59 m' },
+        { label: 'Height', value: '2.19 m' },
+        { label: 'Combat weight', value: '46.5 t' },
+        { label: 'Crew', value: '3' },
+      ],
+      fidelity: FIDELITY,
+    },
     weakPoints: [
       {
         id: 'rear-deck',
@@ -128,11 +176,23 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
   },
   'sphere-fighter': {
     id: 'sphere-fighter',
-    title: 'Fighter / attack aircraft',
-    analog: 'Fulcrum-family SAMPLE analog',
-    kind: 'Air · photoreal SAMPLE analog',
+    title: 'MiG-29 Fulcrum',
+    analog: 'MiG-29 (9.12 / 9.13)',
+    kind: 'Air · fighter',
     summary:
-      'Original twin-tail, twin-engine photoreal analog for the SAMPLE fighter/attack holding. Nose, canopy, planform, nozzles, and gear are distinct by view.',
+      'Hormuz SAMPLE strike flight. Twin tails, twin RD-33 nozzles, LERX louvers, and gear down. Nose, canopy, planform, and belly are distinct by view.',
+    briefing: {
+      designation: 'MiG-29 Fulcrum',
+      role: 'Air-superiority fighter',
+      propulsion: '2 × Klimov RD-33 turbofan',
+      munition: 'SAMPLE stores on the wings. Not a loadout assessment.',
+      dimensions: [
+        { label: 'Length', value: '17.32 m' },
+        { label: 'Wingspan', value: '11.36 m' },
+        { label: 'Height', value: '4.73 m' },
+      ],
+      fidelity: FIDELITY,
+    },
     weakPoints: [
       {
         id: 'nozzles',
@@ -162,11 +222,23 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
   },
   'sphere-vessel': {
     id: 'sphere-vessel',
-    title: 'Surface vessel',
-    analog: 'Corvette-class SAMPLE analog',
-    kind: 'Sea · photoreal SAMPLE analog',
+    title: 'Gulf patrol corvette',
+    analog: 'Gulf patrol corvette',
+    kind: 'Sea · patrol corvette',
     summary:
-      'Original photoreal corvette-class analog. Bow, bridge, funnel, flight deck, and underhull are distinct by view.',
+      'Hormuz SAMPLE patrol squadron. Forecastile gun, bridge, mast, funnel, waist canisters, flight deck, and waterjets. The ORBAT row does not name a pennant class.',
+    briefing: {
+      designation: 'Gulf patrol corvette',
+      role: 'Patrol corvette',
+      propulsion: 'Diesel and waterjet, typical of this size band',
+      munition: 'Waist canister launchers, SAMPLE placement. Not a fitted-weapon assessment.',
+      dimensions: [
+        { label: 'Length', value: 'about 71 m' },
+        { label: 'Beam', value: 'about 11 m' },
+        { label: 'Draft', value: 'about 2.8 m' },
+      ],
+      fidelity: `${FIDELITY} Size follows the published Gulf patrol-corvette band. This SAMPLE row is not a named navy hull.`,
+    },
     weakPoints: [
       {
         id: 'bridge',
@@ -196,27 +268,79 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
   },
   'sphere-tochka-u': srbmModel(
     'sphere-tochka-u',
-    'Tochka-U',
-    'Tochka-U TEL SAMPLE analog',
-    'Original photoreal 6x6 TEL with an elevated round for catalog id tochka-u. Same mesh id as the linked munition card.',
+    '9P129 Tochka-U',
+    '9K79-1 Tochka-U TEL',
+    'Amphibious 6×6 TEL with the 9M79-class round elevated. Same mesh id as catalog tochka-u.',
+    {
+      designation: '9P129 Tochka-U TEL',
+      role: 'Transporter-erector-launcher',
+      propulsion: 'BAZ-5921 6×6 amphibious',
+      munition: '9M79-1 Tochka-U (SS-21). Catalog tochka-u, cited 70–120 km.',
+      dimensions: [
+        { label: 'TEL length', value: 'about 9.5 m' },
+        { label: 'Missile length', value: 'about 6.4 m' },
+        { label: 'Cited range', value: '70–120 km' },
+      ],
+      fidelity: FIDELITY,
+    },
   ),
   'sphere-iskander-m': srbmModel(
     'sphere-iskander-m',
-    'Iskander-M',
-    'Iskander-M TEL SAMPLE analog',
-    'Original photoreal 8x8 TEL with one exposed round and one closed canister for catalog id iskander-m. Same mesh id as the linked munition card.',
+    '9P78-1 Iskander-M',
+    '9K720 Iskander-M TEL',
+    '8×8 TEL with one closed canister and one exposed 9M723-class round. Same mesh id as catalog iskander-m.',
+    {
+      designation: '9P78-1 Iskander-M TEL',
+      role: 'Transporter-erector-launcher',
+      propulsion: 'MZKT-7930 8×8',
+      munition: '9M723 Iskander-M (SS-26). Catalog iskander-m. Export cites near 280 km; domestic cites near 500 km.',
+      dimensions: [
+        { label: 'Missile length', value: '7.3 m' },
+        { label: 'Missile diameter', value: '0.92 m' },
+        { label: 'TEL, loaded', value: 'about 42–43 t' },
+        { label: 'Cited range', value: '280 km and 500 km bounds' },
+      ],
+      fidelity: FIDELITY,
+    },
   ),
   'sphere-atacms-block-i': srbmModel(
     'sphere-atacms-block-i',
-    'ATACMS Block I',
-    'HIMARS-class / ATACMS Block I SAMPLE analog',
-    'Original photoreal wheeled HIMARS-class launcher with a short Block I round for catalog id atacms-block-i. Same mesh id as the linked munition card.',
+    'M142 HIMARS',
+    'M142 HIMARS · ATACMS Block I',
+    'FMTV 6×6 with one pod and an ATACMS Block I round erected. Same mesh id as catalog atacms-block-i.',
+    {
+      designation: 'M142 HIMARS',
+      role: 'Wheeled rocket launcher',
+      propulsion: 'FMTV 6×6 diesel',
+      munition: 'ATACMS Block I (MGM-140), one round in the MFOM pod. Catalog atacms-block-i, cited 25–165 km.',
+      dimensions: [
+        { label: 'Length', value: '7 m' },
+        { label: 'Width', value: '2.4 m' },
+        { label: 'Height', value: '3.2 m' },
+        { label: 'Weight', value: 'about 16.2 t' },
+        { label: 'Cited range', value: '25–165 km' },
+      ],
+      fidelity: FIDELITY,
+    },
   ),
   'sphere-atacms-later-block': srbmModel(
     'sphere-atacms-later-block',
-    'ATACMS later block',
-    'M270 / later-block ATACMS SAMPLE analog',
-    'Original photoreal tracked MLRS-class launcher with a longer SAMPLE round for catalog id atacms-later-block. Same mesh id as the linked munition card.',
+    'M270 MLRS',
+    'M270 MLRS · later-block ATACMS',
+    'Tracked launcher, two pods, one later-block round erected. Same mesh id as catalog atacms-later-block.',
+    {
+      designation: 'M270 MLRS',
+      role: 'Tracked rocket launcher',
+      propulsion: 'Tracked, Cummins VTA-903 diesel',
+      munition: 'Later-block ATACMS from the starboard pod. Catalog atacms-later-block, cited 70–300 km.',
+      dimensions: [
+        { label: 'Length', value: 'about 6.9 m' },
+        { label: 'Width', value: 'about 3.0 m' },
+        { label: 'Height', value: 'about 2.6 m' },
+        { label: 'Cited range', value: '70–300 km' },
+      ],
+      fidelity: FIDELITY,
+    },
   ),
 };
 

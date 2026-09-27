@@ -1,12 +1,24 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { BufferGeometry, Material, Mesh, Object3D, Texture, WebGLRenderer } from 'three';
-import type { SphereModel } from '../data/engagementSphere';
+import { PLATE_VIEWS, type SphereModel } from '../data/engagementSphere';
+import { defaultSkinId, OE_SKINS, oeSkinById } from '../data/oeSkins';
+import {
+  bindOeSkin,
+  loadCamoTexture,
+  resolveSkinAssets,
+  skinSwatchUrl,
+  type OeSkinSlot,
+  type ResolvedSkin,
+} from '../sphere/applyOeSkin';
+import { paintRecognitionPlate } from '../sphere/paintPlate';
 import { SalesCallout } from './SalesCallout';
 
 interface Props {
   model: SphereModel;
   typeDesignation: string;
   unitDesignation: string;
+  aoId: string | null;
+  unitId: string | null;
   onClose: () => void;
 }
 
@@ -27,6 +39,8 @@ export default function EngagementSphere({
   model,
   typeDesignation,
   unitDesignation,
+  aoId,
+  unitId,
   onClose,
 }: Props) {
   const titleId = useId();
@@ -35,14 +49,38 @@ export default function EngagementSphere({
   const apiRef = useRef<{
     go: (dir: readonly [number, number, number]) => void;
     setOverlay: (known: boolean, believed: boolean) => void;
+    setSkin: (assets: ResolvedSkin) => void;
   } | null>(null);
+  const autoSkinId = useMemo(
+    () => defaultSkinId(aoId, model.id, unitId),
+    [aoId, model.id, unitId],
+  );
+  const [skinId, setSkinId] = useState(autoSkinId);
+  const [textureUrl, setTextureUrl] = useState(() =>
+    skinSwatchUrl(oeSkinById(autoSkinId), aoId),
+  );
+  const [meshOverride, setMeshOverride] = useState<string | null>(null);
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const [showKnown, setShowKnown] = useState(true);
   const [showBelieved, setShowBelieved] = useState(true);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [narrow, setNarrow] = useState(false);
+  const [tab, setTab] = useState<'brief' | 'mesh'>('brief');
+  const skinRef = useRef(skinId);
+  const aoRef = useRef(aoId);
+  skinRef.current = skinId;
+  aoRef.current = aoId;
 
   useEffect(() => {
     closeRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 860px)');
+    const apply = () => setNarrow(query.matches);
+    apply();
+    query.addEventListener('change', apply);
+    return () => query.removeEventListener('change', apply);
   }, []);
 
   useEffect(() => {
@@ -58,6 +96,7 @@ export default function EngagementSphere({
     if (!stage) return;
     let disposed = false;
     let teardown = () => {};
+    setPhase('loading');
 
     void (async () => {
       let renderer: WebGLRenderer | null = null;
@@ -70,7 +109,12 @@ export default function EngagementSphere({
           'three/addons/environments/RoomEnvironment.js'
         );
         const { loadPhotoreal } = await import('../sphere/loadPhotoreal');
+        const skinAssets = await resolveSkinAssets(model.id, skinRef.current, aoRef.current);
         if (disposed) return;
+        if ((skinAssets.glbUrl ?? null) !== meshOverride) {
+          setMeshOverride(skinAssets.glbUrl);
+          return;
+        }
 
         const coarse = window.matchMedia('(pointer: coarse)').matches;
         const gl = new THREE.WebGLRenderer({
@@ -96,8 +140,19 @@ export default function EngagementSphere({
         const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 8000);
         const modelRoot = new THREE.Group();
         scene.add(modelRoot);
-        const loaded = await loadPhotoreal(model.id, modelRoot);
+        const loaded = await loadPhotoreal(model.id, modelRoot, meshOverride);
+        const skinSlot: OeSkinSlot = bindOeSkin(modelRoot, THREE);
+        if (!meshOverride) {
+          const camo = await loadCamoTexture(THREE, skinAssets.textureUrl, skinAssets.filter);
+          if (disposed) {
+            camo.dispose();
+          } else {
+            skinSlot.setTexture(camo, skinAssets.meters);
+            setTextureUrl(skinAssets.textureUrl);
+          }
+        }
         if (disposed) {
+          skinSlot.disposeTexture();
           disposeHierarchy(modelRoot);
           gl.dispose();
           gl.forceContextLoss();
@@ -260,6 +315,25 @@ export default function EngagementSphere({
             believed.visible = believedOn;
             render();
           },
+          setSkin: (assets) => {
+            if ((assets.glbUrl ?? null) !== meshOverride) {
+              setMeshOverride(assets.glbUrl);
+              return;
+            }
+            if (assets.glbUrl) {
+              setTextureUrl(assets.textureUrl);
+              return;
+            }
+            void loadCamoTexture(THREE, assets.textureUrl, assets.filter).then((tex) => {
+              if (disposed) {
+                tex.dispose();
+                return;
+              }
+              skinSlot.setTexture(tex, assets.meters);
+              setTextureUrl(assets.textureUrl);
+              render();
+            });
+          },
         };
         if (!disposed) setPhase('ready');
 
@@ -273,6 +347,7 @@ export default function EngagementSphere({
           scene.environment = null;
           envTex.dispose();
           pmrem.dispose();
+          skinSlot.disposeTexture();
           disposeHierarchy(scene);
           gl.dispose();
           gl.forceContextLoss();
@@ -292,7 +367,18 @@ export default function EngagementSphere({
       disposed = true;
       teardown();
     };
-  }, [model]);
+  }, [model, meshOverride]);
+
+  useEffect(() => {
+    if (phase !== 'ready') return;
+    let cancel = false;
+    void resolveSkinAssets(model.id, skinId, aoId).then((assets) => {
+      if (!cancel) apiRef.current?.setSkin(assets);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [phase, skinId, aoId, model.id]);
 
   useEffect(() => {
     apiRef.current?.setOverlay(showKnown, showBelieved);
@@ -314,17 +400,21 @@ export default function EngagementSphere({
         aria-labelledby={titleId}
         data-testid="engagement-sphere-viewer"
         data-sphere-model-id={model.id}
+        data-oe-skin={skinId}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="sphere-head">
           <div>
-            <p className="munition-kicker">UNCLASS · SAMPLE · photoreal analog</p>
-            <h3 id={titleId}>Engagement sphere</h3>
+            <p className="munition-kicker">
+              <span className="sphere-badge">UNCLASS</span>
+              <span className="sphere-badge sphere-badge-sample">SAMPLE</span>
+            </p>
+            <p className="sphere-eyebrow">Engagement sphere</p>
+            <h3 id={titleId}>{model.title}</h3>
             <p className="sphere-sub">
               {typeDesignation}
               <span> · {unitDesignation}</span>
             </p>
-            <p className="sphere-analog">{model.analog}</p>
             <p className="sphere-model-id">
               Model <code className="sphere-id">{model.id}</code>
             </p>
@@ -333,7 +423,82 @@ export default function EngagementSphere({
             Close
           </button>
         </header>
-        <div className="sphere-stage" ref={stageRef}>
+        <div className="sphere-toolbar">
+          <div className="sphere-toggles" role="group" aria-label="Weak point overlays">
+            <label>
+              <input
+                type="checkbox"
+                data-testid="sphere-toggle-known"
+                checked={showKnown}
+                onChange={() => setShowKnown((value) => !value)}
+              />
+              <span className="sphere-swatch sphere-swatch-known" />
+              Known
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                data-testid="sphere-toggle-believed"
+                checked={showBelieved}
+                onChange={() => setShowBelieved((value) => !value)}
+              />
+              <span className="sphere-swatch sphere-swatch-believed" />
+              Believed
+            </label>
+          </div>
+          <div className="sphere-skins" role="radiogroup" aria-label="OE camouflage">
+            <span className="sphere-skins-label">OE skin</span>
+            {OE_SKINS.map((skin) => (
+              <button
+                key={skin.id}
+                type="button"
+                role="radio"
+                aria-checked={skinId === skin.id}
+                data-testid={`sphere-skin-${skin.id}`}
+                title={skin.summary}
+                onClick={() => setSkinId(skin.id)}
+              >
+                <span
+                  className="sphere-skin-swatch"
+                  style={{ backgroundImage: `url(${skinSwatchUrl(skin, aoId)})` }}
+                />
+                {skin.label}
+                {skin.id === autoSkinId && <small>AO</small>}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="sphere-tabs" role="tablist" aria-label="Sphere views">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'brief'}
+            onClick={() => setTab('brief')}
+          >
+            2D plates
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'mesh'}
+            onClick={() => setTab('mesh')}
+          >
+            3D
+          </button>
+        </div>
+        <section
+          className="sphere-plates"
+          hidden={narrow && tab !== 'brief'}
+          aria-label="Recognition plates"
+        >
+          <RecognitionPlate
+            model={model}
+            visiblePoints={visiblePoints}
+            skinId={skinId}
+            textureUrl={textureUrl}
+          />
+        </section>
+        <div className="sphere-stage" ref={stageRef} hidden={narrow && tab !== 'mesh'}>
           {phase === 'loading' && (
             <p className="sphere-status" role="status">
               Loading photoreal SAMPLE model…
@@ -362,54 +527,126 @@ export default function EngagementSphere({
             ))}
           </div>
         </div>
-        <aside className="sphere-side">
-          <p className="sphere-kind">{model.title}</p>
-          <p className="muted">{model.kind}</p>
-          <p className="sphere-summary">{model.summary}</p>
-          <div className="sphere-toggles" role="group" aria-label="Weak point overlays">
-            <label>
-              <input
-                type="checkbox"
-                data-testid="sphere-toggle-known"
-                checked={showKnown}
-                onChange={() => setShowKnown((value) => !value)}
-              />
-              <span className="sphere-swatch sphere-swatch-known" />
-              Known
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                data-testid="sphere-toggle-believed"
-                checked={showBelieved}
-                onChange={() => setShowBelieved((value) => !value)}
-              />
-              <span className="sphere-swatch sphere-swatch-believed" />
-              Believed
-            </label>
-          </div>
-          <ul className="sphere-points">
-            {visiblePoints.map((point) => (
-              <li key={point.id} data-testid={`sphere-point-${point.id}`}>
-                <strong>{point.label}</strong>
-                <em>{point.confidence}</em>
-                <p>{point.note}</p>
-              </li>
-            ))}
-          </ul>
-          {visiblePoints.length === 0 && (
-            <p className="muted">Both overlays are off. The mesh stays in view.</p>
-          )}
-          <p className="sphere-fence">
-            Fictional weak points on an original photoreal SAMPLE analog. Not a
-            photograph, scan, or technical drawing, and not an assessment of any
-            fielded vehicle.
-          </p>
-          <SalesCallout id="engagementSphere" compact />
-        </aside>
       </div>
     </div>
   );
+}
+
+function RecognitionPlate({
+  model,
+  visiblePoints,
+  skinId,
+  textureUrl,
+}: {
+  model: SphereModel;
+  visiblePoints: SphereModel['weakPoints'];
+  skinId: string;
+  textureUrl: string;
+}) {
+  const { briefing } = model;
+  const skin = oeSkinById(skinId);
+  const base = import.meta.env.BASE_URL;
+  return (
+    <>
+      <p className="plate-banner">
+        <span>UNCLASS</span>
+        <span>SAMPLE</span>
+      </p>
+      <h4>{briefing.designation}</h4>
+      <p className="plate-role">{briefing.role}</p>
+      <p className="plate-skin">OE skin · {skin.label}</p>
+      <div className="plate-stills">
+        {PLATE_VIEWS.map((view) => (
+          <figure key={view.id} className="plate-still">
+            <SkinnedStill
+              plateUrl={`${base}models/plates/${model.id}-${view.id}.png`}
+              textureUrl={textureUrl}
+              tile={skin.plateTile}
+              alt={`${briefing.designation}, ${view.label.toLowerCase()} view, ${skin.label}`}
+            />
+            <figcaption>{view.label}</figcaption>
+          </figure>
+        ))}
+      </div>
+      <dl className="sphere-facts">
+        <dt>Propulsion</dt>
+        <dd>{briefing.propulsion}</dd>
+        <dt>Munition</dt>
+        <dd>{briefing.munition}</dd>
+        {briefing.dimensions.map((fact) => (
+          <Fragment key={fact.label}>
+            <dt>{fact.label}</dt>
+            <dd>{fact.value}</dd>
+          </Fragment>
+        ))}
+      </dl>
+      <p className="sphere-summary">{model.summary}</p>
+      <p className="plate-points-label">Weak points</p>
+      <ul className="sphere-points">
+        {visiblePoints.map((point) => (
+          <li key={point.id} data-testid={`sphere-point-${point.id}`}>
+            <strong>{point.label}</strong>
+            <em>{point.confidence}</em>
+            <p>{point.note}</p>
+          </li>
+        ))}
+      </ul>
+      {visiblePoints.length === 0 && (
+        <p className="sphere-summary">Both overlays are off. The mesh stays in view.</p>
+      )}
+      <p className="sphere-fence">{briefing.fidelity}</p>
+      <SalesCallout id="engagementSphere" compact />
+    </>
+  );
+}
+
+function SkinnedStill({
+  plateUrl,
+  textureUrl,
+  tile,
+  alt,
+}: {
+  plateUrl: string;
+  textureUrl: string;
+  tile: number;
+  alt: string;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let gone = false;
+    setFailed(false);
+    const plate = new Image();
+    const camo = new Image();
+    let pending = 2;
+    const finish = () => {
+      pending -= 1;
+      if (pending > 0 || gone) return;
+      const canvas = canvasRef.current;
+      if (!canvas || !paintRecognitionPlate(canvas, plate, camo, tile)) {
+        if (!gone) setFailed(true);
+      }
+    };
+    plate.onload = finish;
+    camo.onload = finish;
+    plate.onerror = () => {
+      if (!gone) setFailed(true);
+    };
+    camo.onerror = () => {
+      if (!gone) setFailed(true);
+    };
+    plate.src = plateUrl;
+    camo.src = textureUrl;
+    return () => {
+      gone = true;
+    };
+  }, [plateUrl, textureUrl, tile]);
+
+  if (failed) {
+    return <img src={plateUrl} alt={alt} />;
+  }
+  return <canvas ref={canvasRef} role="img" aria-label={alt} />;
 }
 
 function disposeHierarchy(root: Object3D) {

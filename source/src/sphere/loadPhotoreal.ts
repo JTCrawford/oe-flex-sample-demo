@@ -8,14 +8,18 @@ export type AnchorMap = Record<string, readonly [number, number, number]>;
  * Lazy-load one vendored photoreal GLB. Anchor empties are read then removed
  * so they do not render. The caller owns disposal of the returned scene.
  */
-export async function loadPhotoreal(id: SphereModelId, root: Group): Promise<{
+export async function loadPhotoreal(
+  id: SphereModelId,
+  root: Group,
+  urlOverride?: string | null,
+): Promise<{
   scene: Group;
   anchors: AnchorMap;
 }> {
   const THREE = await import('three');
   const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
   const loader = new GLTFLoader();
-  const url = `${import.meta.env.BASE_URL}models/${id}.glb`;
+  const url = urlOverride || `${import.meta.env.BASE_URL}models/${id}.glb`;
   const gltf = await loader.loadAsync(url);
   const scene = gltf.scene;
   scene.updateMatrixWorld(true);
