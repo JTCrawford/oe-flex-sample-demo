@@ -6,6 +6,7 @@ import { GlobeView } from './components/GlobeView';
 import { Map2D } from './components/Map2D';
 import { MunitionInferencePanel } from './components/MunitionInferencePanel';
 import { OrbatPanel } from './components/OrbatPanel';
+import { SocialSignalPanel } from './components/SocialSignalPanel';
 import { ObservePanel } from './components/ObservePanel';
 import { MitigatePanel } from './components/MitigatePanel';
 import { WargamePanel } from './components/WargamePanel';
@@ -193,6 +194,7 @@ export default function App() {
               onSelectUnit={state.selectUnit}
               unitRangeRings={state.unitRangeRings}
               selectionFocus={state.selectionFocus}
+              socialMapHints={state.socialMapHints}
             />
           ) : (
             <Map2D
@@ -216,6 +218,13 @@ export default function App() {
               }
               unitRangeRings={state.unitRangeRings}
               selectionFocus={state.selectionFocus}
+              socialMapHints={state.socialMapHints}
+            />
+          )}
+          {state.selectedSocial && (
+            <SocialSignalPanel
+              signal={state.selectedSocial}
+              onClear={state.clearSocial}
             />
           )}
           {state.selectedUnit?.orbat && (

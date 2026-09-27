@@ -3,6 +3,7 @@ import Globe from 'globe.gl';
 import { circleRingPoints } from '../data/munitionInference';
 import type {
   AO,
+  SocialMapHint,
   StrikeEvent,
   StrikeMunitionAssessment,
   StrikeOverlayToggles,
@@ -61,7 +62,8 @@ interface Props {
   selectedUnitId?: string | null;
   onSelectUnit?: (id: string) => void;
   unitRangeRings?: StrikeRangeRing[];
-  selectionFocus?: 'strike' | 'unit' | null;
+  selectionFocus?: 'strike' | 'unit' | 'social' | null;
+  socialMapHints?: SocialMapHint[];
 }
 
 type Point = {
@@ -69,7 +71,7 @@ type Point = {
   lat: number;
   lng: number;
   label: string;
-  kind: 'ao' | 'threat' | 'strike-impact' | 'strike-origin';
+  kind: 'ao' | 'threat' | 'strike-impact' | 'strike-origin' | 'social';
   aoId?: string;
   strikeId?: string;
   symbolKind?: string;
@@ -116,6 +118,10 @@ function strikeOriginSvg(): string {
   return `<svg width="14" height="14" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="#00bcd4" stroke="#e0f7fa" stroke-width="2"/></svg>`;
 }
 
+function socialHintSvg(): string {
+  return `<svg width="22" height="22" viewBox="0 0 40 40"><polygon points="20,3 37,20 20,37 3,20" fill="rgba(40,28,8,0.9)" stroke="#ffb703" stroke-width="2"/><circle cx="20" cy="20" r="4" fill="#ffb703"/></svg>`;
+}
+
 export function GlobeView({
   aos,
   selectedAoId,
@@ -133,6 +139,7 @@ export function GlobeView({
   onSelectUnit,
   unitRangeRings = [],
   selectionFocus = null,
+  socialMapHints = [],
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
@@ -204,6 +211,16 @@ export function GlobeView({
     }));
 
     if (!killSwitch) {
+      for (const hint of socialMapHints) {
+        points.push({
+          id: hint.id,
+          lat: hint.lat,
+          lng: hint.lon,
+          label: `${hint.name} — ${hint.headline}`,
+          kind: 'social',
+          color: '#ffb703',
+        });
+      }
       for (const layer of visibleLayers) {
         for (const m of layer.markers) {
           points.push({
@@ -261,7 +278,7 @@ export function GlobeView({
         const el = document.createElement('div');
         const strikeSelected = !!p.strikeId && p.strikeId === selectedStrikeId;
         const unitSelected = !!p.unitId && p.unitId === selectedUnitId;
-        el.className = `globe-marker ${p.kind}${strikeSelected || unitSelected ? ' selected' : ''}`;
+        el.className = `globe-marker ${p.kind}${strikeSelected || unitSelected || p.kind === 'social' ? ' selected' : ''}`;
         el.title = p.label;
         el.style.cursor =
           p.kind === 'ao' ||
@@ -292,6 +309,8 @@ export function GlobeView({
           el.innerHTML = `<div class="strike-pin threat-pin-inner">${strikeImpactSvg()}</div>`;
         } else if (p.kind === 'strike-origin') {
           el.innerHTML = `<div class="strike-origin threat-pin-inner">${strikeOriginSvg()}</div>`;
+        } else if (p.kind === 'social') {
+          el.innerHTML = `<div class="social-pin threat-pin-inner">${socialHintSvg()}</div>`;
         } else {
           const svg =
             symbology === 'military'
@@ -359,8 +378,21 @@ export function GlobeView({
       dashGap: ring.kind === 'observed' ? 0.012 : ring.band === 'min' ? 0.02 : 0.018,
       stroke: ring.strokeDegrees,
     }));
+    const socialCorridor =
+      !killSwitch && socialMapHints.length >= 2
+        ? [
+            {
+              id: 'social-corridor',
+              color: '#ffb703',
+              points: socialMapHints.map((hint) => ({ lat: hint.lat, lng: hint.lon })),
+              dashLength: 0.08,
+              dashGap: 0.05,
+              stroke: 0.07,
+            },
+          ]
+        : [];
     globe
-      .pathsData(ringPaths)
+      .pathsData([...ringPaths, ...socialCorridor])
       .pathPoints('points')
       .pathPointLat('lat')
       .pathPointLng('lng')
@@ -391,6 +423,15 @@ export function GlobeView({
         { lat: selectedUnitPoint.lat, lng: selectedUnitPoint.lng, altitude },
         800,
       );
+    } else if (!killSwitch && selectionFocus === 'social' && socialMapHints.length > 0) {
+      const lat =
+        socialMapHints.reduce((sum, hint) => sum + hint.lat, 0) / socialMapHints.length;
+      const lng =
+        socialMapHints.reduce((sum, hint) => sum + hint.lon, 0) / socialMapHints.length;
+      globe.pointOfView(
+        { lat, lng, altitude: socialMapHints.length > 1 ? 0.7 : 0.55 },
+        800,
+      );
     } else if (selectedAoId) {
       const ao = aos.find((a) => a.id === selectedAoId);
       if (ao) {
@@ -411,6 +452,7 @@ export function GlobeView({
     munitionAssessment,
     unitRangeRings,
     selectionFocus,
+    socialMapHints,
   ]);
 
   return <div className="map-surface" ref={containerRef} data-export-root />;

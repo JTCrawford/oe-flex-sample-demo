@@ -12,6 +12,7 @@ import {
 import L from 'leaflet';
 import type {
   AO,
+  SocialMapHint,
   StrikeEvent,
   StrikeMunitionAssessment,
   StrikeOverlayToggles,
@@ -43,7 +44,8 @@ interface Props {
   onOpenSphere?: (unitId: string, holding: VehicleHolding) => void;
   onOpenMunitionSphere?: (unitId: string, profile: MunitionProfile) => void;
   unitRangeRings?: StrikeRangeRing[];
-  selectionFocus?: 'strike' | 'unit' | null;
+  selectionFocus?: 'strike' | 'unit' | 'social' | null;
+  socialMapHints?: SocialMapHint[];
 }
 
 function FlyTo({ ao, suspend }: { ao: AO | null; suspend: boolean }) {
@@ -78,6 +80,22 @@ function FlyToUnit({
     }
     map.panTo([unit.lat, unit.lng]);
   }, [unit, radiusKm, map]);
+  return null;
+}
+
+function FlyToSocial({ hints }: { hints: SocialMapHint[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (hints.length === 0) return;
+    if (hints.length === 1) {
+      const only = hints[0];
+      if (!only) return;
+      map.flyTo([only.lat, only.lon], 7, { duration: 0.8 });
+      return;
+    }
+    const bounds = L.latLngBounds(hints.map((hint) => [hint.lat, hint.lon]));
+    map.fitBounds(bounds.pad(0.35), { maxZoom: 8 });
+  }, [hints, map]);
   return null;
 }
 
@@ -153,6 +171,16 @@ function makeStrikeImpactIcon(label: string, selected: boolean) {
   });
 }
 
+function makeSocialHintIcon(label: string) {
+  const svg = `<svg width="22" height="22" viewBox="0 0 40 40"><polygon points="20,3 37,20 20,37 3,20" fill="rgba(40,28,8,0.9)" stroke="#ffb703" stroke-width="2"/><circle cx="20" cy="20" r="4" fill="#ffb703"/></svg>`;
+  return L.divIcon({
+    className: 'leaflet-symbol-wrapper social-pin is-selected',
+    html: `<div class="leaflet-symbol" title="${label.replace(/"/g, '')}">${svg}</div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+}
+
 function makeStrikeOriginIcon(label: string) {
   const svg = `<svg width="14" height="14" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="#00bcd4" stroke="#e0f7fa" stroke-width="2"/></svg>`;
   return L.divIcon({
@@ -187,6 +215,7 @@ export function Map2D({
   onOpenMunitionSphere,
   unitRangeRings = [],
   selectionFocus = null,
+  socialMapHints = [],
 }: Props) {
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -250,12 +279,17 @@ export function Map2D({
         />
         <FlyTo
           ao={selectedAo}
-          suspend={selectionFocus === 'strike' || selectionFocus === 'unit'}
+          suspend={
+            selectionFocus === 'strike' ||
+            selectionFocus === 'unit' ||
+            (selectionFocus === 'social' && socialMapHints.length > 0)
+          }
         />
         <FlyToStrike
           strike={selectionFocus === 'strike' ? selectedStrike : null}
           radiusKm={focusRadiusKm}
         />
+        <FlyToSocial hints={selectionFocus === 'social' ? socialMapHints : []} />
         <FlyToUnit
           unit={selectionFocus === 'unit' ? selectedUnit : null}
           radiusKm={unitFocusKm}
@@ -423,6 +457,35 @@ export function Map2D({
               </Popup>
             </Marker>
           ))}
+
+        {socialMapHints.length >= 2 && (
+          <Polyline
+            positions={socialMapHints.map((hint) => [hint.lat, hint.lon])}
+            pathOptions={{
+              color: '#ffb703',
+              weight: 3,
+              opacity: 0.9,
+              dashArray: '10 6',
+            }}
+          />
+        )}
+
+        {socialMapHints.map((hint) => (
+          <Marker
+            key={hint.id}
+            position={[hint.lat, hint.lon]}
+            zIndexOffset={700}
+            icon={makeSocialHintIcon(hint.name)}
+          >
+            <Popup>
+              <strong>{hint.name}</strong>
+              <br />
+              Social / SOCMINT · SAMPLE
+              <br />
+              {hint.headline}
+            </Popup>
+          </Marker>
+        ))}
 
         {overlaysOn &&
           strikeOverlays!.origins &&
