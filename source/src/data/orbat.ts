@@ -1,4 +1,5 @@
 import type {
+  ForceSide,
   ThreatMarker,
   UnitEchelon,
   UnitOrbat,
@@ -17,6 +18,7 @@ export const VEHICLE_CATEGORY_LABEL: Record<VehicleCategoryId, string> = {
   tank: 'Tanks',
   ifv: 'IFVs',
   ugv: 'UGVs',
+  infantry: 'Infantry',
   artillery: 'Artillery',
   shorad: 'SHORAD',
   aircraft: 'Aircraft',
@@ -27,6 +29,7 @@ const CATEGORY_ORDER: VehicleCategoryId[] = [
   'tank',
   'ifv',
   'ugv',
+  'infantry',
   'artillery',
   'shorad',
   'aircraft',
@@ -67,6 +70,7 @@ export const SAMPLE_PLATFORM = {
   novator: 'Novator (SAMPLE)',
   krazShrek: 'KrAZ Shrek (SAMPLE)',
   krazFiona: 'KrAZ Fiona (SAMPLE)',
+  dismount: 'Dismount section (SAMPLE)',
 } as const;
 
 export function categoryLabel(category: VehicleCategoryId): string {
@@ -101,6 +105,7 @@ const PLATFORM_SPHERE_MODEL: Record<string, string> = {
   [SAMPLE_PLATFORM.novator]: 'sphere-novator',
   [SAMPLE_PLATFORM.krazShrek]: 'sphere-kraz-shrek',
   [SAMPLE_PLATFORM.krazFiona]: 'sphere-kraz-fiona',
+  [SAMPLE_PLATFORM.dismount]: 'sphere-soldier',
 };
 
 const CATEGORY_SPHERE_MODEL: Partial<Record<VehicleCategoryId, string>> = {
@@ -132,11 +137,21 @@ export function unitOrbat(input: Omit<UnitOrbat, 'sampleLabel'>): UnitOrbat {
   return { ...input, sampleLabel: 'SAMPLE' };
 }
 
+/** Partner and coalition formations are the blue side. Other ORBAT pins are red. */
+export function sideForFormation(higherFormation: string): ForceSide {
+  if (/partner|coalition/i.test(higherFormation)) return 'friendly';
+  return 'adversary';
+}
+
 /** Unit pin whose map label is the standardized designation. */
 export function forceMarker(
   marker: Omit<ThreatMarker, 'label'> & { orbat: UnitOrbat },
 ): ThreatMarker {
-  return { ...marker, label: marker.orbat.designation };
+  return {
+    ...marker,
+    side: marker.side ?? sideForFormation(marker.orbat.higherFormation),
+    label: marker.orbat.designation,
+  };
 }
 
 export function holdingsInCatalogOrder(vehicles: VehicleHolding[]): VehicleHolding[] {

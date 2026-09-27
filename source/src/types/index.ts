@@ -56,10 +56,14 @@ export type VehicleCategoryId =
   | 'tank'
   | 'ifv'
   | 'ugv'
+  | 'infantry'
   | 'artillery'
   | 'shorad'
   | 'aircraft'
   | 'ship';
+
+/** SAMPLE force color. Friendly is blue. Adversary is red. */
+export type ForceSide = 'friendly' | 'adversary';
 
 /** Echelon in the SAMPLE designation scheme. Extend the label map with the union. */
 export type UnitEchelon =
@@ -152,6 +156,11 @@ export interface ThreatMarker {
   pmesii: PmesiiChip[];
   /** Present on unit/force pins. Omitted for infrastructure and commercial tracks. */
   orbat?: UnitOrbat;
+  /**
+   * Military picture only. Friendly draws blue, adversary draws red.
+   * Commercial symbology ignores this and keeps commercial icons.
+   */
+  side?: ForceSide;
 }
 
 export interface WegEquipment {

@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import Globe from 'globe.gl';
 import { circleRingPoints } from '../data/munitionInference';
+import type { ResolvedEngagementLine } from '../data/scenarios';
 import type {
   AO,
+  ForceSide,
   SocialMapHint,
   StrikeEvent,
   StrikeMunitionAssessment,
@@ -64,6 +66,7 @@ interface Props {
   unitRangeRings?: StrikeRangeRing[];
   selectionFocus?: 'strike' | 'unit' | 'social' | null;
   socialMapHints?: SocialMapHint[];
+  engagementLines?: ResolvedEngagementLine[];
 }
 
 type Point = {
@@ -77,11 +80,22 @@ type Point = {
   symbolKind?: string;
   color: string;
   unitId?: string;
+  side?: ForceSide;
 };
 
-function milSvg(kind?: string): string {
-  const stroke =
-    kind === 'arty' ? '#f5a623' : kind === 'uav' ? '#6ec6ff' : '#7CFC9A';
+function milStroke(kind?: string, side?: ForceSide): string {
+  if (side === 'friendly') return '#5eb1ff';
+  if (side === 'adversary') return '#ff5a5a';
+  if (kind === 'arty') return '#f5a623';
+  if (kind === 'uav') return '#6ec6ff';
+  return '#7CFC9A';
+}
+
+function milSvg(kind?: string, side?: ForceSide): string {
+  const stroke = milStroke(kind, side);
+  if (kind === 'infantry') {
+    return `<svg width="26" height="26" viewBox="0 0 40 40"><polygon points="20,2 38,20 20,38 2,20" fill="rgba(20,40,30,0.85)" stroke="${stroke}" stroke-width="2"/><circle cx="20" cy="14" r="3.2" fill="none" stroke="${stroke}"/><path d="M20 17.5 V26 M13 21 H27 M15 32 L20 26 L25 32" fill="none" stroke="${stroke}" stroke-width="1.6"/></svg>`;
+  }
   if (kind === 'ship') {
     return `<svg width="26" height="26" viewBox="0 0 40 40"><ellipse cx="20" cy="20" rx="16" ry="10" fill="rgba(20,40,30,0.85)" stroke="${stroke}" stroke-width="2"/><path d="M8 22 L20 10 L32 22" fill="none" stroke="${stroke}"/></svg>`;
   }
@@ -140,6 +154,7 @@ export function GlobeView({
   unitRangeRings = [],
   selectionFocus = null,
   socialMapHints = [],
+  engagementLines = [],
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
@@ -231,8 +246,16 @@ export function GlobeView({
             kind: 'threat',
             symbolKind:
               symbology === 'military' ? m.milSymbol : m.commercialSymbol,
-            color: symbology === 'military' ? '#7CFC9A' : '#1e90ff',
+            color:
+              symbology === 'military'
+                ? m.side === 'friendly'
+                  ? '#5eb1ff'
+                  : m.side === 'adversary'
+                    ? '#ff5a5a'
+                    : '#7CFC9A'
+                : '#1e90ff',
             unitId: m.orbat ? m.id : undefined,
+            side: symbology === 'military' ? m.side : undefined,
           });
         }
       }
@@ -289,6 +312,8 @@ export function GlobeView({
             : 'default';
         el.style.pointerEvents = 'auto';
         if (p.strikeId) el.dataset.strikeId = p.strikeId;
+        if (p.side) el.dataset.side = p.side;
+        el.dataset.pinId = p.id;
         el.onclick = (e) => {
           e.stopPropagation();
           if (p.kind === 'ao' && p.aoId) onSelectRef.current(p.aoId);
@@ -314,7 +339,7 @@ export function GlobeView({
         } else {
           const svg =
             symbology === 'military'
-              ? milSvg(p.symbolKind)
+              ? milSvg(p.symbolKind, p.side)
               : commercialSvg(p.symbolKind);
           el.innerHTML = `<div class="threat-pin-inner">${svg}</div>`;
         }
@@ -378,6 +403,17 @@ export function GlobeView({
       dashGap: ring.kind === 'observed' ? 0.012 : ring.band === 'min' ? 0.02 : 0.018,
       stroke: ring.strokeDegrees,
     }));
+    const engagementPaths = engagementLines.map((line) => ({
+      id: line.id,
+      color: line.color,
+      points: [
+        { lat: line.fromLat, lng: line.fromLng },
+        { lat: line.toLat, lng: line.toLng },
+      ],
+      dashLength: 0.35,
+      dashGap: 0.12,
+      stroke: 0.12,
+    }));
     const socialCorridor =
       !killSwitch && socialMapHints.length >= 2
         ? [
@@ -392,7 +428,7 @@ export function GlobeView({
           ]
         : [];
     globe
-      .pathsData([...ringPaths, ...socialCorridor])
+      .pathsData([...ringPaths, ...socialCorridor, ...engagementPaths])
       .pathPoints('points')
       .pathPointLat('lat')
       .pathPointLng('lng')
@@ -453,6 +489,7 @@ export function GlobeView({
     unitRangeRings,
     selectionFocus,
     socialMapHints,
+    engagementLines,
   ]);
 
   return <div className="map-surface" ref={containerRef} data-export-root />;

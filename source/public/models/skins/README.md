@@ -28,4 +28,4 @@ Edit `index.json` in the OE folder:
 
 Do not add a game extract. Redistribution has to allow this public repo and the public Vercel demo. See `docs/SPHERE_MODEL_PROCUREMENT.md`.
 
-Purchased raw packs (FBX, OBJ, TGA, RAR) stay on the authoring Mac. Do not copy them into these folders or into `models/`. A future optimized embed, already cleared for this public demo, can be named from `modelGlb`. Until then the viewer keeps the CC0 `sphere-*.glb` files. See `docs/BATTLESPACE_ORBAT.md`.
+Purchased raw packs (FBX, OBJ, TGA, RAR) and soldier GLBs stay on the authoring Mac under `soldiers/soldier-pack-aaa/` and `soldiers/modular-soldier-pack/`. Do not copy them into these folders or into `models/`. The infantry sphere probes those GLBs and falls back when they are missing. See `docs/BATTLESPACE_ORBAT.md`. A future optimized embed, already cleared for this public demo, can be named from `modelGlb`. Until then the viewer keeps the CC0 `sphere-*.glb` files. See `docs/BATTLESPACE_ORBAT.md`.

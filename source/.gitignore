@@ -20,6 +20,11 @@ dist-ssr
 **/models/skins/manpads/
 **/models/skins/fighters/
 **/models/skins/ukrainian-armored-vehicles/
+**/models/skins/soldiers/
+**/models/skins/**/*.glb
+**/models/skins/**/*.GLB
+**/SK_SoldierPackVol1.glb
+**/Soldier-Pack6.glb
 **/models/**/*.fbx
 **/models/**/*.FBX
 **/models/**/*.obj

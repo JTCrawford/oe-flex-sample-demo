@@ -32,7 +32,8 @@ export type SphereModelId =
   | 'sphere-dozor-b'
   | 'sphere-novator'
   | 'sphere-kraz-shrek'
-  | 'sphere-kraz-fiona';
+  | 'sphere-kraz-fiona'
+  | 'sphere-soldier';
 
 export type SphereGeometryStatus = 'cc0-recognition' | 'licensed-pending-embed';
 
@@ -713,6 +714,24 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
       { label: 'Family', value: 'KrAZ Shrek / Fiona' },
     ],
   ),
+  'sphere-soldier': {
+    id: 'sphere-soldier',
+    title: 'Dismount section',
+    analog: 'SAMPLE infantry pin',
+    kind: 'Land · infantry',
+    summary:
+      'SAMPLE infantry section. The viewer tries the Mac-local soldier GLBs first and keeps the CC0 vehicle mesh when those files are absent. The pin is not a real unit.',
+    briefing: {
+      designation: 'Dismount section (SAMPLE)',
+      role: 'Infantry section pin',
+      propulsion: 'Foot',
+      munition: 'SAMPLE holding only. Not a weapon assessment.',
+      dimensions: [{ label: 'Holding', value: 'one SAMPLE section' }],
+      fidelity: `${PENDING_EMBED} Public fallback is the CC0 sphere-mbt mesh and the simple map marker. Soldier GLBs are not in this repo.`,
+    },
+    geometry: pendingGeometry('sphere-mbt', 'soldiers'),
+    weakPoints: [],
+  },
 };
 
 export function sphereModelById(id: string | undefined): SphereModel | null {

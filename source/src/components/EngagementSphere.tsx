@@ -1,11 +1,13 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { BufferGeometry, Material, Mesh, Object3D, Texture, WebGLRenderer } from 'three';
 import { PLATE_VIEWS, renderMeshId, type SphereModel } from '../data/engagementSphere';
+import type { ScenarioId } from '../data/scenarios';
 import {
   SPHERE_LAYERS,
   sphereAnalysisFor,
   type SphereLayerId,
 } from '../data/sphereAnalysis';
+import type { PhotorealSource } from '../sphere/loadPhotoreal';
 import { defaultSkinId, OE_SKINS, oeSkinById } from '../data/oeSkins';
 import {
   bindOeSkin,
@@ -24,6 +26,7 @@ interface Props {
   unitDesignation: string;
   aoId: string | null;
   unitId: string | null;
+  scenarioId: ScenarioId;
   onClose: () => void;
 }
 
@@ -46,6 +49,7 @@ export default function EngagementSphere({
   unitDesignation,
   aoId,
   unitId,
+  scenarioId,
   onClose,
 }: Props) {
   const titleId = useId();
@@ -65,6 +69,7 @@ export default function EngagementSphere({
     skinSwatchUrl(oeSkinById(autoSkinId), aoId),
   );
   const [meshOverride, setMeshOverride] = useState<string | null>(null);
+  const [meshSource, setMeshSource] = useState<PhotorealSource | null>(null);
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const [showKnown, setShowKnown] = useState(true);
   const [showBelieved, setShowBelieved] = useState(true);
@@ -152,6 +157,7 @@ export default function EngagementSphere({
         const modelRoot = new THREE.Group();
         scene.add(modelRoot);
         const loaded = await loadPhotoreal(model.id, modelRoot, meshOverride);
+        if (!disposed) setMeshSource(loaded.source);
         const skinSlot: OeSkinSlot = bindOeSkin(modelRoot, THREE);
         if (!meshOverride) {
           const camo = await loadCamoTexture(THREE, skinAssets.textureUrl, skinAssets.filter);
@@ -163,6 +169,7 @@ export default function EngagementSphere({
           }
         }
         if (disposed) {
+          loaded.revoke?.();
           skinSlot.disposeTexture();
           disposeHierarchy(modelRoot);
           gl.dispose();
@@ -360,6 +367,7 @@ export default function EngagementSphere({
         if (!disposed) setPhase('ready');
 
         teardown = () => {
+          loaded.revoke?.();
           cancelAnimationFrame(raf);
           apiRef.current = null;
           observer.disconnect();
@@ -409,7 +417,10 @@ export default function EngagementSphere({
   const visiblePoints = model.weakPoints.filter((point) =>
     point.confidence === 'known' ? showKnown : showBelieved,
   );
-  const analysis = useMemo(() => sphereAnalysisFor(model.id), [model.id]);
+  const analysis = useMemo(
+    () => sphereAnalysisFor(model.id, scenarioId),
+    [model.id, scenarioId],
+  );
   const activeLayers = SPHERE_LAYERS.filter((layer) => layersOn[layer.id]);
   const toggleLayer = (id: SphereLayerId) => {
     setLayersOn((current) => ({ ...current, [id]: !current[id] }));
@@ -427,6 +438,7 @@ export default function EngagementSphere({
         aria-labelledby={titleId}
         data-testid="engagement-sphere-viewer"
         data-sphere-model-id={model.id}
+        data-scenario={scenarioId}
         data-oe-skin={skinId}
         onClick={(event) => event.stopPropagation()}
       >
@@ -462,6 +474,15 @@ export default function EngagementSphere({
                 </>
               )}
             </p>
+            {model.id === 'sphere-soldier' && (
+              <p className="sphere-geometry" data-testid="sphere-mesh-source" data-mesh-source={meshSource ?? 'pending'}>
+                {meshSource === 'soldier-glb'
+                  ? 'Local soldier GLB loaded. This file is not part of the public demo.'
+                  : meshSource === 'cc0' || meshSource === 'override'
+                    ? 'Soldier GLB not on this host. Showing the CC0 stand-in. The map pin stays a simple marker.'
+                    : 'Checking for a local soldier GLB…'}
+              </p>
+            )}
           </div>
           <button ref={closeRef} type="button" onClick={onClose}>
             Close
@@ -662,7 +683,12 @@ function RecognitionPlate({
           </li>
         ))}
       </ul>
-      {visiblePoints.length === 0 && (
+      {model.weakPoints.length === 0 && (
+        <p className="sphere-summary" data-testid="sphere-no-weak-points">
+          This SAMPLE pin has no weak-point markers.
+        </p>
+      )}
+      {visiblePoints.length === 0 && model.weakPoints.length > 0 && (
         <p className="sphere-summary">Both overlays are off. The mesh stays in view.</p>
       )}
       <p className="sphere-fence">{briefing.fidelity}</p>

@@ -1,4 +1,5 @@
 import type { SphereModelId } from './engagementSphere';
+import type { ScenarioId } from './scenarios';
 
 /**
  * UNCLASS SAMPLE vignette cards for the engagement sphere.
@@ -347,7 +348,211 @@ const SEEDED: Partial<Record<SphereModelId, SphereAnalysis>> = {
       ),
     ],
   },
+  'sphere-soldier': {
+    strengths: [
+      note(
+        'section',
+        'Two SAMPLE sections',
+        'Ukraine–Russia thread. The blue pin is the partner infantry section. The red pin is the OPFOR infantry section. Neither pin is a real unit.',
+      ),
+    ],
+    weaknesses: [
+      note(
+        'mesh',
+        'Soldier file is local',
+        'The licensed GLBs stay on the authoring Mac. This host shows the CC0 vehicle stand-in, or the simple map marker, when the file is missing.',
+        true,
+      ),
+    ],
+    defeat: [
+      note(
+        'label',
+        'Section pin only',
+        'SAMPLE vignette. Training label for the infantry section. This card does not name a weapon or a procedure.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'holding',
+        'One section holding',
+        'The row is a SAMPLE dismount section. It is not a table of organization.',
+      ),
+    ],
+  },
 };
+
+const HORMUZ_ONLY = new Set<SphereModelId>(['sphere-f22', 'sphere-fa18']);
+
+const HORMUZ: Partial<Record<SphereModelId, SphereAnalysis>> = {
+  'sphere-fighter': {
+    strengths: [
+      note(
+        'flight',
+        'Hormuz strike flight',
+        'Iran / Hormuz thread. SAMPLE 1st Strike Flight under SAMPLE Hormuz OPFOR Group. The public mesh is the CC0 MiG-29. Desert tan is the auto skin on this area.',
+      ),
+    ],
+    weaknesses: [
+      stub(
+        'stores',
+        'Stores not assessed',
+        'SAMPLE stub. Stores and sensors are not in this Hormuz dataset.',
+      ),
+    ],
+    defeat: [
+      note(
+        'track',
+        'Still on the track',
+        'SAMPLE vignette. The training question is whether the flight is still on the line toward the shipping track. This card does not name a weapon or a procedure.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'pin',
+        'Four-ship SAMPLE row',
+        'The pin holds four MiG-29 Fulcrum rows. That count is a SAMPLE label, not a squadron table.',
+      ),
+    ],
+  },
+  'sphere-f22': {
+    strengths: [
+      note(
+        'coalition',
+        'Coalition bonus flight',
+        'Iran / Hormuz thread. SAMPLE 2nd Coalition Flight. Two F-22 rows sit beside the F/A-18 rows. Desert tan is the auto skin. Higher formation is SAMPLE Hormuz Coalition Air.',
+      ),
+    ],
+    weaknesses: [
+      note(
+        'stand-in',
+        'Fighter stand-in',
+        'Licensed geometry is Mac-local. The public mesh is the CC0 MiG-29 file, not an F-22 silhouette.',
+        true,
+      ),
+    ],
+    defeat: [
+      note(
+        'place',
+        'Place on the thread',
+        'SAMPLE vignette. The training label is the coalition flight’s place opposite the OPFOR strike flight. No weapon and no procedure.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'pair',
+        'Bonus pair',
+        'The same pin also holds the F/A-18 rows. Both are SAMPLE labels on the coalition flight.',
+      ),
+    ],
+  },
+  'sphere-fa18': {
+    strengths: [
+      note(
+        'coalition',
+        'Coalition bonus flight',
+        'Iran / Hormuz thread. The F/A-18 rows share SAMPLE 2nd Coalition Flight with the F-22 rows. Desert tan is the auto skin.',
+      ),
+    ],
+    weaknesses: [
+      note(
+        'stand-in',
+        'Fighter stand-in',
+        'The public mesh is the CC0 MiG-29 file. The F/A-18 geometry is Mac-local and pending an optimized embed.',
+        true,
+      ),
+    ],
+    defeat: [
+      note(
+        'place',
+        'Place on the thread',
+        'SAMPLE vignette. The training label marks the flight on the Hormuz thread. No weapon and no procedure.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'pair',
+        'Shared pin',
+        'Two F/A-18 rows and two F-22 rows. SAMPLE labels only.',
+      ),
+    ],
+  },
+  'sphere-vessel': {
+    strengths: [
+      note(
+        'patrol',
+        'Hormuz patrol squadron',
+        'Iran / Hormuz thread. SAMPLE 1st Patrol Squadron under SAMPLE Hormuz OPFOR Group. Two Gulf patrol corvette rows. Naval grey. The row does not name a pennant class.',
+      ),
+    ],
+    weaknesses: [
+      note(
+        'mesh',
+        'Recognition mesh',
+        'The public file is the CC0 Gulf patrol corvette. It is not a named navy hull.',
+      ),
+    ],
+    defeat: [
+      note(
+        'track',
+        'On the shipping track',
+        'SAMPLE vignette. The training question is whether the patrol is still on the line toward the shipping track. This card does not name a weapon or a procedure.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'group',
+        'OPFOR group',
+        'Higher formation is SAMPLE Hormuz OPFOR Group. Waist fittings on the mesh are SAMPLE placement, not a fitted-weapon assessment.',
+      ),
+    ],
+  },
+  'sphere-soldier': {
+    strengths: [
+      note(
+        'ground',
+        'Two ground pins',
+        'Iran / Hormuz thread. The red pin is the SAMPLE coastal ground section. The blue pin is the SAMPLE coalition ground section. Both are fictional.',
+      ),
+    ],
+    weaknesses: [
+      note(
+        'mesh',
+        'Soldier file is local',
+        'The licensed GLBs stay on the authoring Mac. A missing file keeps the CC0 vehicle stand-in and the simple map marker.',
+        true,
+      ),
+    ],
+    defeat: [
+      note(
+        'label',
+        'Ground pin only',
+        'SAMPLE vignette. Training label for the ground section. This card does not name a weapon or a procedure.',
+      ),
+    ],
+    capabilities: [
+      note(
+        'holding',
+        'One section each',
+        'Each pin is one SAMPLE dismount section. Not a table of organization.',
+      ),
+    ],
+  },
+};
+
+function banner(analysis: SphereAnalysis, text: string): SphereAnalysis {
+  const layers: SphereLayerId[] = ['strengths', 'weaknesses', 'defeat', 'capabilities'];
+  const next = { ...analysis };
+  for (const layer of layers) {
+    next[layer] = [note(`${layer}-scenario`, 'Scenario thread', text), ...analysis[layer]];
+  }
+  return next;
+}
+
+const UKRAINE_HOLDS =
+  'Iran / Hormuz thread. This card stays the Ukraine–Russia SAMPLE vignette. Hormuz does not add a new assessment for this platform.';
+
+const HORMUZ_HOLDS =
+  'Ukraine–Russia thread. This platform sits on the Iran / Hormuz picture. This card does not reassess it.';
 
 function emptyLayer(layer: SphereLayerId): SphereAnalysisNote[] {
   return [
@@ -359,13 +564,32 @@ function emptyLayer(layer: SphereLayerId): SphereAnalysisNote[] {
   ];
 }
 
-export function sphereAnalysisFor(id: SphereModelId): SphereAnalysis {
-  return (
-    SEEDED[id] ?? {
-      strengths: emptyLayer('strengths'),
-      weaknesses: emptyLayer('weaknesses'),
-      defeat: emptyLayer('defeat'),
-      capabilities: emptyLayer('capabilities'),
-    }
-  );
+function unseeded(): SphereAnalysis {
+  return {
+    strengths: emptyLayer('strengths'),
+    weaknesses: emptyLayer('weaknesses'),
+    defeat: emptyLayer('defeat'),
+    capabilities: emptyLayer('capabilities'),
+  };
+}
+
+export function sphereAnalysisFor(
+  id: SphereModelId,
+  scenario: ScenarioId = 'ukraine-russia',
+): SphereAnalysis {
+  if (scenario === 'iran-hormuz') {
+    const hormuz = HORMUZ[id];
+    if (hormuz) return hormuz;
+    const seeded = SEEDED[id];
+    if (seeded) return banner(seeded, UKRAINE_HOLDS);
+    return banner(unseeded(), UKRAINE_HOLDS);
+  }
+  if (id === 'sphere-vessel') {
+    return banner(
+      unseeded(),
+      'Ukraine–Russia thread. The Gulf patrol corvette is the Hormuz patrol picture. The Ukraine naval row is the Magura section.',
+    );
+  }
+  if (HORMUZ_ONLY.has(id)) return banner(unseeded(), HORMUZ_HOLDS);
+  return SEEDED[id] ?? unseeded();
 }
