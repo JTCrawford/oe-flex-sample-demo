@@ -15,6 +15,7 @@ import type {
   StrikeEvent,
   StrikeMunitionAssessment,
   StrikeOverlayToggles,
+  StrikeRangeRing,
   SymbologyMode,
   ThreatLayer,
   UnitOrbat,
@@ -37,6 +38,8 @@ interface Props {
   munitionAssessment?: StrikeMunitionAssessment | null;
   selectedUnitId?: string | null;
   onSelectUnit?: (id: string) => void;
+  unitRangeRings?: StrikeRangeRing[];
+  selectionFocus?: 'strike' | 'unit' | null;
 }
 
 function FlyTo({ ao, suspend }: { ao: AO | null; suspend: boolean }) {
@@ -50,14 +53,27 @@ function FlyTo({ ao, suspend }: { ao: AO | null; suspend: boolean }) {
 /** Pan to a selected unit without overriding a selected strike. */
 function FlyToUnit({
   unit,
+  radiusKm,
 }: {
   unit: { lat: number; lng: number } | null;
+  radiusKm: number;
 }) {
   const map = useMap();
   useEffect(() => {
     if (!unit) return;
+    if (radiusKm >= 30) {
+      const dLat = radiusKm / 111;
+      const cos = Math.cos((unit.lat * Math.PI) / 180) || 0.2;
+      const dLng = radiusKm / (111 * cos);
+      const bounds = L.latLngBounds(
+        [unit.lat - dLat, unit.lng - dLng],
+        [unit.lat + dLat, unit.lng + dLng],
+      );
+      map.fitBounds(bounds.pad(0.1), { maxZoom: 8, animate: true });
+      return;
+    }
     map.panTo([unit.lat, unit.lng]);
-  }, [unit, map]);
+  }, [unit, radiusKm, map]);
   return null;
 }
 
@@ -163,6 +179,8 @@ export function Map2D({
   munitionAssessment = null,
   selectedUnitId = null,
   onSelectUnit,
+  unitRangeRings = [],
+  selectionFocus = null,
 }: Props) {
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -206,6 +224,11 @@ export function Map2D({
     [strikes, selectedStrikeId],
   );
   const focusRadiusKm = munitionAssessment?.candidates[0]?.envelopeMaxKm ?? 40;
+  const unitFocusKm = unitRangeRings.reduce(
+    (max, ring) => Math.max(max, ring.radiusKm),
+    0,
+  );
+  const mapRings = [...(munitionAssessment?.rings ?? []), ...unitRangeRings];
 
   return (
     <div className="map-surface" data-export-root>
@@ -219,9 +242,18 @@ export function Map2D({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FlyTo ao={selectedAo} suspend={!!selectedStrike || !!selectedUnit} />
-        <FlyToStrike strike={selectedStrike} radiusKm={focusRadiusKm} />
-        <FlyToUnit unit={selectedStrike ? null : selectedUnit} />
+        <FlyTo
+          ao={selectedAo}
+          suspend={selectionFocus === 'strike' || selectionFocus === 'unit'}
+        />
+        <FlyToStrike
+          strike={selectionFocus === 'strike' ? selectedStrike : null}
+          radiusKm={focusRadiusKm}
+        />
+        <FlyToUnit
+          unit={selectionFocus === 'unit' ? selectedUnit : null}
+          radiusKm={unitFocusKm}
+        />
         {aos.map((ao) => (
           <CircleMarker
             key={ao.id}
@@ -265,7 +297,11 @@ export function Map2D({
           >
             <Popup>
               {m.orbat ? (
-                <OrbatInspect orbat={m.orbat} variant="popup" />
+                <OrbatInspect
+                  orbat={m.orbat}
+                  variant="popup"
+                  rangeRingsOn={selectedUnitId === m.id && unitRangeRings.length > 0}
+                />
               ) : (
                 m.label
               )}
@@ -330,8 +366,7 @@ export function Map2D({
             />
           )}
 
-        {munitionAssessment &&
-          munitionAssessment.rings.map((ring) => (
+        {mapRings.map((ring) => (
             <Circle
               key={ring.id}
               center={[ring.lat, ring.lng]}

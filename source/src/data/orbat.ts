@@ -47,6 +47,10 @@ export const SAMPLE_PLATFORM = {
   bm21: 'BM-21 Grad (SAMPLE)',
   orlan: 'Orlan-10 analog (SAMPLE)',
   corvette: 'Corvette analog (SAMPLE)',
+  tochkaTel: '9P129 Tochka-U TEL analog (SAMPLE)',
+  iskanderTel: '9P78-1 Iskander-M TEL analog (SAMPLE)',
+  himars: 'M142 HIMARS analog (SAMPLE)',
+  m270: 'M270 MLRS analog (SAMPLE)',
 } as const;
 
 export function categoryLabel(category: VehicleCategoryId): string {
@@ -65,8 +69,16 @@ export function holding(
   category: VehicleCategoryId,
   typeDesignation: string,
   count: number,
+  linkedMunitionIds?: string[],
 ): VehicleHolding {
-  return { category, typeDesignation, count };
+  return {
+    category,
+    typeDesignation,
+    count,
+    ...(linkedMunitionIds && linkedMunitionIds.length > 0
+      ? { linkedMunitionIds }
+      : {}),
+  };
 }
 
 export function unitOrbat(input: Omit<UnitOrbat, 'sampleLabel'>): UnitOrbat {

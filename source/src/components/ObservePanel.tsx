@@ -1,4 +1,5 @@
 import type { AppState } from '../hooks/useAppState';
+import { profilesForOrbat } from '../data/munitionCatalog';
 import { orbatCountSummary } from '../data/orbat';
 import { PMESII_LETTERS, PMESII_TOOLTIPS } from '../data/pmesii';
 import type { StrikeOverlayToggles } from '../types';
@@ -199,9 +200,10 @@ export function ObservePanel({ state }: Props) {
       <section>
         <h3>Order of battle</h3>
         <p className="muted">
-          Unit pins carry a SAMPLE designation and typed vehicle counts. Select a
-          pin on the map or a unit below. The list follows the AO, layer toggles,
-          PMESII filters, and the kill-switch. Strike history stays on the map.
+          Unit pins carry a SAMPLE designation, typed vehicle counts, and any
+          linked munition profiles. Select a pin on the map or a unit below. The
+          list follows the AO, layer toggles, PMESII filters, and the kill-switch.
+          Range rings need Military symbology. Strike history stays on the map.
         </p>
         {unitPins.length === 0 ? (
           <p className="muted">No unit pins in the current Observe view.</p>
@@ -211,16 +213,22 @@ export function ObservePanel({ state }: Props) {
               const selected = selectedUnitId === marker.id;
               const orbat = marker.orbat;
               if (!orbat) return null;
+              const linked = profilesForOrbat(orbat);
               return (
                 <li key={marker.id}>
                   <button
                     type="button"
                     className={selected ? 'active' : ''}
                     aria-pressed={selected}
-                        onClick={() => toggleUnit(marker.id)}
+                    onClick={() => toggleUnit(marker.id)}
                   >
                     {orbat.designation}
                     <small className="orbat-pick-counts">{orbatCountSummary(orbat)}</small>
+                    {linked.length > 0 && (
+                      <small className="orbat-pick-counts">
+                        {linked.map((profile) => profile.shortName).join(' · ')}
+                      </small>
+                    )}
                   </button>
                 </li>
               );

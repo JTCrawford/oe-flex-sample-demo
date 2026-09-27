@@ -154,6 +154,8 @@ export default function App() {
               munitionAssessment={state.munitionAssessment}
               selectedUnitId={state.selectedUnitId}
               onSelectUnit={state.selectUnit}
+              unitRangeRings={state.unitRangeRings}
+              selectionFocus={state.selectionFocus}
             />
           ) : (
             <Map2D
@@ -171,10 +173,16 @@ export default function App() {
               munitionAssessment={state.munitionAssessment}
               selectedUnitId={state.selectedUnitId}
               onSelectUnit={state.selectUnit}
+              unitRangeRings={state.unitRangeRings}
+              selectionFocus={state.selectionFocus}
             />
           )}
           {state.selectedUnit?.orbat && (
-            <OrbatPanel orbat={state.selectedUnit.orbat} onClear={state.clearUnit} />
+            <OrbatPanel
+              orbat={state.selectedUnit.orbat}
+              rangeRingsOn={state.unitRangeRings.length > 0}
+              onClear={state.clearUnit}
+            />
           )}
           {state.munitionAssessment && (
             <MunitionInferencePanel
