@@ -276,7 +276,7 @@ export const vignettes: Vignette[] = [
       {
         t: 0,
         title: 'Setup',
-        description: 'SAMPLE merchant track with a Magura USV section and a patrol stand-in.',
+        description: 'SAMPLE merchant track with a CC0 USV stand-in and a patrol stand-in.',
         kind: 'attack',
       },
       {

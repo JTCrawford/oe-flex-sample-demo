@@ -290,6 +290,9 @@ export default function App() {
           <p className="scenario-legend" data-testid="engagement-line-count">
             Blue friendly · Red adversary · {state.engagementLines.length} engagement lines
           </p>
+          <p className="scenario-legend" data-testid="phase1-assets">
+            Phase 1 meshes are the CC0 sphere models already in this repo, plus OpenStreetMap tiles. A soldier file loads only when it is already on this machine. Premium packs are not in this build.
+          </p>
           <ul className="scenario-line-list" data-testid="engagement-lines">
             {state.engagementLines.map((line) => (
               <li key={line.id} data-side={line.side}>

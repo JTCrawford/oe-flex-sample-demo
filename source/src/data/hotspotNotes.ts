@@ -107,32 +107,10 @@ export const HOTSPOT_NOTES: Partial<
     ),
   },
   'black-sea': {
-    'sphere-magura': card(
-      [
-        'Black Sea USV section',
-        'Black Sea thread. SAMPLE partner USV section. Naval grey is the auto skin. The public mesh is still the CC0 corvette stand-in.',
-        '',
-      ],
-      [
-        'Stand-in hull',
-        'Silhouette cues sit on the Gulf patrol corvette mesh. They are not a Magura hull.',
-        'stub',
-      ],
-      [
-        'Recognition label',
-        `The card marks the USV section on the line toward the patrol stand-in. ${DEFEAT}`,
-        '',
-      ],
-      [
-        'Section holding',
-        'Four SAMPLE USV rows. Payload fit is not assessed.',
-        'stub',
-      ],
-    ),
     'sphere-vessel': card(
       [
-        'Patrol stand-in',
-        'Black Sea thread. The red row is a SAMPLE patrol section. The public mesh is the CC0 corvette. The row does not name a fleet.',
+        'CC0 hull',
+        'Black Sea thread. The blue row is a SAMPLE USV stand-in and the red row is a SAMPLE patrol. Both open the in-repo CC0 corvette. This build does not include a purchased USV mesh.',
         '',
       ],
       [
@@ -146,8 +124,8 @@ export const HOTSPOT_NOTES: Partial<
         '',
       ],
       [
-        'Two-hull label',
-        'The holding is two SAMPLE coastal craft. Not a squadron table.',
+        'CC0 rows',
+        'Both sections use the in-repo corvette file. Counts are SAMPLE labels, not a squadron table.',
         '',
       ],
     ),

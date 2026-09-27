@@ -69,7 +69,7 @@ export const aos: AO[] = [
     lat: 45.2,
     lng: 31.0,
     description:
-      'SAMPLE Black Sea picture for the Magura USV section and a patrol stand-in. Not a real fleet disposition.',
+      'SAMPLE Black Sea picture on the CC0 corvette mesh. Not a real fleet disposition.',
   },
 ];
 
@@ -1000,7 +1000,7 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
     },
     {
       id: 'bs-usv',
-      label: 'Magura USV section (SAMPLE)',
+      label: 'USV stand-in (SAMPLE)',
       pmesii: ['Military', 'Physical'],
       domain: 'sea',
       isFeeder: false,
@@ -1016,7 +1016,7 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
             designation: sampleDesignation('1st', 'USV', 'section'),
             echelon: 'section',
             higherFormation: BS_PARTNER,
-            vehicles: [holding('ship', SAMPLE_PLATFORM.magura, 4)],
+            vehicles: [holding('ship', SAMPLE_PLATFORM.escortHull, 4)],
           }),
         }),
       ],

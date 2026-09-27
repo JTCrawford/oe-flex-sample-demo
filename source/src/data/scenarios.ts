@@ -61,7 +61,7 @@ export const SCENARIOS: Scenario[] = [
     kicker: 'USV',
     aoId: 'black-sea',
     summary:
-      'Black Sea SAMPLE picture for the Magura USV section. The partner USV and shore section are blue. The patrol stand-in is red. Lines run from the patrol toward the merchant track, from the USV section toward the patrol, and from the shore section toward the patrol.',
+      'Black Sea SAMPLE picture on the CC0 corvette mesh. The partner USV stand-in and shore section are blue. The patrol stand-in is red. Lines run from the patrol toward the merchant track, and from the USV stand-in and shore section toward the patrol.',
   },
   {
     id: 'suwalki-gap',

@@ -43,9 +43,13 @@ The sticky SAMPLE demo keeps the existing CC0 `sphere-*.glb` files as the render
 
 Verba is the first MANPADS / SHORAD row. Family label is `MANPADS / SHORAD`. Range rings use a 0.5–6 km span. A strike inference card picks Verba when the label names it. A short missile slant does not become Verba from envelope width alone.
 
+## Phase 1 budget
+
+This PR ships Phase 1 only. Public meshes are the CC0 `sphere-*.glb` files already in the repo. The map uses OpenStreetMap tiles. Soldier GLBs are optional local files and are not committed. No premium pack is added or purchased here. A later pack waits until it is approved on its own.
+
 ## Hotspot tour
 
-The map column has one scenario selector. Military pins are blue for partner and coalition formations and red for OPFOR. Commercial symbology keeps commercial icons. Engagement lines draw only on the military picture. The defeat layer stays a training label and does not name a weapon or a procedure.
+The map column has one scenario selector. Required stops are Ukraine–Russia, Strait of Hormuz, and Bab el-Mandeb (Houthis / Yemen). Persian Gulf, Black Sea, and Suwałki Gap stay because they render those same CC0 meshes. Military pins are blue for partner and coalition formations and red for OPFOR. Commercial symbology keeps commercial icons. Engagement lines draw only on the military picture. The defeat layer stays a training label and does not name a weapon or a procedure.
 
 | Toggle | What it shows |
 | --- | --- |
@@ -53,7 +57,7 @@ The map column has one scenario selector. Military pins are blue for partner and
 | Strait of Hormuz | Iran chokepoint. Coalition blue, OPFOR red. Lines from the strike flight and patrol toward shipping, and from the coalition flight and ground section toward the OPFOR pins. |
 | Bab el-Mandeb | Houthis / Yemen SAMPLE thread on the southern Red Sea, from the existing Red Sea mock feed. Coastal section and craft toward the merchant track. Escort and lane watch toward those pins. |
 | Persian Gulf | Central Gulf fast-craft SAMPLE feed, separate from Hormuz. Two craft sections toward the platform cluster. Screen section toward the first craft section. |
-| Black Sea | Magura USV section, a patrol stand-in, a merchant track, and a shore section. |
+| Black Sea | CC0 corvette mesh for a USV stand-in and a patrol stand-in, plus a merchant track and a shore section. |
 | Suwałki Gap | Existing land-corridor AO. Armor and rockets toward the corridor node. Mech section and corridor defense section toward each other. |
 
 ## Infantry pins and soldier GLBs
