@@ -99,7 +99,7 @@ const SRBM_POINTS: ArmorWeakPoint[] = [
 ];
 
 const FIDELITY =
-  'Original recognition mesh in this repo, built to published general arrangement and rendered for these plates. Not a photograph, scan, or third-party CAD. Fictional SAMPLE weak points are overlays, not an assessment.';
+  'Original recognition mesh in this repo, built to published general arrangement. OE skins are original camouflage textures in this repo, not scans of issued fabric. Not a photograph, scan, or third-party CAD. Fictional SAMPLE weak points are overlays, not an assessment.';
 
 function srbmModel(
   id: SphereModelId,

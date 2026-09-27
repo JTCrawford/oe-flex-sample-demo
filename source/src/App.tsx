@@ -308,6 +308,8 @@ export default function App() {
                 ? state.selectedUnit.orbat.designation
                 : 'SAMPLE catalog'
             }
+            aoId={state.selectedAoId}
+            unitId={state.activeSphere.unitId}
             onClose={state.closeSphere}
           />
         </Suspense>
