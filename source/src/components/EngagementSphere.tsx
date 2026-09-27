@@ -1,6 +1,13 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { BufferGeometry, Material, Mesh, Object3D, Texture, WebGLRenderer } from 'three';
-import { PLATE_VIEWS, type SphereModel } from '../data/engagementSphere';
+import { PLATE_VIEWS, renderMeshId, type SphereModel } from '../data/engagementSphere';
+import type { ScenarioId } from '../data/scenarios';
+import {
+  SPHERE_LAYERS,
+  sphereAnalysisFor,
+  type SphereLayerId,
+} from '../data/sphereAnalysis';
+import type { PhotorealSource } from '../sphere/loadPhotoreal';
 import { defaultSkinId, OE_SKINS, oeSkinById } from '../data/oeSkins';
 import {
   bindOeSkin,
@@ -19,6 +26,7 @@ interface Props {
   unitDesignation: string;
   aoId: string | null;
   unitId: string | null;
+  scenarioId: ScenarioId;
   onClose: () => void;
 }
 
@@ -41,6 +49,7 @@ export default function EngagementSphere({
   unitDesignation,
   aoId,
   unitId,
+  scenarioId,
   onClose,
 }: Props) {
   const titleId = useId();
@@ -60,9 +69,16 @@ export default function EngagementSphere({
     skinSwatchUrl(oeSkinById(autoSkinId), aoId),
   );
   const [meshOverride, setMeshOverride] = useState<string | null>(null);
+  const [meshSource, setMeshSource] = useState<PhotorealSource | null>(null);
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const [showKnown, setShowKnown] = useState(true);
   const [showBelieved, setShowBelieved] = useState(true);
+  const [layersOn, setLayersOn] = useState<Record<SphereLayerId, boolean>>({
+    strengths: false,
+    weaknesses: false,
+    defeat: false,
+    capabilities: false,
+  });
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [narrow, setNarrow] = useState(false);
   const [tab, setTab] = useState<'brief' | 'mesh'>('brief');
@@ -141,6 +157,7 @@ export default function EngagementSphere({
         const modelRoot = new THREE.Group();
         scene.add(modelRoot);
         const loaded = await loadPhotoreal(model.id, modelRoot, meshOverride);
+        if (!disposed) setMeshSource(loaded.source);
         const skinSlot: OeSkinSlot = bindOeSkin(modelRoot, THREE);
         if (!meshOverride) {
           const camo = await loadCamoTexture(THREE, skinAssets.textureUrl, skinAssets.filter);
@@ -152,6 +169,7 @@ export default function EngagementSphere({
           }
         }
         if (disposed) {
+          loaded.revoke?.();
           skinSlot.disposeTexture();
           disposeHierarchy(modelRoot);
           gl.dispose();
@@ -248,9 +266,20 @@ export default function EngagementSphere({
 
         const controls = new OrbitControls(camera, gl.domElement);
         controls.enablePan = false;
+        controls.enableRotate = true;
+        controls.enableZoom = true;
         controls.enableDamping = false;
+        controls.zoomToCursor = false;
+        controls.rotateSpeed = 0.85;
+        controls.zoomSpeed = 0.9;
         controls.minDistance = Math.max(fitted.radius, 0.5) * 0.7;
         controls.maxDistance = Math.max(fitted.radius, 0.5) * 8;
+        controls.minPolarAngle = 0.02;
+        controls.maxPolarAngle = Math.PI - 0.02;
+        controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+        controls.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
+        controls.touches.ONE = THREE.TOUCH.ROTATE;
+        controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
         controls.target.copy(focus);
 
         let raf = 0;
@@ -338,6 +367,7 @@ export default function EngagementSphere({
         if (!disposed) setPhase('ready');
 
         teardown = () => {
+          loaded.revoke?.();
           cancelAnimationFrame(raf);
           apiRef.current = null;
           observer.disconnect();
@@ -387,6 +417,14 @@ export default function EngagementSphere({
   const visiblePoints = model.weakPoints.filter((point) =>
     point.confidence === 'known' ? showKnown : showBelieved,
   );
+  const analysis = useMemo(
+    () => sphereAnalysisFor(model.id, scenarioId),
+    [model.id, scenarioId],
+  );
+  const activeLayers = SPHERE_LAYERS.filter((layer) => layersOn[layer.id]);
+  const toggleLayer = (id: SphereLayerId) => {
+    setLayersOn((current) => ({ ...current, [id]: !current[id] }));
+  };
 
   return (
     <div
@@ -400,6 +438,7 @@ export default function EngagementSphere({
         aria-labelledby={titleId}
         data-testid="engagement-sphere-viewer"
         data-sphere-model-id={model.id}
+        data-scenario={scenarioId}
         data-oe-skin={skinId}
         onClick={(event) => event.stopPropagation()}
       >
@@ -418,6 +457,32 @@ export default function EngagementSphere({
             <p className="sphere-model-id">
               Model <code className="sphere-id">{model.id}</code>
             </p>
+            <p
+              className="sphere-geometry"
+              data-testid="sphere-geometry-status"
+              data-geometry-status={model.geometry.status}
+              data-render-mesh={model.geometry.renderMeshId}
+            >
+              {model.geometry.status === 'licensed-pending-embed'
+                ? 'Licensed geometry: Mac-local / pending optimized embed'
+                : 'CC0 recognition mesh'}
+              {model.geometry.renderMeshId !== model.id && (
+                <>
+                  {' '}
+                  · public stand-in{' '}
+                  <code className="sphere-id">{model.geometry.renderMeshId}</code>
+                </>
+              )}
+            </p>
+            {model.id === 'sphere-soldier' && (
+              <p className="sphere-geometry" data-testid="sphere-mesh-source" data-mesh-source={meshSource ?? 'pending'}>
+                {meshSource === 'soldier-glb'
+                  ? 'Local soldier GLB loaded. This file is not part of the public demo.'
+                  : meshSource === 'cc0' || meshSource === 'override'
+                    ? 'Soldier GLB not on this host. Showing the CC0 stand-in. The map pin stays a simple marker.'
+                    : 'Checking for a local soldier GLB…'}
+              </p>
+            )}
           </div>
           <button ref={closeRef} type="button" onClick={onClose}>
             Close
@@ -467,6 +532,20 @@ export default function EngagementSphere({
               </button>
             ))}
           </div>
+          <div className="sphere-layers" role="group" aria-label="SAMPLE analysis layers">
+            <span className="sphere-skins-label">Layers</span>
+            {SPHERE_LAYERS.map((layer) => (
+              <button
+                key={layer.id}
+                type="button"
+                aria-pressed={layersOn[layer.id]}
+                data-testid={`sphere-layer-${layer.id}`}
+                onClick={() => toggleLayer(layer.id)}
+              >
+                {layer.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="sphere-tabs" role="tablist" aria-label="Sphere views">
           <button
@@ -496,6 +575,8 @@ export default function EngagementSphere({
             visiblePoints={visiblePoints}
             skinId={skinId}
             textureUrl={textureUrl}
+            activeLayers={activeLayers}
+            analysis={analysis}
           />
         </section>
         <div className="sphere-stage" ref={stageRef} hidden={narrow && tab !== 'mesh'}>
@@ -508,6 +589,12 @@ export default function EngagementSphere({
             <p className="sphere-status" role="alert">
               This browser could not start the SAMPLE 3D view.
             </p>
+          )}
+          <p className="sphere-orbit-hint">Drag to orbit. Scroll or pinch to zoom.</p>
+          {activeLayers.length > 0 && (
+            <div className="sphere-layer-float">
+              <AnalysisNotes activeLayers={activeLayers} analysis={analysis} />
+            </div>
           )}
           <div className="sphere-views" role="group" aria-label="Camera presets">
             {PRESETS.map((preset) => (
@@ -537,11 +624,15 @@ function RecognitionPlate({
   visiblePoints,
   skinId,
   textureUrl,
+  activeLayers,
+  analysis,
 }: {
   model: SphereModel;
   visiblePoints: SphereModel['weakPoints'];
   skinId: string;
   textureUrl: string;
+  activeLayers: { id: SphereLayerId; label: string }[];
+  analysis: ReturnType<typeof sphereAnalysisFor>;
 }) {
   const { briefing } = model;
   const skin = oeSkinById(skinId);
@@ -559,7 +650,7 @@ function RecognitionPlate({
         {PLATE_VIEWS.map((view) => (
           <figure key={view.id} className="plate-still">
             <SkinnedStill
-              plateUrl={`${base}models/plates/${model.id}-${view.id}.png`}
+              plateUrl={`${base}models/plates/${renderMeshId(model.id)}-${view.id}.png`}
               textureUrl={textureUrl}
               tile={skin.plateTile}
               alt={`${briefing.designation}, ${view.label.toLowerCase()} view, ${skin.label}`}
@@ -581,6 +672,7 @@ function RecognitionPlate({
         ))}
       </dl>
       <p className="sphere-summary">{model.summary}</p>
+      <AnalysisNotes activeLayers={activeLayers} analysis={analysis} />
       <p className="plate-points-label">Weak points</p>
       <ul className="sphere-points">
         {visiblePoints.map((point) => (
@@ -591,12 +683,59 @@ function RecognitionPlate({
           </li>
         ))}
       </ul>
-      {visiblePoints.length === 0 && (
+      {model.weakPoints.length === 0 && (
+        <p className="sphere-summary" data-testid="sphere-no-weak-points">
+          This SAMPLE pin has no weak-point markers.
+        </p>
+      )}
+      {visiblePoints.length === 0 && model.weakPoints.length > 0 && (
         <p className="sphere-summary">Both overlays are off. The mesh stays in view.</p>
       )}
       <p className="sphere-fence">{briefing.fidelity}</p>
       <SalesCallout id="engagementSphere" compact />
     </>
+  );
+}
+
+function AnalysisNotes({
+  activeLayers,
+  analysis,
+}: {
+  activeLayers: { id: SphereLayerId; label: string }[];
+  analysis: ReturnType<typeof sphereAnalysisFor>;
+}) {
+  if (activeLayers.length === 0) {
+    return (
+      <p className="sphere-layer-empty">
+        Turn on a layer for the SAMPLE vignette card.
+      </p>
+    );
+  }
+  return (
+    <div className="sphere-layer-notes" data-testid="sphere-layer-notes">
+      {activeLayers.map((layer) => (
+        <section key={layer.id} aria-label={layer.label}>
+          <h5>{layer.label}</h5>
+          {layer.id === 'defeat' && (
+            <p className="sphere-layer-fence">
+              UNCLASS SAMPLE vignette. Training labels only. Not a targeting solution
+              and not a procedure.
+            </p>
+          )}
+          <ul>
+            {analysis[layer.id].map((item) => (
+              <li key={item.id} data-stub={item.stub ? 'true' : 'false'}>
+                <strong>
+                  {item.title}
+                  {item.stub && <em>Stub</em>}
+                </strong>
+                <p>{item.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }
 

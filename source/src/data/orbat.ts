@@ -1,4 +1,5 @@
 import type {
+  ForceSide,
   ThreatMarker,
   UnitEchelon,
   UnitOrbat,
@@ -16,7 +17,10 @@ import type {
 export const VEHICLE_CATEGORY_LABEL: Record<VehicleCategoryId, string> = {
   tank: 'Tanks',
   ifv: 'IFVs',
+  ugv: 'UGVs',
+  infantry: 'Infantry',
   artillery: 'Artillery',
+  shorad: 'SHORAD',
   aircraft: 'Aircraft',
   ship: 'Ships',
 };
@@ -24,7 +28,10 @@ export const VEHICLE_CATEGORY_LABEL: Record<VehicleCategoryId, string> = {
 const CATEGORY_ORDER: VehicleCategoryId[] = [
   'tank',
   'ifv',
+  'ugv',
+  'infantry',
   'artillery',
+  'shorad',
   'aircraft',
   'ship',
 ];
@@ -48,10 +55,24 @@ export const SAMPLE_PLATFORM = {
   orlan: 'Orlan-10 analog (SAMPLE)',
   fulcrum: 'MiG-29 Fulcrum (SAMPLE)',
   corvette: 'Gulf patrol corvette (SAMPLE)',
-  tochkaTel: '9P129 Tochka-U TEL (SAMPLE)',
-  iskanderTel: '9P78-1 Iskander-M TEL (SAMPLE)',
+  tochkaTel: 'Tochka-U (SAMPLE)',
+  iskanderTel: 'Iskander 9K720 (SAMPLE)',
   himars: 'M142 HIMARS (SAMPLE)',
   m270: 'M270 MLRS (SAMPLE)',
+  magura: 'Magura V5 (SAMPLE)',
+  liut: 'Liut UGV (SAMPLE)',
+  verba: 'Verba 9K333 (SAMPLE)',
+  su27: 'Su-27 Flanker (SAMPLE)',
+  f22: 'F-22 Raptor (SAMPLE)',
+  fa18: 'F/A-18 Hornet (SAMPLE)',
+  btr4e: 'BTR-4E (SAMPLE)',
+  dozorB: 'Dozor-B (SAMPLE)',
+  novator: 'Novator (SAMPLE)',
+  krazShrek: 'KrAZ Shrek (SAMPLE)',
+  krazFiona: 'KrAZ Fiona (SAMPLE)',
+  dismount: 'Dismount section (SAMPLE)',
+  coastalCraft: 'Coastal craft (SAMPLE)',
+  escortHull: 'Escort hull (SAMPLE)',
 } as const;
 
 export function categoryLabel(category: VehicleCategoryId): string {
@@ -75,6 +96,20 @@ const PLATFORM_SPHERE_MODEL: Record<string, string> = {
   [SAMPLE_PLATFORM.t80]: 'sphere-mbt',
   [SAMPLE_PLATFORM.fulcrum]: 'sphere-fighter',
   [SAMPLE_PLATFORM.corvette]: 'sphere-vessel',
+  [SAMPLE_PLATFORM.magura]: 'sphere-magura',
+  [SAMPLE_PLATFORM.liut]: 'sphere-liut',
+  [SAMPLE_PLATFORM.verba]: 'sphere-verba',
+  [SAMPLE_PLATFORM.su27]: 'sphere-su27',
+  [SAMPLE_PLATFORM.f22]: 'sphere-f22',
+  [SAMPLE_PLATFORM.fa18]: 'sphere-fa18',
+  [SAMPLE_PLATFORM.btr4e]: 'sphere-btr-4e',
+  [SAMPLE_PLATFORM.dozorB]: 'sphere-dozor-b',
+  [SAMPLE_PLATFORM.novator]: 'sphere-novator',
+  [SAMPLE_PLATFORM.krazShrek]: 'sphere-kraz-shrek',
+  [SAMPLE_PLATFORM.krazFiona]: 'sphere-kraz-fiona',
+  [SAMPLE_PLATFORM.dismount]: 'sphere-soldier',
+  [SAMPLE_PLATFORM.coastalCraft]: 'sphere-vessel',
+  [SAMPLE_PLATFORM.escortHull]: 'sphere-vessel',
 };
 
 const CATEGORY_SPHERE_MODEL: Partial<Record<VehicleCategoryId, string>> = {
@@ -106,11 +141,21 @@ export function unitOrbat(input: Omit<UnitOrbat, 'sampleLabel'>): UnitOrbat {
   return { ...input, sampleLabel: 'SAMPLE' };
 }
 
+/** Partner and coalition formations are the blue side. Other ORBAT pins are red. */
+export function sideForFormation(higherFormation: string): ForceSide {
+  if (/partner|coalition/i.test(higherFormation)) return 'friendly';
+  return 'adversary';
+}
+
 /** Unit pin whose map label is the standardized designation. */
 export function forceMarker(
   marker: Omit<ThreatMarker, 'label'> & { orbat: UnitOrbat },
 ): ThreatMarker {
-  return { ...marker, label: marker.orbat.designation };
+  return {
+    ...marker,
+    side: marker.side ?? sideForFormation(marker.orbat.higherFormation),
+    label: marker.orbat.designation,
+  };
 }
 
 export function holdingsInCatalogOrder(vehicles: VehicleHolding[]): VehicleHolding[] {

@@ -3,6 +3,12 @@ import { aos, threatLayersByAo } from '../data/aos';
 import type { SphereTarget } from '../data/engagementSphere';
 import { profilesForOrbat, rangeRingsForProfiles } from '../data/munitionCatalog';
 import { inferMunitions } from '../data/munitionInference';
+import {
+  resolveEngagementLines,
+  scenarioById,
+  scenarioIdForAo,
+  type ScenarioId,
+} from '../data/scenarios';
 import { locatedGeoHints, presentSignalsForAo } from '../data/socialSignals';
 import { strikesByAo } from '../data/strikes';
 import { vignetteForAo } from '../data/vignettes';
@@ -42,6 +48,7 @@ export function useAppState() {
   const [stage, setStage] = useState<Stage>('Observe');
   const [mapMode, setMapMode] = useState<MapMode>('globe');
   const [selectedAoId, setSelectedAoId] = useState<string | null>(null);
+  const [scenarioId, setScenarioId] = useState<ScenarioId>('ukraine-russia');
   const [symbology, setSymbology] = useState<SymbologyMode>('military');
   const [enabledLayers, setEnabledLayers] = useState<Set<string>>(new Set());
   const [pmesiiFilters, setPmesiiFilters] = useState<Set<PmesiiChip>>(
@@ -195,8 +202,10 @@ export function useAppState() {
   ]);
 
   const selectAo = useCallback(
-    (aoId: string) => {
+    (aoId: string, commercial?: boolean) => {
       setSelectedAoId(aoId);
+      const mapped = scenarioIdForAo(aoId);
+      if (mapped) setScenarioId(mapped);
       setSelectedStrikeId(null);
       setSelectedUnitId(null);
       setSphereTarget(null);
@@ -204,17 +213,44 @@ export function useAppState() {
       setSelectedSocialId(null);
       setWargameOutcome(null);
       setSelectedMitigationId(null);
+      const hideFeeder = commercial ?? isCommercialPartner;
       const layers = threatLayersByAo[aoId] ?? [];
       const defaults = new Set(
-        layers
-          .filter((l) => !(isCommercialPartner && l.isFeeder))
-          .map((l) => l.id),
+        layers.filter((l) => !(hideFeeder && l.isFeeder)).map((l) => l.id),
       );
       setEnabledLayers(defaults);
       setStage('Observe');
     },
     [isCommercialPartner],
   );
+
+  const selectScenario = useCallback(
+    (id: ScenarioId, commercial?: boolean) => {
+      setScenarioId(id);
+      selectAo(scenarioById(id).aoId, commercial);
+    },
+    [selectAo],
+  );
+
+  const engagementLines = useMemo(() => {
+    if (
+      killSwitch ||
+      !selectedAoId ||
+      !militaryFilterActive ||
+      symbology !== 'military'
+    ) {
+      return [];
+    }
+    if (scenarioById(scenarioId).aoId !== selectedAoId) return [];
+    return resolveEngagementLines(scenarioId, visibleLayers);
+  }, [
+    killSwitch,
+    selectedAoId,
+    militaryFilterActive,
+    symbology,
+    scenarioId,
+    visibleLayers,
+  ]);
 
   const toggleLayer = useCallback((layerId: string) => {
     setEnabledLayers((prev) => {
@@ -360,6 +396,9 @@ export function useAppState() {
     selectedAoId,
     selectedAo,
     selectAo,
+    scenarioId,
+    selectScenario,
+    engagementLines,
     symbology,
     setSymbologyMutex,
     enabledLayers,

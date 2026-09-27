@@ -390,8 +390,10 @@ export function inferMunitions(
     )[0];
   // Tightest catalog envelope that contains the slant range. A wider band that
   // also contains the range stays available as its own record, but does not
-  // outrank the closer fit.
+  // outrank the closer fit. Verba stays on a keyword hit so a short missile
+  // slant does not become a MANPADS card by envelope width alone.
   const inRangeCatalog = catalogScored
+    .filter((row) => row.profile.id !== 'verba')
     .filter((row) => rangeKm >= row.profile.minKm && rangeKm <= row.profile.maxKm)
     .sort(
       (a, b) =>

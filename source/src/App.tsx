@@ -1,5 +1,6 @@
 import { lazy, Suspense, useRef, useState } from 'react';
 import { sphereModelById, sphereModelForHolding } from './data/engagementSphere';
+import { SCENARIOS, scenarioById } from './data/scenarios';
 import { useAppState } from './hooks/useAppState';
 import { RoleSelector } from './components/RoleSelector';
 import { GlobeView } from './components/GlobeView';
@@ -77,6 +78,7 @@ export default function App() {
             } else if (role === 'Commercial Partner') {
               state.setSymbologyMutex('commercial');
             }
+            state.selectScenario(state.scenarioId, role === 'Commercial Partner');
           }}
         />
         {showTtpFeeds && (
@@ -195,6 +197,7 @@ export default function App() {
               unitRangeRings={state.unitRangeRings}
               selectionFocus={state.selectionFocus}
               socialMapHints={state.socialMapHints}
+              engagementLines={state.engagementLines}
             />
           ) : (
             <Map2D
@@ -219,6 +222,7 @@ export default function App() {
               unitRangeRings={state.unitRangeRings}
               selectionFocus={state.selectionFocus}
               socialMapHints={state.socialMapHints}
+              engagementLines={state.engagementLines}
             />
           )}
           {state.selectedSocial && (
@@ -255,6 +259,47 @@ export default function App() {
               }}
             />
           )}
+          <div
+            className="scenario-toggle"
+            role="group"
+            aria-label="Engagement scenario"
+            data-testid="scenario-toggle"
+          >
+            {SCENARIOS.map((scenario) => (
+              <button
+                key={scenario.id}
+                type="button"
+                data-testid={`scenario-${scenario.id}`}
+                aria-pressed={state.scenarioId === scenario.id}
+                className={state.scenarioId === scenario.id ? 'active' : ''}
+                onClick={() => state.selectScenario(scenario.id)}
+              >
+                <small>{scenario.kicker}</small>
+                {scenario.label}
+              </button>
+            ))}
+          </div>
+          <p className="scenario-summary" data-testid="scenario-summary">
+            {state.selectedAoId === scenarioById(state.scenarioId).aoId
+              ? scenarioById(state.scenarioId).summary
+              : `${scenarioById(state.scenarioId).label} stays selected. The open area is outside that thread, so its engagement lines stay off.`}
+            {state.symbology !== 'military'
+              ? ' Engagement lines draw on the military picture.'
+              : ''}
+          </p>
+          <p className="scenario-legend" data-testid="engagement-line-count">
+            Blue friendly · Red adversary · {state.engagementLines.length} engagement lines
+          </p>
+          <p className="scenario-legend" data-testid="phase1-assets">
+            Phase 1 meshes are the CC0 sphere models already in this repo, plus OpenStreetMap tiles. A soldier file loads only when it is already on this machine. Premium packs are not in this build.
+          </p>
+          <ul className="scenario-line-list" data-testid="engagement-lines">
+            {state.engagementLines.map((line) => (
+              <li key={line.id} data-side={line.side}>
+                {line.label}
+              </li>
+            ))}
+          </ul>
           <div className="ao-quick">
             {state.aos.map((ao) => (
               <button
@@ -310,6 +355,7 @@ export default function App() {
             }
             aoId={state.selectedAoId}
             unitId={state.activeSphere.unitId}
+            scenarioId={state.scenarioId}
             onClose={state.closeSphere}
           />
         </Suspense>

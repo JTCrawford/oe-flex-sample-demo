@@ -16,6 +16,7 @@ import type {
   StrikeEvent,
   StrikeMunitionAssessment,
   StrikeOverlayToggles,
+  ForceSide,
   StrikeRangeRing,
   SymbologyMode,
   ThreatLayer,
@@ -23,6 +24,7 @@ import type {
   UnitOrbat,
   VehicleHolding,
 } from '../types';
+import type { ResolvedEngagementLine } from '../data/scenarios';
 import { OrbatInspect } from './OrbatPanel';
 import 'leaflet/dist/leaflet.css';
 
@@ -46,6 +48,7 @@ interface Props {
   unitRangeRings?: StrikeRangeRing[];
   selectionFocus?: 'strike' | 'unit' | 'social' | null;
   socialMapHints?: SocialMapHint[];
+  engagementLines?: ResolvedEngagementLine[];
 }
 
 function FlyTo({ ao, suspend }: { ao: AO | null; suspend: boolean }) {
@@ -122,10 +125,25 @@ function FlyToStrike({
   return null;
 }
 
-function symbolSvg(kind: string | undefined, mode: SymbologyMode): string {
+function symbolSvg(
+  kind: string | undefined,
+  mode: SymbologyMode,
+  side?: ForceSide,
+): string {
   if (mode === 'military') {
     const stroke =
-      kind === 'arty' ? '#f5a623' : kind === 'uav' ? '#6ec6ff' : '#7CFC9A';
+      side === 'friendly'
+        ? '#5eb1ff'
+        : side === 'adversary'
+          ? '#ff5a5a'
+          : kind === 'arty'
+            ? '#f5a623'
+            : kind === 'uav'
+              ? '#6ec6ff'
+              : '#7CFC9A';
+    if (kind === 'infantry') {
+      return `<svg width="28" height="28" viewBox="0 0 40 40"><polygon points="20,2 38,20 20,38 2,20" fill="rgba(20,40,30,0.85)" stroke="${stroke}" stroke-width="2"/><circle cx="20" cy="14" r="3.2" fill="none" stroke="${stroke}"/><path d="M20 17.5 V26 M13 21 H27 M15 32 L20 26 L25 32" fill="none" stroke="${stroke}" stroke-width="1.6"/></svg>`;
+    }
     if (kind === 'ship') {
       return `<svg width="28" height="28" viewBox="0 0 40 40"><ellipse cx="20" cy="20" rx="16" ry="10" fill="rgba(20,40,30,0.85)" stroke="${stroke}" stroke-width="2"/><path d="M8 22 L20 10 L32 22" fill="none" stroke="${stroke}"/></svg>`;
     }
@@ -152,10 +170,11 @@ function makeSymbolIcon(
   mode: SymbologyMode,
   label: string,
   selected: boolean,
+  side?: ForceSide,
 ) {
   return L.divIcon({
     className: `leaflet-symbol-wrapper${selected ? ' is-selected' : ''}`,
-    html: `<div class="leaflet-symbol" title="${label.replace(/"/g, '')}">${symbolSvg(kind, mode)}</div>`,
+    html: `<div class="leaflet-symbol" data-side="${side ?? ''}" title="${label.replace(/"/g, '')}">${symbolSvg(kind, mode, side)}</div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
   });
@@ -216,6 +235,7 @@ export function Map2D({
   unitRangeRings = [],
   selectionFocus = null,
   socialMapHints = [],
+  engagementLines = [],
 }: Props) {
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -231,6 +251,7 @@ export function Map2D({
       label: string;
       symbolKind?: string;
       orbat?: UnitOrbat;
+      side?: ForceSide;
     }[] = [];
     for (const layer of visibleLayers) {
       for (const m of layer.markers) {
@@ -242,6 +263,7 @@ export function Map2D({
           symbolKind:
             symbology === 'military' ? m.milSymbol : m.commercialSymbol,
           orbat: m.orbat,
+          side: symbology === 'military' ? m.side : undefined,
         });
       }
     }
@@ -318,6 +340,23 @@ export function Map2D({
             </Popup>
           </CircleMarker>
         ))}
+        {engagementLines.map((line) => (
+          <Polyline
+            key={line.id}
+            positions={[
+              [line.fromLat, line.fromLng],
+              [line.toLat, line.toLng],
+            ]}
+            pathOptions={{
+              color: line.color,
+              weight: 3,
+              opacity: 0.9,
+              dashArray: '10 6',
+            }}
+          >
+            <Popup>{line.label}</Popup>
+          </Polyline>
+        ))}
         {threatMarkers.map((m) => (
           <Marker
             key={`${m.id}-${symbology}`}
@@ -328,6 +367,7 @@ export function Map2D({
               symbology,
               m.orbat ? `${m.orbat.designation}` : m.label,
               selectedUnitId === m.id,
+              m.side,
             )}
             eventHandlers={
               m.orbat
