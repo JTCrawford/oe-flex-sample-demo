@@ -5,6 +5,12 @@ import type {
   StrikeMunitionAssessment,
   StrikeRangeRing,
 } from '../types';
+import {
+  catalogInferenceProfiles,
+  munitionProfileById,
+  rangeRingsForProfile,
+  ringStyleForIndex,
+} from './munitionCatalog';
 
 /**
  * Unclassified SAMPLE munition inference.
@@ -125,13 +131,6 @@ const PROFILES: Profile[] = [
     blurb: 'Very short standoff device aimed at a road chokepoint.',
   },
 ];
-
-const RING_STYLES: { color: string; dashArray: string; weight: number; strokeDegrees: number }[] =
-  [
-    { color: '#f5d76e', dashArray: '12 8', weight: 3, strokeDegrees: 0.09 },
-    { color: '#6ec6ff', dashArray: '6 7', weight: 2, strokeDegrees: 0.055 },
-    { color: '#d7b0ff', dashArray: '2 6', weight: 2, strokeDegrees: 0.04 },
-  ];
 
 const FAMILY_MATCH_BONUS = 0.1;
 const KEYWORD_BONUS = 0.08;
@@ -277,6 +276,47 @@ function keywordHit(label: string, keywords: string[]): boolean {
   return keywords.some((k) => hay.includes(k));
 }
 
+function keywordSpecificity(label: string, keywords: string[]): number {
+  const hay = label.toLowerCase();
+  let best = 0;
+  for (const keyword of keywords) {
+    if (hay.includes(keyword) && keyword.length > best) best = keyword.length;
+  }
+  return best;
+}
+
+interface ScoredProfile {
+  profile: Profile;
+  confidence: number;
+  rationale: string;
+}
+
+function scoreProfile(
+  profile: Profile,
+  strike: StrikeEvent,
+  rangeKm: number,
+  cardinal: string,
+  threatClause: string,
+): ScoredProfile {
+  let confidence = rangeFit(rangeKm, profile.minKm, profile.maxKm);
+  if (profile.family === strike.attackType) confidence += FAMILY_MATCH_BONUS;
+  else confidence -= FAMILY_MISMATCH_PENALTY;
+  if (keywordHit(strike.label, profile.keywords)) confidence += KEYWORD_BONUS;
+  confidence = Math.max(0.08, Math.min(0.92, confidence));
+  const inside = rangeKm >= profile.minKm && rangeKm <= profile.maxKm;
+  const where = inside ? 'inside' : rangeKm < profile.minKm ? 'short of' : 'beyond';
+  const familyNote =
+    profile.family === strike.attackType
+      ? `Matches the reported ${strike.attackType} type.`
+      : `Alternate to the reported ${strike.attackType} type, kept because the measured range overlaps this envelope.`;
+  const rationale = `${profile.blurb} ${Math.round(rangeKm)} km slant range sits ${where} the ${profile.minKm}–${profile.maxKm} km envelope on this ${cardinal} track. ${familyNote} ${threatClause}`;
+  return { profile, confidence, rationale };
+}
+
+function byConfidence(a: ScoredProfile, b: ScoredProfile): number {
+  return b.confidence - a.confidence || a.profile.id.localeCompare(b.profile.id);
+}
+
 /**
  * Infer likely SAMPLE munition types for one strike.
  * `peers` is the same AO's strike list (including this event) so threat context
@@ -312,62 +352,120 @@ export function inferMunitions(
       ? `Nearby threat picture: ${nearbyCount} other SAMPLE strike(s) within ${NEAR_KM} km at intensity ${strike.intensity.toFixed(2)}.`
       : `Nearby threat picture: isolated impact, intensity ${strike.intensity.toFixed(2)}.`;
 
-  const scored = PROFILES.map((profile) => {
-    let confidence = rangeFit(rangeKm, profile.minKm, profile.maxKm);
-    if (profile.family === strike.attackType) confidence += FAMILY_MATCH_BONUS;
-    else confidence -= FAMILY_MISMATCH_PENALTY;
-    if (keywordHit(strike.label, profile.keywords)) confidence += KEYWORD_BONUS;
-    confidence = Math.max(0.08, Math.min(0.92, confidence));
-    const inside = rangeKm >= profile.minKm && rangeKm <= profile.maxKm;
-    const where = inside ? 'inside' : rangeKm < profile.minKm ? 'short of' : 'beyond';
-    const familyNote =
-      profile.family === strike.attackType
-        ? `Matches the reported ${strike.attackType} type.`
-        : `Alternate to the reported ${strike.attackType} type, kept because the measured range overlaps this envelope.`;
-    const rationale = `${profile.blurb} ${Math.round(rangeKm)} km slant range sits ${where} the ${profile.minKm}–${profile.maxKm} km envelope on this ${cardinal} track. ${familyNote} ${threatClause}`;
-    return { profile, confidence, rationale };
-  });
-
-  scored.sort((a, b) => b.confidence - a.confidence || a.profile.id.localeCompare(b.profile.id));
+  const scored = PROFILES.map((profile) =>
+    scoreProfile(profile, strike, rangeKm, cardinal, threatClause),
+  );
+  scored.sort(byConfidence);
   // Keep a label keyword hit in the list so a short-range class named in the
   // vignette still appears when the measured range prefers a longer envelope.
   let top = scored.slice(0, 3);
   const keywordBest = scored.find((row) => keywordHit(strike.label, row.profile.keywords));
   if (keywordBest && !top.some((row) => row.profile.id === keywordBest.profile.id)) {
     top = [...top.slice(0, 2), keywordBest];
-    top.sort((a, b) => b.confidence - a.confidence || a.profile.id.localeCompare(b.profile.id));
+    top.sort(byConfidence);
+  }
+
+  // Prefer a shared catalog profile over the generic SRBM card when the label
+  // names one, or when the measured range sits inside a catalog envelope.
+  // Cruise and other class cards stay in the list.
+  const catalogScored = catalogInferenceProfiles()
+    .map((profile) => scoreProfile(profile, strike, rangeKm, cardinal, threatClause))
+    .sort(byConfidence);
+  const keywordCatalog = catalogScored
+    .filter((row) => keywordHit(strike.label, row.profile.keywords))
+    .sort(
+      (a, b) =>
+        keywordSpecificity(strike.label, b.profile.keywords) -
+          keywordSpecificity(strike.label, a.profile.keywords) || byConfidence(a, b),
+    )[0];
+  // Tightest catalog envelope that contains the slant range. A wider band that
+  // also contains the range stays available as its own record, but does not
+  // outrank the closer fit.
+  const inRangeCatalog = catalogScored
+    .filter((row) => rangeKm >= row.profile.minKm && rangeKm <= row.profile.maxKm)
+    .sort(
+      (a, b) =>
+        a.profile.maxKm -
+          a.profile.minKm -
+          (b.profile.maxKm - b.profile.minKm) || byConfidence(a, b),
+    )[0];
+  const catalogPick =
+    keywordCatalog ?? (strike.attackType === 'missile' ? inRangeCatalog : undefined);
+  if (catalogPick && !top.some((row) => row.profile.id === catalogPick.profile.id)) {
+    const srbmIdx = top.findIndex((row) => row.profile.id === 'srbm');
+    if (srbmIdx >= 0) {
+      const generic = top[srbmIdx]!;
+      let pick = catalogPick;
+      // Keep a "ballistic" / "short-range" label ahead of a cruise card when
+      // the generic SRBM slot is the one being replaced by the catalog.
+      if (
+        keywordHit(strike.label, generic.profile.keywords) &&
+        !keywordHit(strike.label, pick.profile.keywords)
+      ) {
+        pick = {
+          ...pick,
+          confidence: Math.min(0.92, pick.confidence + KEYWORD_BONUS),
+        };
+      }
+      top = top.map((row, index) => (index === srbmIdx ? pick : row));
+      top.sort(byConfidence);
+    } else if (keywordCatalog) {
+      top = [...top.slice(0, 2), keywordCatalog];
+      top.sort(byConfidence);
+    }
   }
 
   const candidates: MunitionCandidate[] = top.map((row, index) => {
-    const style = RING_STYLES[index] ?? RING_STYLES[RING_STYLES.length - 1]!;
+    const style = ringStyleForIndex(index);
+    const catalog = munitionProfileById(row.profile.id);
     return {
       id: row.profile.id,
-      name: row.profile.name,
+      name: catalog ? `${catalog.designation} — SAMPLE analog` : row.profile.name,
       family: row.profile.family,
       confidence: row.confidence,
       rationale: row.rationale,
-      envelopeMinKm: row.profile.minKm,
-      envelopeMaxKm: row.profile.maxKm,
+      envelopeMinKm: catalog?.rangeMinKm ?? row.profile.minKm,
+      envelopeMaxKm: catalog?.rangeMaxKm ?? row.profile.maxKm,
       ringColor: style.color,
       ringDash: style.dashArray,
+      ...(catalog
+        ? {
+            catalogId: catalog.id,
+            engagementSphereModelId: catalog.engagementSphereModelId,
+            catalogNotes: catalog.notes,
+          }
+        : {}),
     };
   });
 
-  const envelopeRings: StrikeRangeRing[] = candidates.map((c, index) => {
-    const style = RING_STYLES[index] ?? RING_STYLES[RING_STYLES.length - 1]!;
-    return {
-      id: `${strike.id}-env-${c.id}`,
-      kind: 'envelope' as const,
-      lat: strike.originLat,
-      lng: strike.originLng,
-      radiusKm: c.envelopeMaxKm,
-      color: c.ringColor,
-      dashArray: c.ringDash,
-      weight: style.weight,
-      strokeDegrees: style.strokeDegrees,
-      fillOpacity: 0.05,
-      label: `${c.name} envelope ${c.envelopeMaxKm} km`,
-    };
+  const envelopeRings: StrikeRangeRing[] = candidates.flatMap((c, index) => {
+    const catalog = c.catalogId ? munitionProfileById(c.catalogId) : undefined;
+    if (catalog) {
+      return rangeRingsForProfile(
+        catalog,
+        strike.originLat,
+        strike.originLng,
+        `${strike.id}-env`,
+        index,
+      );
+    }
+    const style = ringStyleForIndex(index);
+    return [
+      {
+        id: `${strike.id}-env-${c.id}`,
+        kind: 'envelope' as const,
+        band: 'max' as const,
+        lat: strike.originLat,
+        lng: strike.originLng,
+        radiusKm: c.envelopeMaxKm,
+        color: c.ringColor,
+        dashArray: c.ringDash,
+        weight: style.weight,
+        strokeDegrees: style.strokeDegrees,
+        fillOpacity: 0.05,
+        label: `${c.name} envelope ${c.envelopeMaxKm} km`,
+      },
+    ];
   });
   envelopeRings.sort((a, b) => b.radiusKm - a.radiusKm);
 

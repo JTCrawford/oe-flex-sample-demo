@@ -1,5 +1,5 @@
 import { lazy, Suspense, useRef, useState } from 'react';
-import { sphereModelForHolding } from './data/engagementSphere';
+import { sphereModelById, sphereModelForHolding } from './data/engagementSphere';
 import { useAppState } from './hooks/useAppState';
 import { RoleSelector } from './components/RoleSelector';
 import { GlobeView } from './components/GlobeView';
@@ -16,7 +16,7 @@ import { AboutPanel } from './components/AboutPanel';
 import { TtpFeedsPanel } from './components/TtpFeedsPanel';
 import { Toast } from './components/Toast';
 import { SalesCallout } from './components/SalesCallout';
-import type { Stage, VehicleHolding } from './types';
+import type { MunitionProfile, Stage, VehicleHolding } from './types';
 import './App.css';
 
 const EngagementSphere = lazy(() => import('./components/EngagementSphere'));
@@ -28,11 +28,28 @@ function openHoldingSphere(
   unitId: string,
   holding: VehicleHolding,
 ) {
+  const model = sphereModelForHolding(holding);
+  if (!model) return;
   state.selectUnit(unitId);
   state.openSphere({
     unitId,
-    category: holding.category,
-    typeDesignation: holding.typeDesignation,
+    modelId: model.id,
+    label: holding.typeDesignation,
+  });
+}
+
+function openMunitionSphere(
+  state: ReturnType<typeof useAppState>,
+  unitId: string | null,
+  profile: MunitionProfile,
+) {
+  const model = sphereModelById(profile.engagementSphereModelId);
+  if (!model) return;
+  if (unitId) state.selectUnit(unitId);
+  state.openSphere({
+    unitId,
+    modelId: model.id,
+    label: profile.designation,
   });
 }
 
@@ -44,14 +61,9 @@ export default function App() {
     typeof window !== 'undefined' && window.location.hash === '#ttp',
   );
 
-  const sphereHolding = state.activeSphere
-    ? state.selectedUnit?.orbat.vehicles.find(
-        (row) =>
-          row.category === state.activeSphere?.category &&
-          row.typeDesignation === state.activeSphere.typeDesignation,
-      )
-    : undefined;
-  const sphereModel = sphereHolding ? sphereModelForHolding(sphereHolding) : null;
+  const sphereModel = state.activeSphere
+    ? sphereModelById(state.activeSphere.modelId)
+    : null;
 
   if (!state.role) {
     return (
@@ -179,6 +191,8 @@ export default function App() {
               munitionAssessment={state.munitionAssessment}
               selectedUnitId={state.selectedUnitId}
               onSelectUnit={state.selectUnit}
+              unitRangeRings={state.unitRangeRings}
+              selectionFocus={state.selectionFocus}
             />
           ) : (
             <Map2D
@@ -197,16 +211,27 @@ export default function App() {
               selectedUnitId={state.selectedUnitId}
               onSelectUnit={state.selectUnit}
               onOpenSphere={(unitId, holding) => openHoldingSphere(state, unitId, holding)}
+              onOpenMunitionSphere={(unitId, profile) =>
+                openMunitionSphere(state, unitId, profile)
+              }
+              unitRangeRings={state.unitRangeRings}
+              selectionFocus={state.selectionFocus}
             />
           )}
           {state.selectedUnit?.orbat && (
             <OrbatPanel
               orbat={state.selectedUnit.orbat}
+              rangeRingsOn={state.unitRangeRings.length > 0}
               onClear={state.clearUnit}
               onOpenSphere={(holding) => {
                 const unitId = state.selectedUnit?.id;
                 if (!unitId) return;
                 openHoldingSphere(state, unitId, holding);
+              }}
+              onOpenMunitionSphere={(profile) => {
+                const unitId = state.selectedUnit?.id;
+                if (!unitId) return;
+                openMunitionSphere(state, unitId, profile);
               }}
             />
           )}
@@ -214,6 +239,11 @@ export default function App() {
             <MunitionInferencePanel
               assessment={state.munitionAssessment}
               onClear={state.clearStrike}
+              onOpenSphere={(modelId, label) => {
+                const model = sphereModelById(modelId);
+                if (!model) return;
+                state.openSphere({ unitId: null, modelId: model.id, label });
+              }}
             />
           )}
           <div className="ao-quick">
@@ -252,7 +282,7 @@ export default function App() {
           }}
         />
       )}
-      {sphereModel && sphereHolding && state.selectedUnit && (
+      {sphereModel && state.activeSphere && (
         <Suspense
           fallback={
             <div className="sphere-backdrop">
@@ -261,10 +291,14 @@ export default function App() {
           }
         >
           <EngagementSphere
-            key={`${state.selectedUnit.id}:${sphereHolding.typeDesignation}`}
+            key={`${state.activeSphere.unitId ?? 'catalog'}:${state.activeSphere.modelId}`}
             model={sphereModel}
-            typeDesignation={sphereHolding.typeDesignation}
-            unitDesignation={state.selectedUnit.orbat.designation}
+            typeDesignation={state.activeSphere.label}
+            unitDesignation={
+              state.activeSphere.unitId && state.selectedUnit
+                ? state.selectedUnit.orbat.designation
+                : 'SAMPLE catalog'
+            }
             onClose={state.closeSphere}
           />
         </Suspense>

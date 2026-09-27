@@ -63,13 +63,24 @@ Kill-switch blanks all live Observe layers regardless of role.
 
 ## Order of battle
 
-Unit and force markers may carry a `UnitOrbat` (`designation`, `echelon`, `higherFormation`, `vehicles[]`). Each holding is `{ category, typeDesignation, count }` where `category` is `tank | ifv | artillery | aircraft | ship`. The pin detail panel iterates holdings and resolves labels from `VEHICLE_CATEGORY_LABEL` in `src/data/orbat.ts`, so a new category is a catalog entry, not a UI rewrite. Infrastructure markers omit `orbat`.
+Unit and force markers may carry a `UnitOrbat` (`designation`, `echelon`, `higherFormation`, `vehicles[]`, optional `linkedMunitionIds[]`). Each holding is `{ category, typeDesignation, count, linkedMunitionIds? }` where `category` is `tank | ifv | artillery | aircraft | ship`. The pin detail panel iterates holdings and resolves labels from `VEHICLE_CATEGORY_LABEL` in `src/data/orbat.ts`, so a new category is a catalog entry, not a UI rewrite. Infrastructure markers omit `orbat`.
 
-ORBAT rides the existing Observe gates: AO selection, layer toggles, PMESII-PT filters, Commercial Partner feeder hiding, the current-positions toggle, and the kill-switch. It does not replace strike history, origins, hot zones, or munition range rings.
+ORBAT rides the existing Observe gates: AO selection, layer toggles, PMESII-PT filters, Commercial Partner feeder hiding, the current-positions toggle, and the kill-switch. It does not replace strike history, origins, hot zones, or strike-origin munition range rings.
+
+## Munition catalog
+
+`src/data/munitionCatalog.ts` is the shared UNCLASS SAMPLE catalog. Stable ids (`tochka-u`, `iskander-m`, `atacms-block-i`, `atacms-later-block`) are the join key for unit holdings and for `engagementSphereModelId` (`sphere-tochka-u`, and the same pattern for the other three). Records are open-source analogs, not real-unit attribution.
+
+Selecting a unit with `linkedMunitionIds` (on the unit and/or a vehicle row) shows those profiles in the existing order-of-battle panel: designation, family, range span, notes, and the engagement-sphere id. The same rings used for strike inference are drawn from the **unit** position. Military symbology plus the Military PMESII filter gate the rings, together with AO selection and the kill-switch. Strike inference is unchanged for cruise and other classes. When a strike's generic `srbm` candidate would have been shown, a catalog profile replaces that one card if the label names it or the slant range falls inside a catalog envelope.
+
+Ring UX, one rule for every profile: an outer ring at `rangeMaxKm` and an inner ring at `rangeMinKm`.
+
+- Tochka-U, ATACMS Block I, and ATACMS later block use `span`: inner is minimum range, outer is maximum (70–120, 25–165, and 70–300 km).
+- Iskander-M uses `cited-bounds`. Open-source export figures are often ~280 km and domestic figures are often ~400–500 km. The demo draws **280 km (believed export)** and **500 km (upper domestic cite)**. It does not draw a third ring at 400 km.
 
 ## Engagement sphere
 
-A vehicle row on a visible unit pin can open a lazy-loaded three.js viewer (`EngagementSphere`). The initial SAMPLE set is a stylized main battle tank, fighter/attack aircraft, and surface vessel. Meshes are procedural and built on open; the WebGL context is disposed on close. Known and believed weak points are fictional overlays with independent toggles. ISR UAVs, IFVs, and artillery stay on the order of battle without a mesh. The sphere does not replace strike history, munition rings, or ORBAT, and it closes when the unit leaves the Observe view.
+A vehicle row or a linked munition on a visible unit pin opens a lazy-loaded three.js viewer (`EngagementSphere`). The mesh id is the stable catalog id: `sphere-mbt`, `sphere-fighter`, and `sphere-vessel` on the vehicle profile, and `MunitionProfile.engagementSphereModelId` (`sphere-tochka-u`, `sphere-iskander-m`, `sphere-atacms-block-i`, `sphere-atacms-later-block`) for a linked round. A TEL row without its own mesh id opens that same munition id, so the unit does not grow a second card. Meshes are procedural and built on open; the WebGL context is disposed on close. Known and believed points are fictional overlays. ISR UAVs, IFVs, and unlinked artillery stay on the order of battle without a mesh. The sphere does not replace strike history, unit range rings, or ORBAT, and a unit-opened sphere closes when that unit leaves the Observe view.
 
 ## Symbology mutex
 

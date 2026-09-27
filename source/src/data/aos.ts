@@ -393,6 +393,60 @@ export const threatLayersByAo: Record<string, ThreatLayer[]> = {
       ],
     },
     {
+      id: 'ue-srbm',
+      label: 'SRBM battery (SAMPLE)',
+      pmesii: ['Military', 'Time'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ue-srbm-1',
+          lat: 49.62,
+          lng: 38.12,
+          milSymbol: 'arty',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Time'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('3rd', 'Missile', 'battery'),
+            echelon: 'battery',
+            higherFormation: UE_HIGHER,
+            vehicles: [
+              holding('artillery', SAMPLE_PLATFORM.tochkaTel, 2, ['tochka-u']),
+              holding('artillery', SAMPLE_PLATFORM.iskanderTel, 4, ['iskander-m']),
+            ],
+            linkedMunitionIds: ['tochka-u', 'iskander-m'],
+          }),
+        }),
+      ],
+    },
+    {
+      id: 'ue-partner-fires',
+      label: 'Partner fires (SAMPLE)',
+      pmesii: ['Military', 'Time'],
+      domain: 'land',
+      isFeeder: false,
+      markers: [
+        forceMarker({
+          id: 'ue-partner-atacms',
+          lat: 48.92,
+          lng: 36.48,
+          milSymbol: 'arty',
+          commercialSymbol: 'hazard',
+          pmesii: ['Military', 'Time'],
+          orbat: unitOrbat({
+            designation: sampleDesignation('1st', 'Partner Fires', 'battery'),
+            echelon: 'battery',
+            higherFormation: 'SAMPLE Partner Fires Group',
+            vehicles: [
+              holding('artillery', SAMPLE_PLATFORM.himars, 2, ['atacms-block-i']),
+              holding('artillery', SAMPLE_PLATFORM.m270, 2, ['atacms-later-block']),
+            ],
+            linkedMunitionIds: ['atacms-block-i', 'atacms-later-block'],
+          }),
+        }),
+      ],
+    },
+    {
       id: 'ue-orbat',
       label: 'OPFOR task force (SAMPLE)',
       pmesii: ['Military', 'Physical'],

@@ -48,6 +48,10 @@ export const SAMPLE_PLATFORM = {
   orlan: 'Orlan-10 analog (SAMPLE)',
   fulcrum: 'Fulcrum analog (SAMPLE)',
   corvette: 'Corvette analog (SAMPLE)',
+  tochkaTel: '9P129 Tochka-U TEL analog (SAMPLE)',
+  iskanderTel: '9P78-1 Iskander-M TEL analog (SAMPLE)',
+  himars: 'M142 HIMARS analog (SAMPLE)',
+  m270: 'M270 MLRS analog (SAMPLE)',
 } as const;
 
 export function categoryLabel(category: VehicleCategoryId): string {
@@ -62,12 +66,40 @@ export function sampleDesignation(
   return `SAMPLE ${ordinal} ${functionName} ${ECHELON_LABEL[echelon]}`;
 }
 
+/**
+ * Vehicle meshes. Linked SRBM/ATACMS holdings do not set this — they open
+ * `MunitionProfile.engagementSphereModelId` for the same catalog id.
+ */
+const PLATFORM_SPHERE_MODEL: Record<string, string> = {
+  [SAMPLE_PLATFORM.t72b3]: 'sphere-mbt',
+  [SAMPLE_PLATFORM.t80]: 'sphere-mbt',
+  [SAMPLE_PLATFORM.fulcrum]: 'sphere-fighter',
+  [SAMPLE_PLATFORM.corvette]: 'sphere-vessel',
+};
+
+const CATEGORY_SPHERE_MODEL: Partial<Record<VehicleCategoryId, string>> = {
+  tank: 'sphere-mbt',
+  ship: 'sphere-vessel',
+};
+
 export function holding(
   category: VehicleCategoryId,
   typeDesignation: string,
   count: number,
+  linkedMunitionIds?: string[],
 ): VehicleHolding {
-  return { category, typeDesignation, count };
+  const engagementSphereModelId =
+    PLATFORM_SPHERE_MODEL[typeDesignation] ??
+    (category === 'aircraft' ? undefined : CATEGORY_SPHERE_MODEL[category]);
+  return {
+    category,
+    typeDesignation,
+    count,
+    ...(linkedMunitionIds && linkedMunitionIds.length > 0
+      ? { linkedMunitionIds }
+      : {}),
+    ...(engagementSphereModelId ? { engagementSphereModelId } : {}),
+  };
 }
 
 export function unitOrbat(input: Omit<UnitOrbat, 'sampleLabel'>): UnitOrbat {

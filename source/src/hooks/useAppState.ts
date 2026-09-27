@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { aos, threatLayersByAo } from '../data/aos';
 import type { SphereTarget } from '../data/engagementSphere';
+import { profilesForOrbat, rangeRingsForProfiles } from '../data/munitionCatalog';
 import { inferMunitions } from '../data/munitionInference';
 import { strikesByAo } from '../data/strikes';
 import { vignetteForAo } from '../data/vignettes';
@@ -58,6 +59,9 @@ export function useAppState() {
   const [strikeOverlays, setStrikeOverlays] =
     useState<StrikeOverlayToggles>(DEFAULT_STRIKE_OVERLAYS);
   const [selectedStrikeId, setSelectedStrikeId] = useState<string | null>(null);
+  const [selectionFocus, setSelectionFocus] = useState<'strike' | 'unit' | null>(
+    null,
+  );
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [sphereTarget, setSphereTarget] = useState<SphereTarget | null>(null);
 
@@ -139,18 +143,43 @@ export function useAppState() {
     return null;
   }, [selectedUnitId, visibleLayers, killSwitch]);
 
-  if (sphereTarget && selectedUnit?.id !== sphereTarget.unitId) {
-    setSphereTarget(null);
-  }
+  const sphereStale =
+    !!sphereTarget &&
+    (killSwitch ||
+      (sphereTarget.unitId !== null && selectedUnit?.id !== sphereTarget.unitId));
+  if (sphereStale) setSphereTarget(null);
 
-  const activeSphere =
-    sphereTarget && selectedUnit?.id === sphereTarget.unitId ? sphereTarget : null;
+  const activeSphere = sphereStale ? null : sphereTarget;
+
+  const linkedMunitionProfiles = useMemo(
+    () => (selectedUnit ? profilesForOrbat(selectedUnit.orbat) : []),
+    [selectedUnit],
+  );
+
+  const unitRangeRings = useMemo(() => {
+    if (!selectedUnit || linkedMunitionProfiles.length === 0) return [];
+    if (killSwitch || !militaryFilterActive || symbology !== 'military') return [];
+    return rangeRingsForProfiles(
+      linkedMunitionProfiles,
+      selectedUnit.lat,
+      selectedUnit.lng,
+      `unit-${selectedUnit.id}`,
+    );
+  }, [
+    selectedUnit,
+    linkedMunitionProfiles,
+    killSwitch,
+    militaryFilterActive,
+    symbology,
+  ]);
 
   const selectAo = useCallback(
     (aoId: string) => {
       setSelectedAoId(aoId);
       setSelectedStrikeId(null);
       setSelectedUnitId(null);
+      setSphereTarget(null);
+      setSelectionFocus(null);
       setWargameOutcome(null);
       setSelectedMitigationId(null);
       const layers = threatLayersByAo[aoId] ?? [];
@@ -189,22 +218,35 @@ export function useAppState() {
 
   const selectStrike = useCallback((id: string) => {
     setSelectedStrikeId(id);
+    setSelectionFocus('strike');
   }, []);
 
   const clearStrike = useCallback(() => {
     setSelectedStrikeId(null);
+    setSelectionFocus((prev) => (prev === 'strike' ? null : prev));
   }, []);
 
   const selectUnit = useCallback((id: string) => {
     setSelectedUnitId(id);
+    setSelectionFocus('unit');
   }, []);
 
-  const toggleUnit = useCallback((id: string) => {
-    setSelectedUnitId((prev) => (prev === id ? null : id));
-  }, []);
+  const toggleUnit = useCallback(
+    (id: string) => {
+      if (selectedUnitId === id) {
+        setSelectedUnitId(null);
+        setSelectionFocus((focus) => (focus === 'unit' ? null : focus));
+        return;
+      }
+      setSelectedUnitId(id);
+      setSelectionFocus('unit');
+    },
+    [selectedUnitId],
+  );
 
   const clearUnit = useCallback(() => {
     setSelectedUnitId(null);
+    setSelectionFocus((prev) => (prev === 'unit' ? null : prev));
   }, []);
 
   const openSphere = useCallback((target: SphereTarget) => {
@@ -313,11 +355,14 @@ export function useAppState() {
     strikeOverlayAvailable,
     selectedStrikeId,
     selectedStrike,
+    selectionFocus,
     selectStrike,
     clearStrike,
     munitionAssessment,
     selectedUnitId,
     selectedUnit,
+    linkedMunitionProfiles,
+    unitRangeRings,
     selectUnit,
     toggleUnit,
     clearUnit,

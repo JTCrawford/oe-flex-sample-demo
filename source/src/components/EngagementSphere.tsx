@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import type { BufferGeometry, Material, Mesh, Object3D, WebGLRenderer } from 'three';
+import type { BufferGeometry, Group, Material, Mesh, Object3D, WebGLRenderer } from 'three';
 import type { SphereModel, SphereModelId } from '../data/engagementSphere';
 import { SalesCallout } from './SalesCallout';
 
@@ -21,17 +21,28 @@ const PRESETS: { id: string; label: string; dir: readonly [number, number, numbe
 
 async function loadSphereMesh(id: SphereModelId) {
   switch (id) {
-    case 'mbt': {
+    case 'sphere-mbt': {
       const mod = await import('../sphere/mbt');
       return { build: mod.buildMbt, anchors: mod.mbtAnchors };
     }
-    case 'fighter': {
+    case 'sphere-fighter': {
       const mod = await import('../sphere/fighter');
       return { build: mod.buildFighter, anchors: mod.fighterAnchors };
     }
-    case 'vessel': {
+    case 'sphere-vessel': {
       const mod = await import('../sphere/vessel');
       return { build: mod.buildVessel, anchors: mod.vesselAnchors };
+    }
+    case 'sphere-tochka-u':
+    case 'sphere-iskander-m':
+    case 'sphere-atacms-block-i':
+    case 'sphere-atacms-later-block': {
+      const mod = await import('../sphere/srbm');
+      const variant = mod.variantForModel(id);
+      return {
+        build: (root: Group) => mod.buildSrbm(root, variant),
+        anchors: mod.srbmAnchors(variant),
+      };
     }
   }
 }
@@ -278,7 +289,8 @@ export default function EngagementSphere({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        data-testid="engagement-sphere"
+        data-testid="engagement-sphere-viewer"
+        data-sphere-model-id={model.id}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="sphere-head">
@@ -288,6 +300,9 @@ export default function EngagementSphere({
             <p className="sphere-sub">
               {typeDesignation}
               <span> · {unitDesignation}</span>
+            </p>
+            <p className="sphere-model-id">
+              Model <code className="sphere-id">{model.id}</code>
             </p>
           </div>
           <button ref={closeRef} type="button" onClick={onClose}>

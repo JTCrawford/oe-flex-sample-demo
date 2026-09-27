@@ -1,8 +1,10 @@
+import { sphereModelById } from '../data/engagementSphere';
 import type { StrikeMunitionAssessment } from '../types';
 
 interface Props {
   assessment: StrikeMunitionAssessment;
   onClear: () => void;
+  onOpenSphere?: (modelId: string, label: string) => void;
 }
 
 function formatTimestamp(iso: string): string {
@@ -11,7 +13,7 @@ function formatTimestamp(iso: string): string {
   return d.toISOString().replace('.000Z', 'Z').replace('T', ' ');
 }
 
-export function MunitionInferencePanel({ assessment, onClear }: Props) {
+export function MunitionInferencePanel({ assessment, onClear, onOpenSphere }: Props) {
   return (
     <aside
       className="munition-panel"
@@ -67,6 +69,28 @@ export function MunitionInferencePanel({ assessment, onClear }: Props) {
               <p className="muted munition-envelope">
                 Envelope ring {c.envelopeMinKm}–{c.envelopeMaxKm} km from origin
               </p>
+              {c.catalogNotes && <p className="munition-note">{c.catalogNotes}</p>}
+              {c.engagementSphereModelId && (
+                <p className="linked-sphere">
+                  {sphereModelById(c.engagementSphereModelId) && onOpenSphere ? (
+                    <button
+                      type="button"
+                      className="sphere-open"
+                      data-testid="engagement-sphere"
+                      data-sphere-model-id={c.engagementSphereModelId}
+                      onClick={() => {
+                        const modelId = c.engagementSphereModelId;
+                        if (modelId) onOpenSphere(modelId, c.name);
+                      }}
+                    >
+                      Open sphere
+                    </button>
+                  ) : (
+                    <span>Engagement sphere</span>
+                  )}{' '}
+                  <code className="sphere-id">{c.engagementSphereModelId}</code>
+                </p>
+              )}
             </li>
           );
         })}

@@ -70,6 +70,50 @@ export interface VehicleHolding {
   /** Platform nomenclature, e.g. "BMP-2 (SAMPLE)". */
   typeDesignation: string;
   count: number;
+  /** Shared `MunitionProfile` ids this platform is assessed to carry. */
+  linkedMunitionIds?: string[];
+  /**
+   * Stable engagement-sphere mesh id (`sphere-mbt`, `sphere-fighter`, `sphere-vessel`).
+   * Linked munitions keep their id on `MunitionProfile` instead.
+   */
+  engagementSphereModelId?: string;
+}
+
+/** Open-source family for a shared SAMPLE munition record. */
+export type MunitionFamily = 'srbm' | 'tactical-ballistic';
+
+/**
+ * How min/max are drawn.
+ * `span` — inner ring is minimum range, outer ring is maximum range.
+ * `cited-bounds` — both rings are open-source cited figures (export vs domestic), not a minimum-range floor.
+ */
+export type MunitionRingMode = 'span' | 'cited-bounds';
+
+/**
+ * Shared UNCLASS SAMPLE munition. `id` joins ORBAT holdings to range rings
+ * and to a later 3D engagement sphere. Not a real-unit attribution.
+ */
+export interface MunitionProfile {
+  id: string;
+  designation: string;
+  /** Compact name for unit lists. */
+  shortName: string;
+  family: MunitionFamily;
+  /** One-line role, e.g. theater SRBM / tactical ballistic. */
+  role: string;
+  rangeMinKm: number;
+  rangeMaxKm: number;
+  ringMode: MunitionRingMode;
+  /** SAMPLE / UNCLASS note, including how the rings should be read. */
+  notes: string;
+  sampleLabel: 'SAMPLE';
+  classification: 'UNCLASS';
+  /** Stable id resolved by the engagement-sphere viewer (`sphere-tochka-u`, …). */
+  engagementSphereModelId: string;
+  /** Strike-label tokens that resolve inference onto this profile. */
+  matchKeywords: string[];
+  /** Short line folded into an inferred rationale. */
+  inferenceBlurb: string;
 }
 
 /**
@@ -83,6 +127,11 @@ export interface UnitOrbat {
   /** Parent formation. SAMPLE / fictional. */
   higherFormation: string;
   vehicles: VehicleHolding[];
+  /**
+   * Shared catalog ids for munitions linked to the unit.
+   * Vehicle rows may also set `linkedMunitionIds`; both are read.
+   */
+  linkedMunitionIds?: string[];
   sampleLabel: 'SAMPLE';
 }
 
@@ -249,6 +298,12 @@ export interface MunitionCandidate {
   envelopeMaxKm: number;
   ringColor: string;
   ringDash: string;
+  /** Set when this hypothesis is a shared `MunitionProfile`. */
+  catalogId?: string;
+  /** Placeholder id for the 3D engagement sphere, copied from the catalog. */
+  engagementSphereModelId?: string;
+  /** UNCLASS SAMPLE note from the shared profile. */
+  catalogNotes?: string;
 }
 
 /** Circle drawn for the selected strike only. */
@@ -266,6 +321,8 @@ export interface StrikeRangeRing {
   strokeDegrees: number | null;
   fillOpacity: number;
   label: string;
+  /** Inner cited/minimum ring versus outer maximum. Omitted on legacy max-only rings. */
+  band?: 'min' | 'max';
 }
 
 export interface StrikeMunitionAssessment {

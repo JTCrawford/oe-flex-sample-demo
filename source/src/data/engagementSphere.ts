@@ -1,14 +1,23 @@
-import type { VehicleCategoryId, VehicleHolding } from '../types';
-import { SAMPLE_PLATFORM } from './orbat';
+import type { VehicleHolding } from '../types';
+import { munitionProfileById } from './munitionCatalog';
 
-export type SphereModelId = 'mbt' | 'fighter' | 'vessel';
+/**
+ * Stable mesh ids. Vehicle profiles use `sphere-mbt`, `sphere-fighter`, and
+ * `sphere-vessel`. Munition profiles use the catalog's `engagementSphereModelId`
+ * (`sphere-tochka-u`, `sphere-iskander-m`, `sphere-atacms-block-i`,
+ * `sphere-atacms-later-block`).
+ */
+export type SphereModelId =
+  | 'sphere-mbt'
+  | 'sphere-fighter'
+  | 'sphere-vessel'
+  | 'sphere-tochka-u'
+  | 'sphere-iskander-m'
+  | 'sphere-atacms-block-i'
+  | 'sphere-atacms-later-block';
 
 export type WeakPointConfidence = 'known' | 'believed';
 
-/**
- * Fictional armor note. Positions live next to the mesh in `src/sphere/*`
- * so the marker stays on the stylized hull.
- */
 export interface ArmorWeakPoint {
   id: string;
   label: string;
@@ -25,31 +34,52 @@ export interface SphereModel {
 }
 
 export interface SphereTarget {
-  unitId: string;
-  category: VehicleCategoryId;
-  typeDesignation: string;
+  /** Set when the sphere was opened from a unit pin. Null for a strike catalog row. */
+  unitId: string | null;
+  modelId: SphereModelId;
+  label: string;
 }
 
-/**
- * Initial SAMPLE set. Aircraft is not a blanket mapping: ISR UAVs share the
- * aircraft category and do not use the fighter mesh.
- * Tanks and ships fall back by category so a new SAMPLE type still opens.
- */
-const PLATFORM_MODEL: Record<string, SphereModelId> = {
-  [SAMPLE_PLATFORM.t72b3]: 'mbt',
-  [SAMPLE_PLATFORM.t80]: 'mbt',
-  [SAMPLE_PLATFORM.fulcrum]: 'fighter',
-  [SAMPLE_PLATFORM.corvette]: 'vessel',
-};
+const SRBM_POINTS: ArmorWeakPoint[] = [
+  {
+    id: 'seeker',
+    label: 'Nose fairing',
+    confidence: 'known',
+    note: 'SAMPLE: stylized nose fairing on this analog. Not a real assessment.',
+  },
+  {
+    id: 'nozzle',
+    label: 'Tail nozzle',
+    confidence: 'known',
+    note: 'SAMPLE: stylized nozzle at the tail of the round.',
+  },
+  {
+    id: 'joint',
+    label: 'Mid-body joint',
+    confidence: 'believed',
+    note: 'SAMPLE: believed joint near mid-body. Not confirmed in this dataset.',
+  },
+  {
+    id: 'fin-root',
+    label: 'Fin root',
+    confidence: 'believed',
+    note: 'SAMPLE: believed fin root. Analyst estimate only.',
+  },
+];
 
-const CATEGORY_MODEL: Partial<Record<VehicleCategoryId, SphereModelId>> = {
-  tank: 'mbt',
-  ship: 'vessel',
-};
+function srbmModel(id: SphereModelId, title: string, summary: string): SphereModel {
+  return {
+    id,
+    title,
+    kind: 'Munition · stylized SAMPLE mesh',
+    summary,
+    weakPoints: SRBM_POINTS,
+  };
+}
 
 export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
-  mbt: {
-    id: 'mbt',
+  'sphere-mbt': {
+    id: 'sphere-mbt',
     title: 'Main battle tank',
     kind: 'Land · stylized SAMPLE mesh',
     summary:
@@ -87,8 +117,8 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
       },
     ],
   },
-  fighter: {
-    id: 'fighter',
+  'sphere-fighter': {
+    id: 'sphere-fighter',
     title: 'Fighter / attack aircraft',
     kind: 'Air · stylized SAMPLE mesh',
     summary:
@@ -120,8 +150,8 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
       },
     ],
   },
-  vessel: {
-    id: 'vessel',
+  'sphere-vessel': {
+    id: 'sphere-vessel',
     title: 'Surface vessel',
     kind: 'Sea · stylized SAMPLE mesh',
     summary:
@@ -153,11 +183,43 @@ export const SPHERE_MODELS: Record<SphereModelId, SphereModel> = {
       },
     ],
   },
+  'sphere-tochka-u': srbmModel(
+    'sphere-tochka-u',
+    'Tochka-U',
+    'Stylized SAMPLE round for catalog id tochka-u. Same mesh id as the linked munition card.',
+  ),
+  'sphere-iskander-m': srbmModel(
+    'sphere-iskander-m',
+    'Iskander-M',
+    'Stylized SAMPLE round for catalog id iskander-m. Same mesh id as the linked munition card.',
+  ),
+  'sphere-atacms-block-i': srbmModel(
+    'sphere-atacms-block-i',
+    'ATACMS Block I',
+    'Stylized SAMPLE round for catalog id atacms-block-i, with a launch rail. Same mesh id as the linked munition card.',
+  ),
+  'sphere-atacms-later-block': srbmModel(
+    'sphere-atacms-later-block',
+    'ATACMS later block',
+    'Stylized SAMPLE round for catalog id atacms-later-block. Same mesh id as the linked munition card.',
+  ),
 };
 
+export function sphereModelById(id: string | undefined): SphereModel | null {
+  if (!id) return null;
+  return SPHERE_MODELS[id as SphereModelId] ?? null;
+}
+
+/** Vehicle mesh id, or the first linked catalog munition's sphere id. */
+export function resolveSphereModelId(holding: VehicleHolding): string | null {
+  if (holding.engagementSphereModelId) return holding.engagementSphereModelId;
+  const linkedId = holding.linkedMunitionIds?.[0];
+  if (!linkedId) return null;
+  return munitionProfileById(linkedId)?.engagementSphereModelId ?? null;
+}
+
 export function sphereModelForHolding(holding: VehicleHolding): SphereModel | null {
-  const id = PLATFORM_MODEL[holding.typeDesignation] ?? CATEGORY_MODEL[holding.category];
-  return id ? SPHERE_MODELS[id] : null;
+  return sphereModelById(resolveSphereModelId(holding) ?? undefined);
 }
 
 export function sphereButtonId(holding: VehicleHolding): string {
