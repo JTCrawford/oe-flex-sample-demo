@@ -51,6 +51,8 @@ This PR ships Phase 1 only. Public meshes are the CC0 `sphere-*.glb` files alrea
 
 The map column has one scenario selector. Required stops are Ukraine–Russia, Strait of Hormuz, and Bab el-Mandeb (Houthis / Yemen). Persian Gulf, Black Sea, and Suwałki Gap stay because they render those same CC0 meshes. Military pins are blue for partner and coalition formations and red for OPFOR. Commercial symbology keeps commercial icons. Engagement lines draw only on the military picture. The defeat layer stays a training label and does not name a weapon or a procedure.
 
+The Observe Social / SOCMINT list is the same fictional feed. Ukraine East keeps its original cards. Strait of Hormuz, Bab el-Mandeb, and the CC0 stops add a few more. Badges use SAMPLE Admiralty stamps from A1 through F6. Nothing is scraped and no vendor API is called.
+
 | Toggle | What it shows |
 | --- | --- |
 | Ukraine–Russia | Ukraine East. Partner blue, OPFOR red. Lines among the missile battery, partner fires, fighter flight, task force, SHORAD, rocket battery, armor, and infantry. Sphere cards use the Ukraine vignette. |
