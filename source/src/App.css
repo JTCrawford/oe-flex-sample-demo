@@ -142,6 +142,11 @@
   position: relative;
 }
 
+.map-surface-canvas {
+  position: absolute;
+  inset: 0;
+}
+
 .leaflet-map {
   width: 100%;
   height: 100%;
@@ -439,6 +444,99 @@
   font-style: normal;
   font-size: 0.75rem;
   margin-left: 0.35rem;
+}
+
+.live-tag {
+  color: #ffb703;
+  font-style: normal;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  margin-left: 0.35rem;
+}
+
+.live-disclaimer {
+  margin: 0.2rem 0 0.45rem;
+  color: #f3e2c2;
+  font-size: 0.78rem;
+}
+
+.offline-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #5c2424;
+  color: #ffd0d0;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  font-weight: 700;
+}
+
+.fly-baltic {
+  margin: 0.4rem 0 0.15rem 1.5rem;
+}
+
+.live-map-banner {
+  position: absolute;
+  z-index: 650;
+  left: 0.6rem;
+  bottom: 1.5rem;
+  max-width: min(440px, calc(100% - 1.2rem));
+  background: rgba(8, 14, 24, 0.9);
+  border: 1px solid #c9842a;
+  color: #f3e2c2;
+  border-radius: 6px;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+
+.live-map-banner p {
+  margin: 0.12rem 0;
+}
+
+.live-attr {
+  color: #c5d4e8;
+}
+
+.live-badges {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.live-rot {
+  width: 26px;
+  height: 26px;
+  transform-origin: 50% 50%;
+}
+
+.leaflet-symbol-wrapper.live-pin {
+  background: transparent !important;
+  border: none !important;
+}
+
+.globe-marker.live .live-card {
+  display: none;
+  position: absolute;
+  left: 28px;
+  top: -8px;
+  min-width: 160px;
+  background: rgba(8, 14, 24, 0.94);
+  color: #e8eef8;
+  border: 1px solid #3a4a63;
+  border-radius: 6px;
+  padding: 0.35rem 0.45rem;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.globe-marker.live:hover .live-card,
+.globe-marker.live.live-open .live-card {
+  display: block;
 }
 
 .symbol-preview {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -7,6 +7,7 @@ import {
   Marker,
   Popup,
   Polyline,
+  Tooltip,
   useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
@@ -24,7 +25,18 @@ import type {
   UnitOrbat,
   VehicleHolding,
 } from '../types';
+import {
+  aircraftLines,
+  aircraftSvg,
+  shipLines,
+  shipSvg,
+  type LiveAircraft,
+  type LiveFlyRequest,
+  type LiveShip,
+  type MapView,
+} from '../data/liveFeeds';
 import type { ResolvedEngagementLine } from '../data/scenarios';
+import { LiveMapBanner, LiveTrackDetail } from './LiveMapChrome';
 import { OrbatInspect } from './OrbatPanel';
 import 'leaflet/dist/leaflet.css';
 
@@ -49,6 +61,53 @@ interface Props {
   selectionFocus?: 'strike' | 'unit' | 'social' | null;
   socialMapHints?: SocialMapHint[];
   engagementLines?: ResolvedEngagementLine[];
+  liveAircraft?: LiveAircraft[];
+  liveShips?: LiveShip[];
+  liveFly?: LiveFlyRequest | null;
+  onViewBbox?: (view: MapView) => void;
+  liveAircraftOn?: boolean;
+  liveShipsOn?: boolean;
+  aircraftOffline?: boolean;
+  shipsOffline?: boolean;
+  aircraftAttribution?: string | null;
+}
+
+function viewFromMap(map: L.Map): MapView {
+  const bounds = map.getBounds();
+  const center = map.getCenter();
+  return {
+    lamin: bounds.getSouth(),
+    lamax: bounds.getNorth(),
+    lomin: bounds.getWest(),
+    lomax: bounds.getEast(),
+    clat: center.lat,
+    clon: center.lng,
+  };
+}
+
+function BoundsReporter({ onViewBbox }: { onViewBbox?: (view: MapView) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!onViewBbox) return;
+    const emit = () => onViewBbox(viewFromMap(map));
+    emit();
+    map.on('moveend', emit);
+    return () => {
+      map.off('moveend', emit);
+    };
+  }, [map, onViewBbox]);
+  return null;
+}
+
+function FlyToLive({ request }: { request: LiveFlyRequest | null }) {
+  const map = useMap();
+  const seen = useRef(0);
+  useEffect(() => {
+    if (!request || request.seq === seen.current) return;
+    seen.current = request.seq;
+    map.flyTo([request.lat, request.lng], request.zoom, { duration: 0.9 });
+  }, [request, map]);
+  return null;
 }
 
 function FlyTo({ ao, suspend }: { ao: AO | null; suspend: boolean }) {
@@ -180,6 +239,17 @@ function makeSymbolIcon(
   });
 }
 
+function makeLiveIcon(kind: 'aircraft' | 'ship', heading: number | null) {
+  const rot = heading == null ? 0 : Math.round(heading);
+  const svg = kind === 'aircraft' ? aircraftSvg() : shipSvg();
+  return L.divIcon({
+    className: `leaflet-symbol-wrapper live-pin live-${kind}`,
+    html: `<div class="live-rot" style="transform:rotate(${rot}deg)">${svg}</div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
+}
+
 function makeStrikeImpactIcon(label: string, selected: boolean) {
   const svg = `<svg width="22" height="22" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="rgba(180,40,20,0.35)" stroke="${selected ? '#f5d76e' : '#ff5722'}" stroke-width="${selected ? 3 : 2}"/><path d="M20 6 L22 16 L32 14 L24 20 L32 28 L20 24 L8 28 L16 20 L8 14 L18 16 Z" fill="#ff7043" stroke="#fff" stroke-width="0.5"/></svg>`;
   return L.divIcon({
@@ -236,6 +306,15 @@ export function Map2D({
   selectionFocus = null,
   socialMapHints = [],
   engagementLines = [],
+  liveAircraft = [],
+  liveShips = [],
+  liveFly = null,
+  onViewBbox,
+  liveAircraftOn = false,
+  liveShipsOn = false,
+  aircraftOffline = false,
+  shipsOffline = false,
+  aircraftAttribution = null,
 }: Props) {
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -299,9 +378,12 @@ export function Map2D({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <BoundsReporter onViewBbox={onViewBbox} />
+        <FlyToLive request={liveFly} />
         <FlyTo
           ao={selectedAo}
           suspend={
+            liveFly != null ||
             selectionFocus === 'strike' ||
             selectionFocus === 'unit' ||
             (selectionFocus === 'social' && socialMapHints.length > 0)
@@ -527,6 +609,38 @@ export function Map2D({
           </Marker>
         ))}
 
+        {liveAircraft.map((track) => (
+          <Marker
+            key={`ac-${track.icao}`}
+            position={[track.lat, track.lon]}
+            zIndexOffset={40}
+            icon={makeLiveIcon('aircraft', track.heading)}
+          >
+            <Tooltip>
+              <LiveTrackDetail lines={aircraftLines(track)} />
+            </Tooltip>
+            <Popup>
+              <LiveTrackDetail lines={aircraftLines(track)} />
+            </Popup>
+          </Marker>
+        ))}
+
+        {liveShips.map((track) => (
+          <Marker
+            key={`sh-${track.mmsi}`}
+            position={[track.lat, track.lon]}
+            zIndexOffset={30}
+            icon={makeLiveIcon('ship', track.heading)}
+          >
+            <Tooltip>
+              <LiveTrackDetail lines={shipLines(track)} />
+            </Tooltip>
+            <Popup>
+              <LiveTrackDetail lines={shipLines(track)} />
+            </Popup>
+          </Marker>
+        ))}
+
         {overlaysOn &&
           strikeOverlays!.origins &&
           strikes.map((s) => (
@@ -547,6 +661,15 @@ export function Map2D({
             </Marker>
           ))}
       </MapContainer>
+      {(liveAircraftOn || liveShipsOn) && (
+        <LiveMapBanner
+          aircraftOn={liveAircraftOn}
+          shipsOn={liveShipsOn}
+          aircraftOffline={aircraftOffline}
+          shipsOffline={shipsOffline}
+          aircraftAttribution={aircraftAttribution}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,20 @@
 import { useEffect, useRef } from 'react';
 import Globe from 'globe.gl';
+import {
+  aircraftLines,
+  aircraftSvg,
+  bboxFromAltitude,
+  escapeHtml,
+  shipLines,
+  shipSvg,
+  type LiveAircraft,
+  type LiveFlyRequest,
+  type LiveShip,
+  type MapView,
+} from '../data/liveFeeds';
 import { circleRingPoints } from '../data/munitionInference';
 import type { ResolvedEngagementLine } from '../data/scenarios';
+import { LiveMapBanner } from './LiveMapChrome';
 import type {
   AO,
   ForceSide,
@@ -67,6 +80,15 @@ interface Props {
   selectionFocus?: 'strike' | 'unit' | 'social' | null;
   socialMapHints?: SocialMapHint[];
   engagementLines?: ResolvedEngagementLine[];
+  liveAircraft?: LiveAircraft[];
+  liveShips?: LiveShip[];
+  liveFly?: LiveFlyRequest | null;
+  onViewBbox?: (view: MapView) => void;
+  liveAircraftOn?: boolean;
+  liveShipsOn?: boolean;
+  aircraftOffline?: boolean;
+  shipsOffline?: boolean;
+  aircraftAttribution?: string | null;
 }
 
 type Point = {
@@ -74,13 +96,16 @@ type Point = {
   lat: number;
   lng: number;
   label: string;
-  kind: 'ao' | 'threat' | 'strike-impact' | 'strike-origin' | 'social';
+  kind: 'ao' | 'threat' | 'strike-impact' | 'strike-origin' | 'social' | 'live';
   aoId?: string;
   strikeId?: string;
   symbolKind?: string;
   color: string;
   unitId?: string;
   side?: ForceSide;
+  liveKind?: 'aircraft' | 'ship';
+  heading?: number | null;
+  detail?: string;
 };
 
 function milStroke(kind?: string, side?: ForceSide): string {
@@ -136,6 +161,10 @@ function socialHintSvg(): string {
   return `<svg width="22" height="22" viewBox="0 0 40 40"><polygon points="20,3 37,20 20,37 3,20" fill="rgba(40,28,8,0.9)" stroke="#ffb703" stroke-width="2"/><circle cx="20" cy="20" r="4" fill="#ffb703"/></svg>`;
 }
 
+function liveDetailHtml(lines: string[]): string {
+  return lines.map((line) => `<div>${escapeHtml(line)}</div>`).join('');
+}
+
 export function GlobeView({
   aos,
   selectedAoId,
@@ -155,9 +184,19 @@ export function GlobeView({
   selectionFocus = null,
   socialMapHints = [],
   engagementLines = [],
+  liveAircraft = [],
+  liveShips = [],
+  liveFly = null,
+  onViewBbox,
+  liveAircraftOn = false,
+  liveShipsOn = false,
+  aircraftOffline = false,
+  shipsOffline = false,
+  aircraftAttribution = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
+  const povKeyRef = useRef('');
   const onSelectRef = useRef(onSelectAo);
   const onSelectStrikeRef = useRef(onSelectStrike);
   const onSelectUnitRef = useRef(onSelectUnit);
@@ -212,6 +251,29 @@ export function GlobeView({
   }, []);
 
   useEffect(() => {
+    const globe = globeRef.current as {
+      pointOfView: () => { lat: number; lng: number; altitude?: number };
+      controls: () => {
+        addEventListener: (name: string, fn: () => void) => void;
+        removeEventListener: (name: string, fn: () => void) => void;
+      };
+    } | null;
+    if (!globe || !onViewBbox) return;
+    const emit = () => {
+      const pov = globe.pointOfView();
+      onViewBbox(bboxFromAltitude(pov.lat, pov.lng, pov.altitude ?? 1.5));
+    };
+    emit();
+    const controls = globe.controls();
+    controls.addEventListener('end', emit);
+    const timer = window.setTimeout(emit, 1000);
+    return () => {
+      controls.removeEventListener('end', emit);
+      window.clearTimeout(timer);
+    };
+  }, [onViewBbox, liveFly]);
+
+  useEffect(() => {
     const globe = globeRef.current as GlobeWithLayers | null;
     if (!globe) return;
 
@@ -258,6 +320,32 @@ export function GlobeView({
             side: symbology === 'military' ? m.side : undefined,
           });
         }
+      }
+      for (const track of liveAircraft) {
+        points.push({
+          id: `ac-${track.icao}`,
+          lat: track.lat,
+          lng: track.lon,
+          label: track.callsign ?? track.icao.toUpperCase(),
+          kind: 'live',
+          liveKind: 'aircraft',
+          heading: track.heading,
+          detail: liveDetailHtml(aircraftLines(track)),
+          color: '#7ec8ff',
+        });
+      }
+      for (const track of liveShips) {
+        points.push({
+          id: `sh-${track.mmsi}`,
+          lat: track.lat,
+          lng: track.lon,
+          label: track.name ?? String(track.mmsi),
+          kind: 'live',
+          liveKind: 'ship',
+          heading: track.heading,
+          detail: liveDetailHtml(shipLines(track)),
+          color: '#3dd6a5',
+        });
       }
     }
 
@@ -307,6 +395,7 @@ export function GlobeView({
           p.kind === 'ao' ||
           p.kind === 'strike-impact' ||
           p.kind === 'strike-origin' ||
+          p.kind === 'live' ||
           !!p.unitId
             ? 'pointer'
             : 'default';
@@ -336,6 +425,15 @@ export function GlobeView({
           el.innerHTML = `<div class="strike-origin threat-pin-inner">${strikeOriginSvg()}</div>`;
         } else if (p.kind === 'social') {
           el.innerHTML = `<div class="social-pin threat-pin-inner">${socialHintSvg()}</div>`;
+        } else if (p.kind === 'live') {
+          const svg = p.liveKind === 'ship' ? shipSvg() : aircraftSvg();
+          const rot = p.heading == null ? 0 : Math.round(p.heading);
+          el.title = '';
+          el.innerHTML = `<div class="live-rot" style="transform:rotate(${rot}deg)">${svg}</div><div class="live-card">${p.detail ?? ''}</div>`;
+          el.onclick = (e) => {
+            e.stopPropagation();
+            el.classList.toggle('live-open');
+          };
         } else {
           const svg =
             symbology === 'military'
@@ -443,7 +541,19 @@ export function GlobeView({
     const selectedStrike = strikes.find((s) => s.id === selectedStrikeId) ?? null;
     const selectedUnitPoint = points.find((p) => p.unitId && p.unitId === selectedUnitId);
     const unitRingKm = unitRangeRings.reduce((max, ring) => Math.max(max, ring.radiusKm), 0);
-    if (selectionFocus === 'strike' && selectedStrike) {
+    const povKey = [
+      selectedAoId ?? '',
+      selectionFocus ?? '',
+      selectedStrikeId ?? '',
+      selectedUnitId ?? '',
+      liveFly?.seq ?? 0,
+      killSwitch ? 'kill' : '',
+      socialMapHints.map((hint) => hint.id).join(','),
+    ].join('|');
+    if (povKey === povKeyRef.current) {
+      /* Camera stays put while live tracks refresh. */
+    } else if (selectionFocus === 'strike' && selectedStrike) {
+      povKeyRef.current = povKey;
       globe.pointOfView(
         {
           lat: (selectedStrike.originLat + selectedStrike.impactLat) / 2,
@@ -453,6 +563,7 @@ export function GlobeView({
         800,
       );
     } else if (selectionFocus === 'unit' && selectedUnitPoint) {
+      povKeyRef.current = povKey;
       const altitude =
         unitRingKm > 0 ? Math.min(2.15, 0.32 + unitRingKm / 420) : 0.55;
       globe.pointOfView(
@@ -460,6 +571,7 @@ export function GlobeView({
         800,
       );
     } else if (!killSwitch && selectionFocus === 'social' && socialMapHints.length > 0) {
+      povKeyRef.current = povKey;
       const lat =
         socialMapHints.reduce((sum, hint) => sum + hint.lat, 0) / socialMapHints.length;
       const lng =
@@ -468,11 +580,20 @@ export function GlobeView({
         { lat, lng, altitude: socialMapHints.length > 1 ? 0.7 : 0.55 },
         800,
       );
+    } else if (liveFly) {
+      povKeyRef.current = povKey;
+      globe.pointOfView(
+        { lat: liveFly.lat, lng: liveFly.lng, altitude: liveFly.altitude },
+        800,
+      );
     } else if (selectedAoId) {
+      povKeyRef.current = povKey;
       const ao = aos.find((a) => a.id === selectedAoId);
       if (ao) {
         globe.pointOfView({ lat: ao.lat, lng: ao.lng, altitude: 1.6 }, 800);
       }
+    } else {
+      povKeyRef.current = povKey;
     }
   }, [
     aos,
@@ -490,7 +611,23 @@ export function GlobeView({
     selectionFocus,
     socialMapHints,
     engagementLines,
+    liveAircraft,
+    liveShips,
+    liveFly,
   ]);
 
-  return <div className="map-surface" ref={containerRef} data-export-root />;
+  return (
+    <div className="map-surface" data-export-root>
+      <div className="map-surface-canvas" ref={containerRef} />
+      {(liveAircraftOn || liveShipsOn) && (
+        <LiveMapBanner
+          aircraftOn={liveAircraftOn}
+          shipsOn={liveShipsOn}
+          aircraftOffline={aircraftOffline}
+          shipsOffline={shipsOffline}
+          aircraftAttribution={aircraftAttribution}
+        />
+      )}
+    </div>
+  );
 }

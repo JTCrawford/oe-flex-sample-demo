@@ -1,4 +1,6 @@
 import type { AppState } from '../hooks/useAppState';
+import { LIVE_DISCLAIMER, SHIP_COVERAGE_LABEL } from '../data/liveFeeds';
+import type { LiveFeedsState } from '../hooks/useLiveFeeds';
 import { profilesForOrbat } from '../data/munitionCatalog';
 import { orbatCountSummary } from '../data/orbat';
 import { PMESII_LETTERS, PMESII_TOOLTIPS } from '../data/pmesii';
@@ -9,6 +11,87 @@ import { SymbolIcon } from './SymbologyIcons';
 
 interface Props {
   state: AppState;
+  live: LiveFeedsState;
+}
+
+function LiveFeeds({ state, live }: Props) {
+  const aircraftCount =
+    live.aircraftStatus === 'live' ? `${live.aircraft.length} in view` : null;
+  const shipCount =
+    live.shipsStatus === 'live'
+      ? live.shipsInView > live.ships.length
+        ? `${live.ships.length} of ${live.shipsInView} in view`
+        : live.shipsInView > 0
+          ? `${live.shipsInView} in view`
+          : 'none in this view'
+      : null;
+
+  return (
+    <section>
+      <h3>Live public feeds</h3>
+      <p className="live-disclaimer" data-testid="live-disclaimer">
+        {LIVE_DISCLAIMER}
+      </p>
+      <ul className="layer-list">
+        <li>
+          <label>
+            <input
+              type="checkbox"
+              data-testid="live-aircraft-toggle"
+              checked={state.liveAircraftOn}
+              disabled={state.killSwitch}
+              onChange={state.toggleLiveAircraft}
+            />
+            <span>
+              Aircraft
+              <em className="live-tag">LIVE</em>
+              {live.aircraftStatus === 'offline' && (
+                <span className="offline-badge" data-testid="aircraft-offline">
+                  offline
+                </span>
+              )}
+            </span>
+          </label>
+          <small>
+            {live.aircraftAttribution ?? 'Current map view · OpenSky public feed'}
+            {aircraftCount ? ` · ${aircraftCount}` : ''}
+          </small>
+        </li>
+        <li>
+          <label>
+            <input
+              type="checkbox"
+              data-testid="live-ships-toggle"
+              checked={state.liveShipsOn}
+              disabled={state.killSwitch}
+              onChange={state.toggleLiveShips}
+            />
+            <span>
+              Ships
+              <em className="live-tag">LIVE</em>
+              {live.shipsStatus === 'offline' && (
+                <span className="offline-badge" data-testid="ships-offline">
+                  offline
+                </span>
+              )}
+            </span>
+          </label>
+          <small>
+            {SHIP_COVERAGE_LABEL}
+            {shipCount ? ` · ${shipCount}` : ''}
+          </small>
+          <button
+            type="button"
+            className="fly-baltic"
+            data-testid="fly-to-baltic"
+            onClick={state.flyToBaltic}
+          >
+            Fly to Baltic
+          </button>
+        </li>
+      </ul>
+    </section>
+  );
 }
 
 const STRIKE_TOGGLE_LABELS: { key: keyof StrikeOverlayToggles; label: string }[] =
@@ -19,7 +102,7 @@ const STRIKE_TOGGLE_LABELS: { key: keyof StrikeOverlayToggles; label: string }[]
     { key: 'hotZones', label: 'Hot zones (heat / intensity)' },
   ];
 
-export function ObservePanel({ state }: Props) {
+export function ObservePanel({ state, live }: Props) {
   const {
     selectedAo,
     availableLayers,
@@ -60,6 +143,7 @@ export function ObservePanel({ state }: Props) {
       <div className="panel">
         <h2>Observe</h2>
         <p className="muted">Click an AO on the globe/map to load threat layers.</p>
+        <LiveFeeds state={state} live={live} />
         <SalesCallout id="observe" compact />
       </div>
     );
@@ -305,6 +389,8 @@ export function ObservePanel({ state }: Props) {
         <SalesCallout id="orbat" compact />
         <SalesCallout id="engagementSphere" compact />
       </section>
+
+      <LiveFeeds state={state} live={live} />
 
       <section>
         <h3>Threat layers</h3>

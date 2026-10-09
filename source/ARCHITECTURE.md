@@ -44,6 +44,8 @@ export interface DomainPipeline {
 
 \*Sea vignette is demo content; the full sea pipeline (tracks, AIS fusion, etc.) is not implemented — status remains STUB in the Domains panel.
 
+Two Observe toggles draw **demo-only** public tracks beside the SAMPLE markers. Aircraft uses the current map view through `/api/aircraft` (anonymous OpenSky, with a keyless adsb.lol fallback). Ships use Finnish Digitraffic AIS and only exist in Baltic / Finnish waters. Both are blanked by the kill-switch. They do not change Commercial Partner feeder hiding, and they are not the Air or Sea domain pipelines.
+
 ### How to add the next domain
 
 1. Add SAMPLE JSON under `src/data/` (clearly labeled SAMPLE).

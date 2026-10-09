@@ -11,6 +11,13 @@ import {
 } from '../data/scenarios';
 import { locatedGeoHints, presentSignalsForAo } from '../data/socialSignals';
 import { strikesByAo } from '../data/strikes';
+import {
+  BALTIC_FLY,
+  quantizeView,
+  sameView,
+  type LiveFlyRequest,
+  type MapView,
+} from '../data/liveFeeds';
 import { vignetteForAo } from '../data/vignettes';
 import type {
   MapMode,
@@ -74,6 +81,10 @@ export function useAppState() {
   const [sphereTarget, setSphereTarget] = useState<SphereTarget | null>(null);
   const [socialFeedOn, setSocialFeedOn] = useState(true);
   const [selectedSocialId, setSelectedSocialId] = useState<string | null>(null);
+  const [liveAircraftOn, setLiveAircraftOn] = useState(false);
+  const [liveShipsOn, setLiveShipsOn] = useState(false);
+  const [liveFly, setLiveFly] = useState<LiveFlyRequest | null>(null);
+  const [viewBbox, setViewBbox] = useState<MapView | null>(null);
 
   const selectedAo = useMemo(
     () => aos.find((a) => a.id === selectedAoId) ?? null,
@@ -211,6 +222,7 @@ export function useAppState() {
       setSphereTarget(null);
       setSelectionFocus(null);
       setSelectedSocialId(null);
+      setLiveFly(null);
       setWargameOutcome(null);
       setSelectedMitigationId(null);
       const hideFeeder = commercial ?? isCommercialPartner;
@@ -313,6 +325,24 @@ export function useAppState() {
 
   const closeSphere = useCallback(() => {
     setSphereTarget(null);
+  }, []);
+
+  const toggleLiveAircraft = useCallback(() => {
+    setLiveAircraftOn((on) => !on);
+  }, []);
+
+  const toggleLiveShips = useCallback(() => {
+    setLiveShipsOn((on) => !on);
+  }, []);
+
+  const flyToBaltic = useCallback(() => {
+    setSelectionFocus(null);
+    setLiveFly({ seq: Date.now(), ...BALTIC_FLY });
+  }, []);
+
+  const reportViewBbox = useCallback((next: MapView) => {
+    const snapped = quantizeView(next);
+    setViewBbox((prev) => (sameView(prev, snapped) ? prev : snapped));
   }, []);
 
   const toggleSocialFeed = useCallback(() => {
@@ -453,6 +483,14 @@ export function useAppState() {
     selectSocial,
     clearSocial,
     socialMapHints,
+    liveAircraftOn,
+    liveShipsOn,
+    toggleLiveAircraft,
+    toggleLiveShips,
+    liveFly,
+    flyToBaltic,
+    viewBbox,
+    reportViewBbox,
   };
 }
 

@@ -1,3 +1,15 @@
+# Attribution
+
+## Live public feeds (demo only)
+
+These overlays are open public data. They are not for operational use, and no key or paid feed is bundled.
+
+| Feed | What the demo calls | Terms |
+| --- | --- | --- |
+| The OpenSky Network | `GET /api/states/all` with the current map bbox, proxied by `api/aircraft.ts` because OpenSky does not allow this origin | Anonymous public API. Attribute The OpenSky Network when that source is live. |
+| adsb.lol | `GET /v2/lat/{lat}/lon/{lon}/dist/{nm}` used only when anonymous OpenSky is blocked | Community ADS-B positions, Open Database License (ODbL). The map labels `adsb.lol (ODbL)` when this fallback is serving. |
+| Digitraffic marine AIS | `https://meri.digitraffic.fi/api/ais/v1/locations` and `/api/ais/v1/vessels` with header `Digitraffic-User: ThreatTec-OEFlex-demo` | Fintraffic / Digitraffic, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Coverage in this demo is Baltic / Finnish waters only. |
+
 # Engagement sphere model attribution
 
 UNCLASS SAMPLE demo only. Weak-point markers are fictional overlays, not an assessment of any fielded vehicle.

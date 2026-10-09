@@ -2,6 +2,7 @@ import { lazy, Suspense, useRef, useState } from 'react';
 import { sphereModelById, sphereModelForHolding } from './data/engagementSphere';
 import { SCENARIOS, scenarioById } from './data/scenarios';
 import { useAppState } from './hooks/useAppState';
+import { useLiveFeeds } from './hooks/useLiveFeeds';
 import { RoleSelector } from './components/RoleSelector';
 import { GlobeView } from './components/GlobeView';
 import { Map2D } from './components/Map2D';
@@ -57,6 +58,23 @@ function openMunitionSphere(
 
 export default function App() {
   const state = useAppState();
+  const live = useLiveFeeds({
+    aircraftOn: state.liveAircraftOn,
+    shipsOn: state.liveShipsOn,
+    killSwitch: state.killSwitch,
+    view: state.viewBbox,
+  });
+  const liveMap = {
+    liveAircraft: live.aircraft,
+    liveShips: live.ships,
+    liveFly: state.liveFly,
+    onViewBbox: state.reportViewBbox,
+    liveAircraftOn: state.liveAircraftOn && !state.killSwitch,
+    liveShipsOn: state.liveShipsOn && !state.killSwitch,
+    aircraftOffline: live.aircraftStatus === 'offline',
+    shipsOffline: live.shipsStatus === 'offline',
+    aircraftAttribution: live.aircraftAttribution,
+  };
   const exportRef = useRef<HTMLElement | null>(null);
   const [showDomains, setShowDomains] = useState(false);
   const [showTtpFeeds, setShowTtpFeeds] = useState(() =>
@@ -198,6 +216,7 @@ export default function App() {
               selectionFocus={state.selectionFocus}
               socialMapHints={state.socialMapHints}
               engagementLines={state.engagementLines}
+              {...liveMap}
             />
           ) : (
             <Map2D
@@ -223,6 +242,7 @@ export default function App() {
               selectionFocus={state.selectionFocus}
               socialMapHints={state.socialMapHints}
               engagementLines={state.engagementLines}
+              {...liveMap}
             />
           )}
           {state.selectedSocial && (
@@ -317,7 +337,7 @@ export default function App() {
         </section>
 
         <aside className="side-col">
-          {state.stage === 'Observe' && <ObservePanel state={state} />}
+          {state.stage === 'Observe' && <ObservePanel state={state} live={live} />}
           {state.stage === 'Mitigate' && <MitigatePanel state={state} />}
           {state.stage === 'Wargame' && <WargamePanel state={state} />}
           {state.stage === 'Decide' && <DecidePanel state={state} />}
