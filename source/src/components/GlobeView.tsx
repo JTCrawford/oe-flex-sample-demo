@@ -263,10 +263,12 @@ export function GlobeView({
       const pov = globe.pointOfView();
       onViewBbox(bboxFromAltitude(pov.lat, pov.lng, pov.altitude ?? 1.5));
     };
-    emit();
+    if (liveFly) {
+      onViewBbox(bboxFromAltitude(liveFly.lat, liveFly.lng, liveFly.altitude));
+    }
     const controls = globe.controls();
     controls.addEventListener('end', emit);
-    const timer = window.setTimeout(emit, 1000);
+    const timer = window.setTimeout(emit, 900);
     return () => {
       controls.removeEventListener('end', emit);
       window.clearTimeout(timer);
@@ -389,7 +391,7 @@ export function GlobeView({
         const el = document.createElement('div');
         const strikeSelected = !!p.strikeId && p.strikeId === selectedStrikeId;
         const unitSelected = !!p.unitId && p.unitId === selectedUnitId;
-        el.className = `globe-marker ${p.kind}${strikeSelected || unitSelected || p.kind === 'social' ? ' selected' : ''}`;
+        el.className = `globe-marker ${p.kind}${p.liveKind ? ` live-${p.liveKind}` : ''}${strikeSelected || unitSelected || p.kind === 'social' ? ' selected' : ''}`;
         el.title = p.label;
         el.style.cursor =
           p.kind === 'ao' ||
