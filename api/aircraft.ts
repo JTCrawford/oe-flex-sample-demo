@@ -13,8 +13,8 @@ const MAX_TRACKS = 350;
 const MAX_LAT_SPAN = 8;
 const MAX_LON_SPAN = 10;
 const MIN_SPAN = 0.4;
-const OPENSKY_TIMEOUT_MS = 3500;
-const ADSB_TIMEOUT_MS = 5000;
+const OPENSKY_TIMEOUT_MS = 2000;
+const ADSB_TIMEOUT_MS = 3500;
 const MS_TO_KT = 1.943844;
 
 export type AircraftTrack = {
@@ -186,7 +186,8 @@ function adsbTarget(bbox: AircraftBbox): { lat: number; lon: number; dist: numbe
   const lon = (bbox.lomin + bbox.lomax) / 2;
   const halfLatNm = ((bbox.lamax - bbox.lamin) * 60) / 2;
   const halfLonNm = ((bbox.lomax - bbox.lomin) * 60 * Math.cos((lat * Math.PI) / 180)) / 2;
-  const dist = Math.min(250, Math.max(20, Math.ceil(Math.hypot(halfLatNm, halfLonNm))));
+  // Large radii sometimes hang adsb.lol. 120 nm still covers a regional view.
+  const dist = Math.min(120, Math.max(20, Math.ceil(Math.hypot(halfLatNm, halfLonNm))));
   return { lat: round(lat, 2), lon: round(lon, 2), dist };
 }
 
@@ -221,8 +222,7 @@ async function fetchOpenSky(bbox: AircraftBbox): Promise<AircraftTrack[]> {
   return tracks;
 }
 
-async function fetchAdsb(bbox: AircraftBbox): Promise<AircraftTrack[]> {
-  const { lat, lon, dist } = adsbTarget(bbox);
+async function fetchAdsbAt(lat: number, lon: number, dist: number): Promise<AircraftTrack[]> {
   const res = await fetch(`${ADSB_URL}/lat/${lat}/lon/${lon}/dist/${dist}`, {
     signal: AbortSignal.timeout(ADSB_TIMEOUT_MS),
     headers: {
@@ -234,6 +234,18 @@ async function fetchAdsb(bbox: AircraftBbox): Promise<AircraftTrack[]> {
   const tracks = trimAdsb(await readJson(res));
   if (!tracks) throw new Error('adsb.lol shape');
   return tracks;
+}
+
+async function fetchAdsb(bbox: AircraftBbox): Promise<AircraftTrack[]> {
+  const { lat, lon, dist } = adsbTarget(bbox);
+  try {
+    return await fetchAdsbAt(lat, lon, dist);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'adsb.lol failed';
+    const smaller = Math.max(40, Math.round(dist / 2));
+    console.error(`aircraft proxy adsb retry ${smaller}nm (${reason})`);
+    return await fetchAdsbAt(lat, lon, smaller);
+  }
 }
 
 export async function queryAircraft(bbox: AircraftBbox): Promise<AircraftPayload> {
