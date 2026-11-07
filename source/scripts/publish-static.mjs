@@ -14,8 +14,14 @@ if (!fs.existsSync(path.join(dist, 'index.html'))) {
   process.exit(1);
 }
 
-for (const target of targets) {
-  fs.rmSync(target, { recursive: true, force: true });
-  fs.cpSync(dist, target, { recursive: true });
-  console.log(`published ${path.relative(path.resolve(here, '../..'), target)}`);
+for (const [index, target] of targets.entries()) {
+  try {
+    fs.rmSync(target, { recursive: true, force: true });
+    fs.cpSync(dist, target, { recursive: true });
+    console.log(`published ${path.relative(path.resolve(here, '../..'), target)}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (index === 0) throw error;
+    console.warn(`skipped ${target}: ${message}`);
+  }
 }
