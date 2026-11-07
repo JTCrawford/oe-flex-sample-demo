@@ -4,8 +4,7 @@ import { SCENARIOS, scenarioById } from './data/scenarios';
 import { useAppState } from './hooks/useAppState';
 import { useLiveFeeds } from './hooks/useLiveFeeds';
 import { RoleSelector } from './components/RoleSelector';
-import { GlobeView } from './components/GlobeView';
-import { Map2D } from './components/Map2D';
+const CesiumMap = lazy(() => import('./components/CesiumMap'));
 import { MunitionInferencePanel } from './components/MunitionInferencePanel';
 import { OrbatPanel } from './components/OrbatPanel';
 import { SocialSignalPanel } from './components/SocialSignalPanel';
@@ -196,30 +195,8 @@ export default function App() {
             exportRef.current = node;
           }}
         >
-          {state.mapMode === 'globe' ? (
-            <GlobeView
-              aos={state.aos}
-              selectedAoId={state.selectedAoId}
-              onSelectAo={state.selectAo}
-              visibleLayers={state.visibleLayers}
-              symbology={state.symbology}
-              killSwitch={state.killSwitch}
-              strikes={state.visibleStrikes}
-              strikeOverlays={state.strikeOverlays}
-              showStrikeOverlays={state.strikeOverlayAvailable}
-              selectedStrikeId={state.selectedStrikeId}
-              onSelectStrike={state.selectStrike}
-              munitionAssessment={state.munitionAssessment}
-              selectedUnitId={state.selectedUnitId}
-              onSelectUnit={state.selectUnit}
-              unitRangeRings={state.unitRangeRings}
-              selectionFocus={state.selectionFocus}
-              socialMapHints={state.socialMapHints}
-              engagementLines={state.engagementLines}
-              {...liveMap}
-            />
-          ) : (
-            <Map2D
+          <Suspense fallback={<div className="map-stage"><p className="map-boot">Loading photoreal map…</p></div>}>
+            <CesiumMap
               aos={state.aos}
               selectedAoId={state.selectedAoId}
               onSelectAo={state.selectAo}
@@ -235,16 +212,15 @@ export default function App() {
               selectedUnitId={state.selectedUnitId}
               onSelectUnit={state.selectUnit}
               onOpenSphere={(unitId, holding) => openHoldingSphere(state, unitId, holding)}
-              onOpenMunitionSphere={(unitId, profile) =>
-                openMunitionSphere(state, unitId, profile)
-              }
               unitRangeRings={state.unitRangeRings}
-              selectionFocus={state.selectionFocus}
-              socialMapHints={state.socialMapHints}
+              socialSignals={state.visibleSocialSignals}
+              onSelectSocial={state.selectSocial}
               engagementLines={state.engagementLines}
+              tilted={state.mapMode === 'globe'}
+              onTilt={(tilted) => state.setMapMode(tilted ? 'globe' : '2d')}
               {...liveMap}
             />
-          )}
+          </Suspense>
           {state.selectedSocial && (
             <SocialSignalPanel
               signal={state.selectedSocial}
@@ -311,7 +287,7 @@ export default function App() {
             Blue friendly · Red adversary · {state.engagementLines.length} engagement lines
           </p>
           <p className="scenario-legend" data-testid="phase1-assets">
-            Phase 1 meshes are the CC0 sphere models already in this repo, plus OpenStreetMap tiles. A soldier file loads only when it is already on this machine. Premium packs are not in this build.
+            Phase 1 meshes are the CC0 sphere models already in this repo. The map drapes free Sentinel-2, NASA, USGS, and OpenTopoMap imagery on open elevation. A soldier file loads only when it is already on this machine. Premium packs are not in this build.
           </p>
           <ul className="scenario-line-list" data-testid="engagement-lines">
             {state.engagementLines.map((line) => (

@@ -175,7 +175,7 @@ export function ObservePanel({ state, live }: Props) {
             className={symbology === 'military' ? 'active' : ''}
             onClick={() => setSymbologyMutex('military')}
           >
-            Military (2525-style)
+            Military (2525D)
           </button>
           <button
             type="button"

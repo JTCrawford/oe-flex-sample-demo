@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "",
+  "buildCommand": "npm run build",
   "outputDirectory": "deploy-out",
   "rewrites": [
     { "source": "/app/(.*)", "destination": "/app/index.html" }

@@ -1,6 +1,7 @@
+import { milSymbolSvg } from '../map/sidc';
 import type { SymbologyMode } from '../types';
 
-/** Lightweight SVG / CSS stand-ins for MIL-STD-2525-style and commercial decks. */
+/** MIL-STD-2525D symbols via milsymbol, plus the commercial deck. */
 export function SymbolIcon({
   kind,
   mode,
@@ -17,65 +18,15 @@ export function SymbolIcon({
 }
 
 function MilIcon({ kind, size }: { kind?: string; size: number }) {
-  const stroke = '#7CFC9A';
-  const fill = 'rgba(20, 40, 30, 0.85)';
-  // Diamond frame ≈ friendly/hostile frame shorthand for demo
-  const common = { width: size, height: size, viewBox: '0 0 40 40' };
-  switch (kind) {
-    case 'armor':
-      return (
-        <svg {...common} aria-label="Armor (2525-style SAMPLE)">
-          <polygon points="20,2 38,20 20,38 2,20" fill={fill} stroke={stroke} strokeWidth="2" />
-          <rect x="10" y="16" width="20" height="8" rx="1" fill="none" stroke={stroke} />
-          <circle cx="14" cy="20" r="2" fill={stroke} />
-          <circle cx="26" cy="20" r="2" fill={stroke} />
-        </svg>
-      );
-    case 'ifv':
-      return (
-        <svg {...common} aria-label="IFV (2525-style SAMPLE)">
-          <polygon points="20,2 38,20 20,38 2,20" fill={fill} stroke={stroke} strokeWidth="2" />
-          <rect x="12" y="17" width="16" height="6" fill="none" stroke={stroke} />
-          <line x1="20" y1="14" x2="20" y2="17" stroke={stroke} />
-        </svg>
-      );
-    case 'arty':
-      return (
-        <svg {...common} aria-label="Artillery (2525-style SAMPLE)">
-          <polygon points="20,2 38,20 20,38 2,20" fill={fill} stroke="#f5a623" strokeWidth="2" />
-          <circle cx="20" cy="20" r="5" fill="none" stroke="#f5a623" />
-          <circle cx="20" cy="20" r="2" fill="#f5a623" />
-        </svg>
-      );
-    case 'uav':
-      return (
-        <svg {...common} aria-label="UAV (2525-style SAMPLE)">
-          <polygon points="20,2 38,20 20,38 2,20" fill={fill} stroke="#6ec6ff" strokeWidth="2" />
-          <path d="M8 20 L20 12 L32 20 L20 28 Z" fill="none" stroke="#6ec6ff" />
-        </svg>
-      );
-    case 'ship':
-      return (
-        <svg {...common} aria-label="Ship (2525-style SAMPLE)">
-          <ellipse cx="20" cy="20" rx="16" ry="10" fill={fill} stroke={stroke} strokeWidth="2" />
-          <path d="M8 22 L20 10 L32 22" fill="none" stroke={stroke} />
-        </svg>
-      );
-    case 'port':
-    case 'infra':
-      return (
-        <svg {...common} aria-label="Infrastructure (2525-style SAMPLE)">
-          <rect x="6" y="6" width="28" height="28" fill={fill} stroke="#c9a0ff" strokeWidth="2" />
-          <path d="M12 28 V14 H20 V28 M20 18 H28 V28" fill="none" stroke="#c9a0ff" />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...common} aria-label="Unit (2525-style SAMPLE)">
-          <polygon points="20,2 38,20 20,38 2,20" fill={fill} stroke={stroke} strokeWidth="2" />
-        </svg>
-      );
-  }
+  const svg = milSymbolSvg(kind, size);
+  return (
+    <span
+      className="mil-symbol"
+      style={{ width: size + 36, height: size + 28 }}
+      aria-label="MIL-STD-2525D SAMPLE symbol"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
 }
 
 function CommercialIcon({ kind, size }: { kind?: string; size: number }) {
