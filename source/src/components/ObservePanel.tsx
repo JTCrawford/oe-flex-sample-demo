@@ -12,6 +12,7 @@ import { SymbolIcon } from './SymbologyIcons';
 interface Props {
   state: AppState;
   live: LiveFeedsState;
+  onPulse?: (key: string | null) => void;
 }
 
 function LiveFeeds({ state, live }: Props) {
@@ -102,7 +103,7 @@ const STRIKE_TOGGLE_LABELS: { key: keyof StrikeOverlayToggles; label: string }[]
     { key: 'hotZones', label: 'Hot zones (heat / intensity)' },
   ];
 
-export function ObservePanel({ state, live }: Props) {
+export function ObservePanel({ state, live, onPulse }: Props) {
   const {
     selectedAo,
     availableLayers,
@@ -270,11 +271,13 @@ export function ObservePanel({ state, live }: Props) {
                 {visibleStrikes.map((s) => {
                   const selected = selectedStrikeId === s.id;
                   return (
-                    <li key={s.id}>
+                    <li key={s.id} data-map-focus={`strike:${s.id}`}>
                       <button
                         type="button"
                         className={selected ? 'active' : ''}
                         aria-pressed={selected}
+                        onMouseEnter={() => onPulse?.(`strike:${s.id}`)}
+                        onMouseLeave={() => onPulse?.(null)}
                         onClick={() => (selected ? clearStrike() : selectStrike(s.id))}
                       >
                         {s.attackType} · {s.label}
@@ -318,11 +321,13 @@ export function ObservePanel({ state, live }: Props) {
               {visibleSocialSignals.map((signal) => {
                 const selected = selectedSocialId === signal.id;
                 return (
-                  <li key={signal.id}>
+                  <li key={signal.id} data-map-focus={`social:${signal.id}`}>
                     <button
                       type="button"
                       className={selected ? 'active' : ''}
                       aria-pressed={selected}
+                      onMouseEnter={() => onPulse?.(`social:${signal.id}`)}
+                      onMouseLeave={() => onPulse?.(null)}
                       onClick={() =>
                         selected ? clearSocial() : selectSocial(signal.id)
                       }
@@ -366,11 +371,13 @@ export function ObservePanel({ state, live }: Props) {
               if (!orbat) return null;
               const linked = profilesForOrbat(orbat);
               return (
-                <li key={marker.id}>
+                <li key={marker.id} data-map-focus={`unit:${marker.id}`}>
                   <button
                     type="button"
                     className={selected ? 'active' : ''}
                     aria-pressed={selected}
+                    onMouseEnter={() => onPulse?.(`unit:${marker.id}`)}
+                    onMouseLeave={() => onPulse?.(null)}
                     onClick={() => toggleUnit(marker.id)}
                   >
                     {orbat.designation}

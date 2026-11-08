@@ -45,6 +45,7 @@ import type {
   VehicleHolding,
 } from '../types';
 import { LiveMapBanner } from './LiveMapChrome';
+import { useOverlayDock } from './OverlayDock';
 import {
   DEFAULT_OVERLAYS,
   MapChrome,
@@ -84,6 +85,12 @@ interface Props {
   aircraftAttribution?: string | null;
   tilted: boolean;
   onTilt: (tilted: boolean) => void;
+  pulseKey?: string | null;
+  highlightKey?: string | null;
+  strikeFocus?: { id: string; lat: number; lng: number } | null;
+  socialFocus?: { id: string; lat: number; lng: number } | null;
+  anchor?: { lat: number; lng: number } | null;
+  onAnchor?: (point: { x: number; y: number } | null) => void;
 }
 
 const commercialCache = new Map<string, HTMLCanvasElement>();
@@ -159,11 +166,15 @@ export default function CesiumMap(props: Props) {
   const propsRef = useRef(props);
   const baseRef = useRef<BaseLayerId>('satellite');
   const compareRef = useRef(false);
+  const pulseRef = useRef<string | null>(null);
+  const highlightRef = useRef<string | null>(null);
   const sphereTimer = useRef<number | null>(null);
   useEffect(() => {
     propsRef.current = props;
     baseRef.current = base;
     compareRef.current = compare;
+    pulseRef.current = props.pulseKey ?? null;
+    highlightRef.current = props.highlightKey ?? null;
   });
 
   const [ready, setReady] = useState(false);
@@ -180,6 +191,7 @@ export default function CesiumMap(props: Props) {
 
   const selectedAo = props.aos.find((ao) => ao.id === props.selectedAoId) ?? null;
   const flags = readMapFlags();
+  const dock = useOverlayDock();
 
   useEffect(() => {
     const host = hostRef.current;
@@ -417,6 +429,67 @@ export default function CesiumMap(props: Props) {
 
   useEffect(() => {
     const viewer = viewerRef.current;
+    const focus = props.strikeFocus;
+    if (!viewer || !ready || !focus) return;
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(focus.lng, focus.lat, props.tilted ? 28_000 : 60_000),
+      orientation: {
+        heading: viewer.camera.heading,
+        pitch: Cesium.Math.toRadians(props.tilted ? -42 : -89),
+        roll: 0,
+      },
+      duration: 0.85,
+    });
+  }, [ready, props.strikeFocus?.id, props.tilted]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const focus = props.socialFocus;
+    if (!viewer || !ready || !focus) return;
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(focus.lng, focus.lat, props.tilted ? 36_000 : 80_000),
+      orientation: {
+        heading: viewer.camera.heading,
+        pitch: Cesium.Math.toRadians(props.tilted ? -42 : -89),
+        roll: 0,
+      },
+      duration: 0.85,
+    });
+  }, [ready, props.socialFocus?.id, props.tilted]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !ready) return;
+    applySymbolEmphasis(viewer, props.pulseKey ?? null, props.highlightKey ?? null);
+  }, [ready, props.pulseKey, props.highlightKey]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const anchor = props.anchor;
+    if (!viewer || !ready || !anchor) {
+      props.onAnchor?.(null);
+      return;
+    }
+    const lat = anchor.lat;
+    const lng = anchor.lng;
+    const tick = () => {
+      const live = viewerRef.current;
+      if (!live || live.isDestroyed()) return;
+      const projected = Cesium.SceneTransforms.worldToWindowCoordinates(
+        live.scene,
+        Cesium.Cartesian3.fromDegrees(lng, lat),
+      );
+      propsRef.current.onAnchor?.(projected ? { x: projected.x, y: projected.y } : null);
+    };
+    const remove = viewer.scene.preRender.addEventListener(tick);
+    tick();
+    return () => {
+      remove();
+    };
+  }, [ready, props.anchor?.lat, props.anchor?.lng]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
     const request = props.liveFly;
     if (!viewer || !ready || !request) return;
     viewer.camera.flyTo({
@@ -445,6 +518,7 @@ export default function CesiumMap(props: Props) {
     if (!source) return;
     source.entities.removeAll();
     paintScene(viewer, source, props, overlays, selectedAo);
+    applySymbolEmphasis(viewer, pulseRef.current, highlightRef.current);
     viewer.scene.requestRender();
   }, [ready, props, overlays, selectedAo, gridLat, gridLng, gridHeight]);
 
@@ -507,6 +581,12 @@ export default function CesiumMap(props: Props) {
         attribution={attribution}
         photorealNote={base === 'photoreal' || terrainNote.startsWith('Cesium') ? photorealNote : terrainNote}
         weatherText={weatherText}
+        layersOpen={dock.isOpen('layers')}
+        overlaysCardOpen={dock.isOpen('overlays')}
+        chromeHidden={dock.hidden}
+        onExpandLayers={() => dock.expand('layers')}
+        onExpandOverlays={() => dock.expand('overlays')}
+        onCollapseOverlays={() => dock.collapse('overlays')}
       />
       <LiveMapBanner
         aircraftOn={Boolean(props.liveAircraftOn)}
@@ -881,6 +961,23 @@ function paintScene(
   }
 }
 
+function applySymbolEmphasis(viewer: Cesium.Viewer, pulse: string | null, highlight: string | null) {
+  const source = viewer.dataSources.getByName('oe-sample')[0];
+  if (!source) return;
+  const now = Cesium.JulianDate.now();
+  for (const entity of source.entities.values) {
+    if (!entity.billboard || !entity.properties) continue;
+    const kind = entity.properties.kind?.getValue(now);
+    const id = entity.properties.id?.getValue(now);
+    if (!kind || !id) continue;
+    const key = `${kind}:${id}`;
+    const base = Number(entity.properties.baseScale?.getValue(now) ?? 1);
+    const hot = key === pulse || key === highlight;
+    entity.billboard.scale = new Cesium.ConstantProperty(hot ? base * 1.65 : base);
+  }
+  viewer.scene.requestRender();
+}
+
 function viewBounds(viewer: Cesium.Viewer): {
   west: number;
   south: number;
@@ -934,7 +1031,7 @@ function addBillboard(
   source.entities.add({
     id: input.id,
     position: Cesium.Cartesian3.fromDegrees(input.lng, input.lat, input.altitude ?? 0),
-    properties: { kind: input.kind, id: input.targetId },
+    properties: { kind: input.kind, id: input.targetId, baseScale: input.scale },
     billboard: {
       image: input.image,
       scale: input.scale,

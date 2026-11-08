@@ -71,6 +71,12 @@ interface Props {
   attribution: string;
   photorealNote: string;
   weatherText: string | null;
+  layersOpen?: boolean;
+  overlaysCardOpen?: boolean;
+  chromeHidden?: boolean;
+  onExpandLayers?: () => void;
+  onExpandOverlays?: () => void;
+  onCollapseOverlays?: () => void;
 }
 
 export function MapChrome({
@@ -93,9 +99,15 @@ export function MapChrome({
   attribution,
   photorealNote,
   weatherText,
+  layersOpen = true,
+  overlaysCardOpen = false,
+  chromeHidden = false,
+  onExpandLayers,
+  onExpandOverlays,
+  onCollapseOverlays,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [overlaysOpen, setOverlaysOpen] = useState(true);
+  const overlaysOpen = overlaysCardOpen;
   const next = useMemo(() => {
     const index = BASE_LAYER_ORDER.indexOf(base);
     return BASE_LAYER_ORDER[(index + 1) % BASE_LAYER_ORDER.length] ?? 'terrain';
@@ -107,19 +119,22 @@ export function MapChrome({
         UNCLASSIFIED // SAMPLE
       </div>
 
-      <section className={`overlay-panel ${overlaysOpen ? 'open' : ''}`} data-testid="overlay-panel">
+      {!chromeHidden && overlaysOpen && (
+      <section className="overlay-panel open" data-testid="overlay-panel">
         <header>
           <button
             type="button"
             className="overlay-title"
-            aria-expanded={overlaysOpen}
-            onClick={() => setOverlaysOpen((open) => !open)}
+            aria-expanded
+            onClick={() => onCollapseOverlays?.()}
           >
             Overlays
           </button>
           <span className="sample-chip">EXAMPLE</span>
+          <button type="button" aria-label="Collapse Overlays" onClick={() => onCollapseOverlays?.()}>
+            –
+          </button>
         </header>
-        {overlaysOpen && (
           <ul>
             {(Object.keys(OVERLAY_LABEL) as OverlayKey[]).map((key) => {
               const setting = overlays[key];
@@ -151,10 +166,15 @@ export function MapChrome({
               );
             })}
           </ul>
-        )}
       </section>
+      )}
+      {!chromeHidden && !overlaysOpen && (
+        <button type="button" className="dock-tab edge-left" style={{ ['--dock-index' as string]: 0 }} data-testid="dock-tab-overlays" onClick={() => onExpandOverlays?.()}>
+          Overlays
+        </button>
+      )}
 
-      {weatherText && overlays.weather.visible && (
+      {weatherText && overlaysOpen && !chromeHidden && overlays.weather.visible && (
         <aside className="weather-stub" data-testid="weather-stub" style={{ opacity: overlays.weather.opacity }}>
           <strong>SAMPLE illumination</strong>
           <p>{weatherText}</p>
@@ -230,6 +250,7 @@ export function MapChrome({
         </>
       )}
 
+      {!chromeHidden && layersOpen && (
       <div className={`layer-switch ${expanded ? 'open' : ''}`} data-testid="layer-switch">
         {expanded && (
           <div className="layer-switch-grid" role="listbox" aria-label="Base layers">
@@ -279,6 +300,12 @@ export function MapChrome({
           {expanded ? 'Close' : 'Layers'}
         </button>
       </div>
+      )}
+      {!chromeHidden && !layersOpen && (
+        <button type="button" className="dock-tab edge-bottom" data-testid="dock-tab-layers" onClick={() => onExpandLayers?.()}>
+          Layers
+        </button>
+      )}
 
       <p className="map-attribution" data-testid="map-attribution">
         {attribution}
