@@ -2214,6 +2214,24 @@
   accent-color: #ff2bd6;
 }
 
+.photoreal-cap-note {
+  position: absolute;
+  z-index: 9;
+  top: 2.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: min(280px, 46%);
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ff8c1a;
+  border-radius: 8px;
+  background: rgba(42, 22, 8, 0.94);
+  color: #ffd7ad;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
 .weather-stub {
   position: absolute;
   z-index: 8;

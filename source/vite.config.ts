@@ -50,6 +50,34 @@ export default defineConfig({
       },
     },
     {
+      name: 'dev-tiles-session',
+      configureServer(server) {
+        server.middlewares.use('/api/tiles-session', (req, res, next) => {
+          if (req.method !== 'POST') {
+            next()
+            return
+          }
+          void (async () => {
+            try {
+              const mod = (await server.ssrLoadModule(
+                path.join(repoRoot, 'api/tiles-session.ts'),
+              )) as { POST: () => Promise<Response> }
+              const upstream = await mod.POST()
+              res.statusCode = upstream.status
+              upstream.headers.forEach((value, key) => {
+                res.setHeader(key, value)
+              })
+              res.end(Buffer.from(await upstream.arrayBuffer()))
+            } catch {
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ allowed: true, enforced: 'google-cloud-quota', limit: 500 }))
+            }
+          })()
+        })
+      },
+    },
+    {
       name: 'dev-terrain-proxy',
       configureServer(server) {
         server.middlewares.use('/api/terrain', (req, res, next) => {

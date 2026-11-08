@@ -195,7 +195,7 @@ export default function App() {
             exportRef.current = node;
           }}
         >
-          <Suspense fallback={<div className="map-stage"><p className="map-boot">Loading photoreal map…</p></div>}>
+          <Suspense fallback={<div className="map-stage"><p className="map-boot">Loading map…</p></div>}>
             <CesiumMap
               aos={state.aos}
               selectedAoId={state.selectedAoId}

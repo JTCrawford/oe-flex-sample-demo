@@ -31,7 +31,7 @@ No key is in the repository. An empty variable leaves the free path in place.
 | Product | Variable | What it unlocks | Cost checked 7 Nov 2026 |
 | --- | --- | --- | --- |
 | Cesium World Terrain | `VITE_CESIUM_ION_TOKEN` | Ion asset 1 replaces the terrarium mesh. | [Cesium ion](https://cesium.com/platform/cesium-ion/pricing/): Community is free for personal, non-commercial, and exploratory evaluation use (10 GB storage, 15 GB streaming / month). Commercial use, government work, or revenue above the published threshold needs a paid plan: **$149 / month** individual or **$524 / month** team. Premium is **$499 / month** individual or **$874 / month** team. |
-| Google Photorealistic 3D Tiles | `VITE_GOOGLE_MAP_TILES_KEY` | On the 3D Photoreal base layer only, Cesium loads Google’s mesh. The free drape remains if the key is missing or the load fails. | Google Map Tiles API, photorealistic 3D tiles: **1,000 free** billable root events / month, then about **$6 per 1,000** up to 100,000, then lower tiers (about $5.10, $4.20, $3.30, $2.40 per 1,000). Display only. Cesium also meters these through ion: 1,000 root tiles / month on Community, 5,000 on Commercial. |
+| Google Photorealistic 3D Tiles | `VITE_GOOGLE_MAP_TILES_KEY` | Only after the user picks **3D Photoreal**. One root tileset request is cached for the browser session. The free drape stays up if the key is missing, the load fails, or a spend guard trips. | Google Map Tiles API: **1,000 free** root-tileset requests / month, then about **$6 per 1,000**. See Budget guard. |
 | Esri World Imagery and other ArcGIS basemaps | Not wired | Would replace the free satellite drape. | [ArcGIS Location Platform](https://developers.arcgis.com/rest/basemap-styles/): **2 million** free basemap tiles / month, then **$0.15 per 1,000** tiles, or **1,000** free basemap sessions / month, then **$4 per 1,000** sessions. Requires an ArcGIS account. |
 | Mapbox Satellite | Not wired | Raster satellite tiles. | [Mapbox Raster Tiles](https://www.mapbox.com/pricing): **750,000** free tile requests / month, then **$0.25**, **$0.20**, and **$0.15 per 1,000** at the published tiers. |
 | Maxar / Vantor imagery | Not wired | Tasked or archive imagery, not a slippy map. | Land Info’s January 2026 sheet: archive 50 cm pan-sharpened about **$28 / km²**, 30 cm about **$45 / km²**, with new-collect prices higher. Minimum order areas apply. |
@@ -44,7 +44,35 @@ VITE_CESIUM_ION_TOKEN=
 VITE_GOOGLE_MAP_TILES_KEY=
 ```
 
-Google’s tiles are display-only and Cesium warns unless they are used with the Google geocoder. This demo does not enable that geocoder, so a key is an explicit opt-in for evaluation, not a silent default.
+Google’s tiles are display-only and Cesium warns unless they are used with the Google geocoder. This demo does not enable that geocoder. The key stays out of the repository.
+
+## Budget guard
+
+Jim approved Google Photorealistic 3D Tiles with a hard ceiling under **$100 / month**. Billing used here: 1,000 root-tileset requests free each month, then about $6 per 1,000. Child tiles that stream after the root are not counted as root requests.
+
+The default map never calls Google. The root tileset is requested only when someone picks **3D Photoreal**, and that object is kept for the rest of the page. Switching layers or scenarios does not request the root again.
+
+| Guard | Limit | What the user sees |
+| --- | --- | --- |
+| Client, `localStorage` | 3 root sessions per browser per UTC day | Free satellite draped on open elevation, and the note **Photoreal 3D paused (daily limit)** |
+| Server, `/api/tiles-session` | 500 root sessions per UTC day, only if a KV store is linked | Same pause note. Without a store the route does not count. |
+| Google Cloud quota | 500 root tileset requests per day | Google rejects further root requests. 500 × 30 = 15,000 / month. After the 1,000 free requests, about 14,000 × $6 / 1,000 = **$84** worst case. |
+| Billing alert | $90 / month | Email before that worst case. |
+
+No free persistent store is linked on this Vercel project (no Vercel KV, Upstash, or Edge Config this environment can use). The hard cap is therefore the Google Cloud quota below, not an app counter. `/api/tiles-session` still exists: if `KV_REST_API_URL` and `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`) are set in the host, it counts 500 sessions per UTC day and refuses the next one. Those variables are not committed. Until they exist, the route answers `{ "enforced": "google-cloud-quota" }` and the client relies on the quota plus the 3-per-browser cap.
+
+### Recommended Google Cloud settings
+
+Do this in the Cloud project that owns the Map Tiles API key. Do not paste the key into the repo. Set it only as `VITE_GOOGLE_MAP_TILES_KEY` in the local shell or in Vercel’s environment settings.
+
+1. **API restriction.** The key may call only **Map Tiles API**.
+2. **Application restriction: HTTP referrers.**
+   - `http://localhost:5173/*`
+   - `http://127.0.0.1:5173/*`
+   - `https://oe-flex-sample-demo.vercel.app/*`
+   - `https://*-oe-flex.vercel.app/*` for previews such as `https://oe-flex-sample-demo-git-…-oe-flex.vercel.app/*`
+3. **Quota.** Map Tiles API, photorealistic 3D tiles, **root tileset requests per day = 500**.
+4. **Budget.** On the billing account, a **$90 / month** budget alert for this project (or for the Map Tiles API). That is under the $100 ceiling and above the about-$84 worst case at 500 roots per day.
 
 ## Libraries
 

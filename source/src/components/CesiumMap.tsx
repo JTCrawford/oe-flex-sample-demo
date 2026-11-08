@@ -5,6 +5,14 @@ import { sphereModelForHolding } from '../data/engagementSphere';
 import type { LiveAircraft, LiveFlyRequest, LiveShip, MapView } from '../data/liveFeeds';
 import type { ResolvedEngagementLine } from '../data/scenarios';
 import {
+  claimClientRootSession,
+  dailyCapReached,
+  GoogleCapError,
+  PHOTOREAL_DAILY_CAP_NOTE,
+  reserveServerSession,
+  type CountStore,
+} from '../map/googleTilesBudget';
+import {
   attributionFor,
   imageryFor,
   readMapFlags,
@@ -81,15 +89,81 @@ interface Props {
 const commercialCache = new Map<string, HTMLCanvasElement>();
 const diamondCache = new Map<string, HTMLCanvasElement>();
 
+/**
+ * One Google root tileset for this page. Hiding the layer does not drop it,
+ * and scenario changes do not call createGooglePhotorealistic3DTileset again.
+ */
+let googleTileset: Cesium.Cesium3DTileset | null = null;
+let googleTilesetTask: Promise<Cesium.Cesium3DTileset> | null = null;
+let googleDecision: 'idle' | 'denied' | 'failed' | 'started' = 'idle';
+
+function browserCountStore(): CountStore {
+  return localStorage;
+}
+
+function beginGoogleTileset(key: string): Promise<Cesium.Cesium3DTileset> {
+  if (googleTileset && !googleTileset.isDestroyed()) return Promise.resolve(googleTileset);
+  if (googleDecision === 'denied') return Promise.reject(new GoogleCapError());
+  if (googleDecision === 'failed') {
+    return Promise.reject(new Error('Google 3D Tiles did not load. Showing free imagery on elevation.'));
+  }
+  if (googleTilesetTask) return googleTilesetTask;
+  googleTilesetTask = (async () => {
+    const server = await reserveServerSession();
+    if (!server.allowed) {
+      googleDecision = 'denied';
+      throw new GoogleCapError();
+    }
+    if (!claimClientRootSession(browserCountStore())) {
+      googleDecision = 'denied';
+      throw new GoogleCapError();
+    }
+    const created = await Cesium.createGooglePhotorealistic3DTileset({ key });
+    googleTileset = created;
+    googleDecision = 'started';
+    return created;
+  })().catch((error: unknown) => {
+    googleTilesetTask = null;
+    if (!(error instanceof GoogleCapError) && googleDecision !== 'denied') {
+      googleDecision = 'failed';
+    }
+    throw error;
+  });
+  return googleTilesetTask;
+}
+
+function hideGoogleTiles(viewer: Cesium.Viewer) {
+  if (googleTileset && !googleTileset.isDestroyed()) googleTileset.show = false;
+  viewer.scene.globe.show = true;
+  viewer.scene.requestRender();
+}
+
+function showGoogleTiles(viewer: Cesium.Viewer, tileset: Cesium.Cesium3DTileset) {
+  if (!viewer.scene.primitives.contains(tileset)) viewer.scene.primitives.add(tileset);
+  tileset.show = true;
+  viewer.scene.globe.show = false;
+  viewer.scene.requestRender();
+}
+
+function detachGoogleTiles(viewer: Cesium.Viewer) {
+  if (!googleTileset || googleTileset.isDestroyed()) return;
+  if (viewer.scene.primitives.contains(googleTileset)) {
+    viewer.scene.primitives.remove(googleTileset);
+  }
+}
+
 export default function CesiumMap(props: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
-  const tilesetRef = useRef<Cesium.Cesium3DTileset | null>(null);
   const propsRef = useRef(props);
+  const baseRef = useRef<BaseLayerId>('satellite');
+  const compareRef = useRef(false);
   const sphereTimer = useRef<number | null>(null);
   useEffect(() => {
     propsRef.current = props;
+    baseRef.current = base;
+    compareRef.current = compare;
   });
 
   const [ready, setReady] = useState(false);
@@ -217,10 +291,7 @@ export default function CesiumMap(props: Props) {
       if (sphereTimer.current) window.clearTimeout(sphereTimer.current);
       handler.destroy();
       viewer.camera.moveEnd.removeEventListener(emitView);
-      if (tilesetRef.current) {
-        viewer.scene.primitives.remove(tilesetRef.current);
-        tilesetRef.current = null;
-      }
+      detachGoogleTiles(viewer);
       viewer.destroy();
       viewerRef.current = null;
       setReady(false);
@@ -252,40 +323,48 @@ export default function CesiumMap(props: Props) {
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !ready) return;
-    let cancelled = false;
-    const showTiles = base === 'photoreal' && !compare && flags.google3dKey.length > 0;
-    if (!showTiles) {
-      if (tilesetRef.current) {
-        viewer.scene.primitives.remove(tilesetRef.current);
-        tilesetRef.current = null;
-        viewer.scene.globe.show = true;
-        viewer.scene.requestRender();
-      }
+    // Free layers until the user picks 3D Photoreal. Compare mode stays on the free drape.
+    if (base !== 'photoreal' || compare) {
+      hideGoogleTiles(viewer);
+      return;
+    }
+    if (googleTileset && !googleTileset.isDestroyed()) {
+      showGoogleTiles(viewer, googleTileset);
+      setTilesNote('Google Photorealistic 3D Tiles (one root request this session).');
+      return;
+    }
+    if (dailyCapReached(browserCountStore()) || googleDecision === 'denied') {
+      hideGoogleTiles(viewer);
+      setTilesNote(PHOTOREAL_DAILY_CAP_NOTE);
+      return;
+    }
+    if (!flags.google3dKey) {
+      hideGoogleTiles(viewer);
       return;
     }
     setTilesNote('Loading Google Photorealistic 3D Tiles…');
-    void Cesium.createGooglePhotorealistic3DTileset({ key: flags.google3dKey })
+    void beginGoogleTileset(flags.google3dKey)
       .then((tileset) => {
-        if (cancelled) {
-          tileset.destroy();
+        const live = viewerRef.current;
+        if (!live || live.isDestroyed()) return;
+        if (baseRef.current !== 'photoreal' || compareRef.current) {
+          hideGoogleTiles(live);
           return;
         }
-        if (tilesetRef.current) viewer.scene.primitives.remove(tilesetRef.current);
-        tilesetRef.current = tileset;
-        viewer.scene.primitives.add(tileset);
-        viewer.scene.globe.show = false;
-        setTilesNote('Google Photorealistic 3D Tiles (paid key, display only).');
-        viewer.scene.requestRender();
+        showGoogleTiles(live, tileset);
+        setTilesNote('Google Photorealistic 3D Tiles (one root request this session).');
       })
-      .catch(() => {
-        if (cancelled) return;
-        viewer.scene.globe.show = true;
-        setTilesNote('Google 3D Tiles did not load. Showing free imagery on elevation.');
-        viewer.scene.requestRender();
+      .catch((error: unknown) => {
+        const live = viewerRef.current;
+        if (!live || live.isDestroyed()) return;
+        if (baseRef.current !== 'photoreal' || compareRef.current) return;
+        hideGoogleTiles(live);
+        setTilesNote(
+          error instanceof GoogleCapError
+            ? PHOTOREAL_DAILY_CAP_NOTE
+            : 'Google 3D Tiles did not load. Showing free imagery on elevation.',
+        );
       });
-    return () => {
-      cancelled = true;
-    };
   }, [ready, base, compare, flags.google3dKey]);
 
   useEffect(() => {
@@ -379,15 +458,21 @@ export default function CesiumMap(props: Props) {
 
   const attribution = attributionFor(compare ? [base, compareWith] : [base]);
   const passiveTilesNote =
-    base === 'photoreal' && (compare || flags.google3dKey.length === 0)
+    base === 'photoreal' && (compare || flags.google3dKey.length === 0) && tilesNote !== PHOTOREAL_DAILY_CAP_NOTE
       ? 'Google Photorealistic 3D Tiles are off. Free imagery is draped on elevation.'
       : '';
-  const photorealNote = [terrainNote, tilesNote || passiveTilesNote].filter(Boolean).join(' · ');
+  const detailNote = tilesNote === PHOTOREAL_DAILY_CAP_NOTE ? '' : tilesNote || passiveTilesNote;
+  const photorealNote = [terrainNote, detailNote].filter(Boolean).join(' · ');
 
   return (
     <div className="map-stage" ref={stageRef} data-testid="cesium-map" data-base-layer={base}>
       <div ref={hostRef} className="cesium-host" />
-      {!ready && !bootError && <p className="map-boot">Loading photoreal map…</p>}
+      {!ready && !bootError && <p className="map-boot">Loading map…</p>}
+      {base === 'photoreal' && tilesNote === PHOTOREAL_DAILY_CAP_NOTE && (
+        <p className="photoreal-cap-note" data-testid="photoreal-cap-note" role="status">
+          {PHOTOREAL_DAILY_CAP_NOTE}
+        </p>
+      )}
       {bootError && <p className="map-boot">{bootError}</p>}
       <MapChrome
         base={base}

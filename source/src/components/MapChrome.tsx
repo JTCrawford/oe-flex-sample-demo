@@ -240,6 +240,7 @@ export function MapChrome({
                 role="option"
                 aria-selected={id === base}
                 className={id === base ? 'active' : ''}
+                data-testid={`base-layer-${id}`}
                 onClick={() => {
                   onBase(id);
                   setExpanded(false);
