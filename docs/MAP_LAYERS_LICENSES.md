@@ -8,14 +8,14 @@ Example graphics on the map are fuchsia. Simulated or hypothetical graphics (str
 
 | Layer | What you see | Source | License | Attribution shown on the map |
 | --- | --- | --- | --- | --- |
-| Satellite and 3D Photoreal drape | Global photographic mosaic through zoom 13, then stretched | [EOxCloudless 2016](https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg) (`s2cloudless_3857`) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). EOX’s current FAQ says this 2016 vintage may be embedded in a commercial app. No uptime SLA. Do not resell the tiles as a standalone dataset. | EOxCloudless 2016 by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017) |
+| Satellite and 3D Photoreal drape | Global photographic mosaic through zoom 13. The camera stops there outside the United States so the mosaic is not enlarged past the imagery | [EOxCloudless 2016](https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg) (`s2cloudless_3857`) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). EOX’s current FAQ says this 2016 vintage may be embedded in a commercial app. No uptime SLA. Do not resell the tiles as a standalone dataset. | EOxCloudless 2016 by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017) |
 | Satellite underlay | Shaded-relief Blue Marble while the mosaic loads, and at the lowest zooms | NASA GIBS `BlueMarble_ShadedRelief_Bathymetry` | NASA-led imagery is public domain in the United States. NASA asks for an acknowledgment and must not be implied to endorse the demo. | We acknowledge imagery from NASA’s Global Imagery Browse Services (GIBS), part of NASA ESDIS. |
 | Satellite, United States only | Higher-resolution aerial and satellite imagery, including NAIP where USGS serves it | [USGS Imagery Only](https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer) | Public domain. [USGS National Map terms](https://www.usgs.gov/faqs/what-are-terms-uselicensing-map-services-and-data-national-map). | Map services and data available from U.S. Geological Survey, National Geospatial Program. |
 | Terrain, and the Military Map outside the US | Hillshade, contours, and place names | [OpenTopoMap](https://tile.opentopomap.org/) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The public tile server is a volunteer service. This demo only requests tiles in view. | Map data © OpenStreetMap contributors, SRTM. Map style © OpenTopoMap (CC BY-SA). |
 | Terrain and Military Map inside the US | USGS topo (contours and relief) drawn over OpenTopoMap | [USGS Topo](https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer) | Public domain, same National Map terms as above. | Map services and data available from U.S. Geological Survey, National Geospatial Program. |
 | Elevation mesh for tilt and 3D | Terrarium PNG height tiles, ocean clamped to sea level so imagery stays on the water | [AWS Open Data Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (`s3://elevation-tiles-prod/terrarium`) | Open data. Attribution is required. Sources include USGS 3DEP, SRTM, GMTED2010, ETOPO1, and the other datasets listed by Tilezen. | Mapzen / AWS Open Data Terrain Tiles. The bucket does not send browser CORS headers, so `/api/terrain` proxies that host only. |
 | Unit symbols | MIL-STD-2525D frames, icons, and echelon | [milsymbol](https://github.com/spatialillusions/milsymbol) 3.x | MIT | milsymbol, Måns Beckman |
-| MGRS grid labels | Grid zone, 100 km, 10 km, or 1 km cells from the view | [mgrs](https://github.com/proj4js/mgrs) (proj4js) | MIT | — |
+| MGRS grid labels | Grid zone, 100 km, 10 km, or 1 km lines. A map-scale preset uses the matching paper interval: 1:25,000 and 1:50,000 are 1 km; 1:100,000 is 10 km with faint 1 km lines; 1:250,000 is 10 km; 1:500,000 and 1:1,000,000 are 100 km squares | [mgrs](https://github.com/proj4js/mgrs) (proj4js) | MIT | — |
 | Globe runtime | Lazy-loaded viewer | CesiumJS 1.147 | Apache-2.0 | CesiumJS |
 
 The Military Map is the same OpenTopoMap and USGS topo tiles with a client-side color reduction (saturation, brightness, hue) so the 2525 symbols read. The demo does not republish a modified tile set.
@@ -73,6 +73,12 @@ Do this in the Cloud project that owns the Map Tiles API key. Do not paste the k
    - `https://*-oe-flex.vercel.app/*` for previews such as `https://oe-flex-sample-demo-git-…-oe-flex.vercel.app/*`
 3. **Quota.** Map Tiles API, photorealistic 3D tiles, **root tileset requests per day = 500**.
 4. **Budget.** On the billing account, a **$90 / month** budget alert for this project (or for the Map Tiles API). That is under the $100 ceiling and above the about-$84 worst case at 500 roots per day.
+
+## Screen scale
+
+The scale bar and the Map scale control use a representative fraction at **96 CSS pixels per inch** (`1 in = 96 px = 0.0254 m`). That is the usual browser reference pixel, not a measured panel DPI. Ground meters per pixel are measured at the center of the unobstructed map (the view with the top bar and open cards taken out). Picking 1:25,000, 1:50,000, 1:100,000, 1:250,000, 1:500,000, or 1:1,000,000 switches to a north-up top-down view and sets the camera so the scale bar matches that fraction, then snaps the MGRS grid to the interval in the table above. Zooming away shows Custom with the live fraction.
+
+Free imagery is not drawn closer than its native zoom: EOX Sentinel-2 cloudless stops at zoom 13, OpenTopoMap at 15, and USGS Imagery Only / USGS Topo at 16 inside the United States boxes already listed above. Esri World Imagery is not used. Google Photorealistic 3D Tiles, when the Map Tiles key is configured and the user picks **3D Photoreal**, are the high-detail view.
 
 ## Libraries
 

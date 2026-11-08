@@ -164,7 +164,9 @@ export function FloatCard({
       <button
         type="button"
         className={`dock-tab edge-${edge}`}
-        style={{ ['--dock-index' as string]: index }}
+        data-dock-role="tab"
+        data-dock-edge={edge}
+        data-dock-index={index}
         data-testid={`dock-tab-${id}`}
         aria-expanded={false}
         onClick={() => dock.expand(id)}
@@ -176,7 +178,9 @@ export function FloatCard({
   return (
     <section
       className={`float-card edge-${edge}`}
-      style={{ ['--dock-index' as string]: index }}
+      data-dock-role="card"
+      data-dock-edge={edge}
+      data-dock-index={index}
       data-testid={testId ?? `float-card-${id}`}
     >
       <header className="float-card-head">

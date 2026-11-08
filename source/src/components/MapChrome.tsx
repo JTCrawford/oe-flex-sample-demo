@@ -5,6 +5,7 @@ import {
   thumbnailUrl,
   type BaseLayerId,
 } from '../map/layerCatalog';
+import { formatDistance, formatRf, formatScaleLabel, MAP_SCALE_PRESETS } from '../map/mapScale';
 
 export type OverlayKey =
   | 'friendly'
@@ -77,6 +78,14 @@ interface Props {
   onExpandLayers?: () => void;
   onExpandOverlays?: () => void;
   onCollapseOverlays?: () => void;
+  scaleRf?: number;
+  scalePreset?: number | null;
+  scaleBarMeters?: number;
+  scaleBarPx?: number;
+  scaleNote?: string;
+  onPickScale?: (rf: number) => void;
+  onNadir?: () => void;
+  onNorthUp?: () => void;
 }
 
 export function MapChrome({
@@ -105,6 +114,14 @@ export function MapChrome({
   onExpandLayers,
   onExpandOverlays,
   onCollapseOverlays,
+  scaleRf = 0,
+  scalePreset = null,
+  scaleBarMeters = 1000,
+  scaleBarPx = 96,
+  scaleNote = '',
+  onPickScale,
+  onNadir,
+  onNorthUp,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const overlaysOpen = overlaysCardOpen;
@@ -120,7 +137,13 @@ export function MapChrome({
       </div>
 
       {!chromeHidden && overlaysOpen && (
-      <section className="overlay-panel open" data-testid="overlay-panel">
+      <section
+        className="overlay-panel open"
+        data-testid="overlay-panel"
+        data-dock-role="card"
+        data-dock-edge="left"
+        data-dock-index={0}
+      >
         <header>
           <button
             type="button"
@@ -169,15 +192,23 @@ export function MapChrome({
       </section>
       )}
       {!chromeHidden && !overlaysOpen && (
-        <button type="button" className="dock-tab edge-left" style={{ ['--dock-index' as string]: 0 }} data-testid="dock-tab-overlays" onClick={() => onExpandOverlays?.()}>
+        <button type="button" className="dock-tab edge-left" style={{ ['--dock-index' as string]: 0 }} data-dock-role="tab" data-dock-edge="left" data-dock-index={0} data-testid="dock-tab-overlays" onClick={() => onExpandOverlays?.()}>
           Overlays
         </button>
       )}
 
       {weatherText && overlaysOpen && !chromeHidden && overlays.weather.visible && (
-        <aside className="weather-stub" data-testid="weather-stub" style={{ opacity: overlays.weather.opacity }}>
-          <strong>SAMPLE illumination</strong>
-          <p>{weatherText}</p>
+        <aside
+          className="weather-stub"
+          data-testid="weather-stub"
+          data-dock-role="card"
+          data-dock-edge="right"
+          data-dock-index={8}
+        >
+          <div style={{ opacity: overlays.weather.opacity }}>
+            <strong>SAMPLE illumination</strong>
+            <p>{weatherText}</p>
+          </div>
         </aside>
       )}
 
@@ -190,6 +221,33 @@ export function MapChrome({
             3D
           </button>
         </div>
+        <button type="button" data-testid="look-nadir" title="Look straight down" onClick={() => onNadir?.()}>
+          Nadir
+        </button>
+        <button type="button" data-testid="north-up" title="Reset heading to north" onClick={() => onNorthUp?.()}>
+          North
+        </button>
+        <label className="map-scale">
+          Map scale
+          <select
+            data-testid="map-scale"
+            aria-label="Map scale"
+            value={scalePreset ?? 'custom'}
+            title="Snaps the 2D top-down view so the on-screen scale matches this representative fraction at 96 dpi, and sets the MGRS grid to the standard interval for that scale. Assumes 96 CSS pixels per inch, not a measured display DPI."
+            onChange={(event) => {
+              const value = event.target.value;
+              if (value === 'custom') return;
+              onPickScale?.(Number(value));
+            }}
+          >
+            <option value="custom">Custom ({formatRf(scaleRf)})</option>
+            {MAP_SCALE_PRESETS.map((rf) => (
+              <option key={rf} value={rf}>
+                {formatScaleLabel(rf)}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           type="button"
           className={compare ? 'active' : ''}
@@ -262,6 +320,11 @@ export function MapChrome({
                 aria-selected={id === base}
                 className={id === base ? 'active' : ''}
                 data-testid={`base-layer-${id}`}
+                title={
+                  id === 'photoreal'
+                    ? 'High-detail option. Google Photorealistic 3D Tiles load only after this is selected, and only when a Map Tiles key is configured (the preview uses the key on Vercel). Free imagery stops at native resolution so it is not enlarged: Sentinel-2 cloudless through zoom 13, USGS Imagery Only through zoom 16 inside the United States.'
+                    : undefined
+                }
                 onClick={() => {
                   onBase(id);
                   setExpanded(false);
@@ -302,10 +365,30 @@ export function MapChrome({
       </div>
       )}
       {!chromeHidden && !layersOpen && (
-        <button type="button" className="dock-tab edge-bottom" data-testid="dock-tab-layers" onClick={() => onExpandLayers?.()}>
+        <button type="button" className="dock-tab edge-right" data-dock-role="tab" data-dock-edge="right" data-dock-index={6} data-testid="dock-tab-layers" onClick={() => onExpandLayers?.()}>
           Layers
         </button>
       )}
+
+      <div
+        className="scale-bar"
+        data-testid="scale-bar"
+        role="img"
+        title="Representative fraction assumes 96 CSS pixels per inch, the usual browser default, not a measured display DPI."
+        aria-label={`${formatDistance(scaleBarMeters)} scale bar, ${scalePreset ? formatScaleLabel(scalePreset) : formatRf(scaleRf)} at 96 dpi`}
+      >
+        <span className="scale-bar-rule" style={{ width: `${Math.round(scaleBarPx)}px` }} />
+        <span className="scale-bar-label">{formatDistance(scaleBarMeters)}</span>
+        <span className="scale-bar-rf" data-testid="scale-rf">
+          {scalePreset ? formatScaleLabel(scalePreset) : `≈${formatRf(scaleRf)}`} at screen
+        </span>
+        <small>96 dpi</small>
+        {scaleNote ? (
+          <span className="scale-bar-note" title={scaleNote}>
+            Native limit
+          </span>
+        ) : null}
+      </div>
 
       <p className="map-attribution" data-testid="map-attribution">
         {attribution}

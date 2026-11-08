@@ -21,12 +21,33 @@ import {
 } from '../map/layerCatalog';
 import { affiliationOf, milSymbolCanvas, sidcForMarker } from '../map/sidc';
 import {
+  applyOrthographicNadir,
+  applyPerspectiveView,
+  cameraGround,
+  clampToNativeResolution,
+  googleTilesAreShowing,
+  measureMetersPerPixel,
+  mppForPresetOrFloor,
+  nudgeTargetToFreeCenter,
+  orthoMpp,
+  resolutionFloorMpp,
+  syncOrthographicZoom,
+} from '../map/frameCamera';
+import {
+  gridForPreset,
+  metersPerPixelForRf,
+  niceScaleLength,
+  presetMatches,
+  rfFromMetersPerPixel,
+} from '../map/mapScale';
+import {
   FUCHSIA,
   SIMULATED,
   circlePositions,
   controlMeasuresForAo,
   illuminationLabel,
   mgrsCellsForView,
+  mgrsPaperGrid,
   sampleFiresRing,
   sampleMarkersForAo,
   solarAltitudeDeg,
@@ -100,6 +121,9 @@ const diamondCache = new Map<string, HTMLCanvasElement>();
  * One Google root tileset for this page. Hiding the layer does not drop it,
  * and scenario changes do not call createGooglePhotorealistic3DTileset again.
  */
+const NATIVE_SCALE_NOTE =
+  'Finer than the free imagery here. The camera stopped at native resolution. 3D Photoreal is the high-detail option when the Google key is on.';
+
 let googleTileset: Cesium.Cesium3DTileset | null = null;
 let googleTilesetTask: Promise<Cesium.Cesium3DTileset> | null = null;
 let googleDecision: 'idle' | 'denied' | 'failed' | 'started' = 'idle';
@@ -166,6 +190,15 @@ export default function CesiumMap(props: Props) {
   const propsRef = useRef(props);
   const baseRef = useRef<BaseLayerId>('satellite');
   const compareRef = useRef(false);
+  const tiltedRef = useRef(props.tilted);
+  const presetRef = useRef<number | null>(null);
+  const suspendRef = useRef(false);
+  const noteRef = useRef('');
+  const focusRef = useRef<{ lat: number; lng: number } | null>(null);
+  const pendingScaleRef = useRef<number | null>(null);
+  const aoSeenRef = useRef<string | null>(null);
+  const tiltSeenRef = useRef<boolean | null>(null);
+  const baseSeenRef = useRef<BaseLayerId | null>(null);
   const pulseRef = useRef<string | null>(null);
   const highlightRef = useRef<string | null>(null);
   const sphereTimer = useRef<number | null>(null);
@@ -173,6 +206,7 @@ export default function CesiumMap(props: Props) {
     propsRef.current = props;
     baseRef.current = base;
     compareRef.current = compare;
+    tiltedRef.current = props.tilted;
     pulseRef.current = props.pulseKey ?? null;
     highlightRef.current = props.highlightKey ?? null;
   });
@@ -188,6 +222,73 @@ export default function CesiumMap(props: Props) {
   const [terrainNote, setTerrainNote] = useState('open elevation');
   const [tilesNote, setTilesNote] = useState('');
   const [view, setView] = useState({ lat: 26.6, lng: 56.3, height: 16_000_000 });
+  const [scaleNonce, setScaleNonce] = useState(0);
+  const [gridPreset, setGridPreset] = useState<number | null>(null);
+  const [scaleHud, setScaleHud] = useState({
+    rf: 5_000_000,
+    preset: null as number | null,
+    barMeters: 100_000,
+    barPx: 96,
+    note: '',
+  });
+
+  const frameDetailRef = useRef<(lat: number, lng: number, near: boolean) => void>(() => undefined);
+  const publishHudRef = useRef(() => undefined as void);
+  frameDetailRef.current = (lat, lng, near) => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed()) return;
+    const heading = viewer.camera.heading;
+    focusRef.current = { lat, lng };
+    suspendRef.current = true;
+    const google = googleTilesAreShowing(baseRef.current, compareRef.current, googleTileset);
+    if (!tiltedRef.current) {
+      const floor = resolutionFloorMpp(baseRef.current, lat, lng, google);
+      const current = orthoMpp(viewer) ?? metersPerPixelForRf(250_000);
+      const detail = metersPerPixelForRf(near ? 50_000 : 100_000);
+      const mpp = Math.max(floor, Math.min(current, detail));
+      if (mpp > detail * 1.08) noteRef.current = NATIVE_SCALE_NOTE;
+      if (presetRef.current && !presetMatches(rfFromMetersPerPixel(mpp), presetRef.current)) presetRef.current = null;
+      applyOrthographicNadir(viewer, lat, lng, mpp);
+    } else {
+      const height = near
+        ? baseRef.current === 'photoreal'
+          ? 12_000
+          : 24_000
+        : baseRef.current === 'photoreal'
+          ? 18_000
+          : 40_000;
+      applyPerspectiveView(viewer, lat, lng, height, near ? -42 : -40, heading);
+      clampToNativeResolution(viewer, baseRef.current, google);
+    }
+    suspendRef.current = false;
+    publishHudRef.current();
+  };
+  publishHudRef.current = () => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed()) return;
+    const mpp = orthoMpp(viewer) ?? measureMetersPerPixel(viewer);
+    if (!mpp) return;
+    const rf = rfFromMetersPerPixel(mpp);
+    const bar = niceScaleLength(mpp);
+    const requested = presetRef.current;
+    const onPreset = requested != null && presetMatches(rf, requested);
+    if (requested != null && !onPreset && !suspendRef.current) presetRef.current = null;
+    setScaleHud({
+      rf,
+      preset: onPreset ? requested : null,
+      barMeters: bar.meters,
+      barPx: Math.max(48, Math.min(160, bar.px)),
+      note: noteRef.current,
+    });
+    setGridPreset(onPreset ? requested : null);
+    const stage = viewer.container.closest('[data-testid="cesium-map"]');
+    if (stage instanceof HTMLElement) {
+      const frustum = viewer.camera.frustum;
+      stage.dataset.pitch = String(Math.round(Cesium.Math.toDegrees(viewer.camera.pitch)));
+      stage.dataset.heading = String(Math.round(Cesium.Math.toDegrees(viewer.camera.heading)));
+      stage.dataset.frustum = frustum instanceof Cesium.OrthographicFrustum ? 'ortho' : 'persp';
+    }
+  };
 
   const selectedAo = props.aos.find((ao) => ao.id === props.selectedAoId) ?? null;
   const flags = readMapFlags();
@@ -289,6 +390,41 @@ export default function CesiumMap(props: Props) {
     viewer.camera.moveEnd.addEventListener(emitView);
     emitView();
 
+    const resolutionFloor = () => {
+      const carto = viewer.camera.positionCartographic;
+      const lat = Cesium.Math.toDegrees(carto.latitude);
+      const lng = Cesium.Math.toDegrees(carto.longitude);
+      return resolutionFloorMpp(
+        baseRef.current,
+        lat,
+        lng,
+        googleTilesAreShowing(baseRef.current, compareRef.current, googleTileset),
+      );
+    };
+    const onPreRender = () => {
+      if (suspendRef.current || tiltedRef.current) return;
+      if (!(viewer.camera.frustum instanceof Cesium.OrthographicFrustum)) return;
+      suspendRef.current = true;
+      syncOrthographicZoom(viewer, resolutionFloor());
+      suspendRef.current = false;
+    };
+    const removePre = viewer.scene.preRender.addEventListener(onPreRender);
+    const publishHud = () => publishHudRef.current();
+    viewer.camera.moveEnd.addEventListener(publishHud);
+    const onDock = () => {
+      const focus = focusRef.current;
+      if (!focus || suspendRef.current || viewer.isDestroyed()) return;
+      suspendRef.current = true;
+      nudgeTargetToFreeCenter(viewer, focus.lat, focus.lng);
+      suspendRef.current = false;
+      viewer.scene.requestRender();
+    };
+    window.addEventListener('oe-dock-layout', onDock);
+    const onPointerDown = () => {
+      focusRef.current = null;
+    };
+    viewer.scene.canvas.addEventListener('pointerdown', onPointerDown);
+
     const { ionToken } = readMapFlags();
     void mountTerrain(viewer, ionToken).then((note) => {
       if (!cancelled) {
@@ -303,6 +439,10 @@ export default function CesiumMap(props: Props) {
       if (sphereTimer.current) window.clearTimeout(sphereTimer.current);
       handler.destroy();
       viewer.camera.moveEnd.removeEventListener(emitView);
+      viewer.camera.moveEnd.removeEventListener(publishHud);
+      removePre();
+      window.removeEventListener('oe-dock-layout', onDock);
+      viewer.scene.canvas.removeEventListener('pointerdown', onPointerDown);
       detachGoogleTiles(viewer);
       viewer.destroy();
       viewerRef.current = null;
@@ -385,76 +525,114 @@ export default function CesiumMap(props: Props) {
     const controller = viewer.scene.screenSpaceCameraController;
     controller.enableTilt = props.tilted;
     controller.enableLook = props.tilted;
-    const pitch = Cesium.Math.toRadians(base === 'photoreal' ? -32 : props.tilted ? -52 : -89.2);
-    if (selectedAo) {
-      const height = base === 'photoreal' ? 70_000 : props.tilted ? 520_000 : 980_000;
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(selectedAo.lng, selectedAo.lat, height),
-        orientation: { heading: 0.2, pitch, roll: 0 },
-        duration: 1.15,
-      });
+    controller.enableRotate = props.tilted;
+    const google = googleTilesAreShowing(base, compareRef.current, googleTileset);
+
+    if (pendingScaleRef.current != null) {
+      const rf = pendingScaleRef.current;
+      pendingScaleRef.current = null;
+      if (props.tilted) {
+        pendingScaleRef.current = rf;
+        props.onTilt(false);
+        return;
+      }
+      const ground = selectedAo
+        ? { lat: selectedAo.lat, lng: selectedAo.lng }
+        : (focusRef.current ?? cameraGround(viewer));
+      const fit = mppForPresetOrFloor(rf, resolutionFloorMpp(base, ground.lat, ground.lng, google));
+      presetRef.current = fit.clamped ? null : rf;
+      noteRef.current = fit.clamped ? NATIVE_SCALE_NOTE : '';
+      suspendRef.current = true;
+      focusRef.current = ground;
+      applyOrthographicNadir(viewer, ground.lat, ground.lng, fit.mpp);
+      suspendRef.current = false;
+      publishHudRef.current();
+      aoSeenRef.current = selectedAo?.id ?? '';
+      tiltSeenRef.current = props.tilted;
+      baseSeenRef.current = base;
       return;
     }
-    const carto = viewer.camera.positionCartographic;
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, carto.height),
-      orientation: {
-        heading: props.tilted ? viewer.camera.heading : 0,
-        pitch,
-        roll: 0,
-      },
-      duration: 0.7,
-    });
-  }, [ready, props.tilted, selectedAo, base]);
+
+    const aoKey = selectedAo?.id ?? '';
+    const first = tiltSeenRef.current === null;
+    const aoChanged = aoSeenRef.current !== null && aoSeenRef.current !== aoKey;
+    const tiltChanged = tiltSeenRef.current !== null && tiltSeenRef.current !== props.tilted;
+    const baseChanged = baseSeenRef.current !== null && baseSeenRef.current !== base;
+    aoSeenRef.current = aoKey;
+    tiltSeenRef.current = props.tilted;
+    baseSeenRef.current = base;
+    if (first && !selectedAo) return;
+    if (!first && !aoChanged && !tiltChanged && !baseChanged) return;
+
+    const ground =
+      selectedAo && (first || aoChanged || tiltChanged)
+        ? { lat: selectedAo.lat, lng: selectedAo.lng }
+        : (focusRef.current ?? cameraGround(viewer));
+
+    suspendRef.current = true;
+    if (!props.tilted) {
+      let mpp = presetRef.current
+        ? metersPerPixelForRf(presetRef.current)
+        : (orthoMpp(viewer) ?? measureMetersPerPixel(viewer) ?? 1_400);
+      if (tiltChanged && !presetRef.current) {
+        const measured = measureMetersPerPixel(viewer);
+        if (measured) mpp = measured;
+      }
+      const floor = resolutionFloorMpp(base, ground.lat, ground.lng, google);
+      applyOrthographicNadir(viewer, ground.lat, ground.lng, Math.max(mpp, floor));
+      focusRef.current = ground;
+    } else if (baseChanged && base === 'photoreal') {
+      applyPerspectiveView(viewer, ground.lat, ground.lng, 70_000, -32, 0);
+      clampToNativeResolution(viewer, base, google);
+    } else if (aoChanged && selectedAo) {
+      applyPerspectiveView(
+        viewer,
+        selectedAo.lat,
+        selectedAo.lng,
+        base === 'photoreal' ? 70_000 : 520_000,
+        base === 'photoreal' ? -32 : -52,
+        0,
+      );
+      focusRef.current = { lat: selectedAo.lat, lng: selectedAo.lng };
+      clampToNativeResolution(viewer, base, google);
+    } else if (tiltChanged) {
+      const mpp = orthoMpp(viewer) ?? measureMetersPerPixel(viewer) ?? 400;
+      const fovy = Cesium.Math.toRadians(60);
+      const height = (mpp * Math.max(1, viewer.scene.canvas.clientHeight)) / (2 * Math.tan(fovy / 2));
+      applyPerspectiveView(
+        viewer,
+        ground.lat,
+        ground.lng,
+        Math.min(2_000_000, Math.max(8_000, height)),
+        base === 'photoreal' ? -32 : -52,
+        0,
+      );
+      clampToNativeResolution(viewer, base, google);
+    }
+    suspendRef.current = false;
+    publishHudRef.current();
+  }, [ready, props.tilted, props.onTilt, selectedAo, base, scaleNonce]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !ready || !props.selectedUnitId) return;
     const marker = findMarker(propsRef.current.visibleLayers, props.selectedUnitId);
     if (!marker) return;
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(
-        marker.lng,
-        marker.lat,
-        props.tilted ? 24_000 : 55_000,
-      ),
-      orientation: {
-        heading: viewer.camera.heading,
-        pitch: Cesium.Math.toRadians(props.tilted ? -42 : -89),
-        roll: 0,
-      },
-      duration: 0.85,
-    });
+    frameDetailRef.current(marker.lat, marker.lng, true);
   }, [ready, props.selectedUnitId, props.tilted]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
     const focus = props.strikeFocus;
     if (!viewer || !ready || !focus) return;
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(focus.lng, focus.lat, props.tilted ? 28_000 : 60_000),
-      orientation: {
-        heading: viewer.camera.heading,
-        pitch: Cesium.Math.toRadians(props.tilted ? -42 : -89),
-        roll: 0,
-      },
-      duration: 0.85,
-    });
+    frameDetailRef.current(focus.lat, focus.lng, true);
   }, [ready, props.strikeFocus?.id, props.tilted]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
     const focus = props.socialFocus;
     if (!viewer || !ready || !focus) return;
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(focus.lng, focus.lat, props.tilted ? 36_000 : 80_000),
-      orientation: {
-        heading: viewer.camera.heading,
-        pitch: Cesium.Math.toRadians(props.tilted ? -42 : -89),
-        roll: 0,
-      },
-      duration: 0.85,
-    });
+    frameDetailRef.current(focus.lat, focus.lng, true);
   }, [ready, props.socialFocus?.id, props.tilted]);
 
   useEffect(() => {
@@ -492,23 +670,11 @@ export default function CesiumMap(props: Props) {
     const viewer = viewerRef.current;
     const request = props.liveFly;
     if (!viewer || !ready || !request) return;
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(
-        request.lng,
-        request.lat,
-        props.tilted ? 180_000 : 420_000,
-      ),
-      orientation: {
-        heading: 0,
-        pitch: Cesium.Math.toRadians(props.tilted ? -40 : -89),
-        roll: 0,
-      },
-      duration: 1.1,
-    });
+    frameDetailRef.current(request.lat, request.lng, false);
   }, [ready, props.liveFly, props.tilted]);
 
-  const gridLat = Math.round(view.lat);
-  const gridLng = Math.round(view.lng);
+  const gridLat = Math.round(view.lat * 40) / 40;
+  const gridLng = Math.round(view.lng * 40) / 40;
   const gridHeight = Math.round(view.height / 25_000);
 
   useEffect(() => {
@@ -517,10 +683,10 @@ export default function CesiumMap(props: Props) {
     const source = viewer.dataSources.getByName('oe-sample')[0];
     if (!source) return;
     source.entities.removeAll();
-    paintScene(viewer, source, props, overlays, selectedAo);
+    paintScene(viewer, source, props, overlays, selectedAo, gridPreset);
     applySymbolEmphasis(viewer, pulseRef.current, highlightRef.current);
     viewer.scene.requestRender();
-  }, [ready, props, overlays, selectedAo, gridLat, gridLng, gridHeight]);
+  }, [ready, props, overlays, selectedAo, gridLat, gridLng, gridHeight, gridPreset]);
 
   const weatherText =
     overlays.weather.visible && !props.killSwitch
@@ -587,6 +753,71 @@ export default function CesiumMap(props: Props) {
         onExpandLayers={() => dock.expand('layers')}
         onExpandOverlays={() => dock.expand('overlays')}
         onCollapseOverlays={() => dock.collapse('overlays')}
+        scaleRf={scaleHud.rf}
+        scalePreset={scaleHud.preset}
+        scaleBarMeters={scaleHud.barMeters}
+        scaleBarPx={scaleHud.barPx}
+        scaleNote={scaleHud.note}
+        onPickScale={(rf) => {
+          pendingScaleRef.current = rf;
+          setScaleNonce((nonce) => nonce + 1);
+          if (props.tilted) props.onTilt(false);
+        }}
+        onNadir={() => {
+          const live = viewerRef.current;
+          if (!live || live.isDestroyed()) return;
+          const ground = focusRef.current ?? cameraGround(live);
+          focusRef.current = ground;
+          if (!props.tilted) {
+            const mpp = orthoMpp(live) ?? measureMetersPerPixel(live) ?? 200;
+            suspendRef.current = true;
+            applyOrthographicNadir(live, ground.lat, ground.lng, mpp);
+            suspendRef.current = false;
+            publishHudRef.current();
+            return;
+          }
+          const carto = live.camera.positionCartographic;
+          suspendRef.current = true;
+          live.camera.flyTo({
+            destination: Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, carto.height),
+            orientation: { heading: live.camera.heading, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 },
+            duration: 0.55,
+            complete: () => {
+              nudgeTargetToFreeCenter(live, ground.lat, ground.lng);
+              suspendRef.current = false;
+              publishHudRef.current();
+            },
+            cancel: () => {
+              suspendRef.current = false;
+            },
+          });
+        }}
+        onNorthUp={() => {
+          const live = viewerRef.current;
+          if (!live || live.isDestroyed()) return;
+          const ground = focusRef.current ?? cameraGround(live);
+          if (!props.tilted) {
+            suspendRef.current = true;
+            live.camera.setView({ orientation: { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 } });
+            nudgeTargetToFreeCenter(live, ground.lat, ground.lng);
+            suspendRef.current = false;
+            return;
+          }
+          const carto = live.camera.positionCartographic;
+          suspendRef.current = true;
+          live.camera.flyTo({
+            destination: Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, carto.height),
+            orientation: { heading: 0, pitch: live.camera.pitch, roll: 0 },
+            duration: 0.45,
+            complete: () => {
+              suspendRef.current = false;
+              publishHudRef.current();
+            },
+            cancel: () => {
+              suspendRef.current = false;
+            },
+          });
+        }}
       />
       <LiveMapBanner
         aircraftOn={Boolean(props.liveAircraftOn)}
@@ -680,6 +911,7 @@ function paintScene(
   props: Props,
   overlays: OverlayState,
   selectedAo: AO | null,
+  gridPreset: number | null,
 ) {
   const blank = props.killSwitch;
   for (const ao of props.aos) {
@@ -700,29 +932,52 @@ function paintScene(
   if (!blank && props.symbology === 'military' && overlays.mgrs.visible) {
     const rect = viewBounds(viewer);
     if (rect) {
-      const cells = mgrsCellsForView(rect.west, rect.south, rect.east, rect.north, rect.height);
-      for (const cell of cells) {
-        addPolyline(source, {
-          id: `mgrs:${cell.id}`,
-          positions: [
-            [cell.west, cell.south],
-            [cell.east, cell.south],
-            [cell.east, cell.north],
-            [cell.west, cell.north],
-            [cell.west, cell.south],
-          ],
-          color: '#f3e7b3',
-          opacity: 0.55 * overlays.mgrs.opacity,
-          width: 1,
-        });
-        addOnlyLabel(source, {
-          id: `mgrs-label:${cell.id}`,
-          lng: (cell.west + cell.east) / 2,
-          lat: (cell.south + cell.north) / 2,
-          text: cell.label,
-          color: '#f3e7b3',
-          opacity: overlays.mgrs.opacity,
-        });
+      const spec = gridForPreset(gridPreset);
+      if (spec) {
+        const lines = mgrsPaperGrid(rect.west, rect.south, rect.east, rect.north, spec.major, spec.minor);
+        for (const line of lines) {
+          addPolyline(source, {
+            id: `mgrs:${line.id}`,
+            positions: line.positions,
+            color: '#f3e7b3',
+            opacity: (line.faint ? 0.28 : 0.82) * overlays.mgrs.opacity,
+            width: line.faint ? 1 : 1.6,
+          });
+          if (!line.label) continue;
+          addOnlyLabel(source, {
+            id: `mgrs-label:${line.id}`,
+            lng: line.labelAt[0],
+            lat: line.labelAt[1],
+            text: line.label,
+            color: '#f3e7b3',
+            opacity: line.faint ? overlays.mgrs.opacity * 0.7 : overlays.mgrs.opacity,
+          });
+        }
+      } else {
+        const cells = mgrsCellsForView(rect.west, rect.south, rect.east, rect.north, rect.height);
+        for (const cell of cells) {
+          addPolyline(source, {
+            id: `mgrs:${cell.id}`,
+            positions: [
+              [cell.west, cell.south],
+              [cell.east, cell.south],
+              [cell.east, cell.north],
+              [cell.west, cell.north],
+              [cell.west, cell.south],
+            ],
+            color: '#f3e7b3',
+            opacity: 0.55 * overlays.mgrs.opacity,
+            width: 1,
+          });
+          addOnlyLabel(source, {
+            id: `mgrs-label:${cell.id}`,
+            lng: (cell.west + cell.east) / 2,
+            lat: (cell.south + cell.north) / 2,
+            text: cell.label,
+            color: '#f3e7b3',
+            opacity: overlays.mgrs.opacity,
+          });
+        }
       }
     }
   }

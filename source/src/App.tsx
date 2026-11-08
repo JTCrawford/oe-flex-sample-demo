@@ -19,6 +19,7 @@ import { TtpFeedsPanel } from './components/TtpFeedsPanel';
 import { Toast } from './components/Toast';
 import { SalesCallout } from './components/SalesCallout';
 import { FloatCard, OverlayDockProvider, OverlayHideToggle, useOverlayDock } from './components/OverlayDock';
+import { useDockLayout } from './map/dockLayout';
 import type { MunitionProfile, Stage, VehicleHolding } from './types';
 import './App.css';
 
@@ -85,6 +86,8 @@ function AppShell() {
     aircraftAttribution: live.aircraftAttribution,
   };
   const exportRef = useRef<HTMLElement | null>(null);
+  const [mapNode, setMapNode] = useState<HTMLElement | null>(null);
+  useDockLayout(mapNode);
   const [showDomains, setShowDomains] = useState(false);
   const [showTtpFeeds, setShowTtpFeeds] = useState(() =>
     typeof window !== 'undefined' && window.location.hash === '#ttp',
@@ -269,6 +272,7 @@ function AppShell() {
           className="map-col"
           ref={(node) => {
             exportRef.current = node;
+            setMapNode(node);
           }}
         >
           <Suspense fallback={<div className="map-stage"><p className="map-boot">Loading map…</p></div>}>
@@ -421,7 +425,7 @@ function AppShell() {
             </div>
           )}
           {anchor && !dock.isOpen('callout') && !dock.hidden && (
-            <button type="button" className="dock-tab edge-bottom" data-testid="dock-tab-callout" onClick={() => dock.expand('callout')}>
+            <button type="button" className="dock-tab edge-right" data-dock-role="tab" data-dock-edge="right" data-dock-index={7} data-testid="dock-tab-callout" onClick={() => dock.expand('callout')}>
               Details
             </button>
           )}
