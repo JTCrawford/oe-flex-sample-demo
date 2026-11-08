@@ -1,11 +1,10 @@
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { sphereModelById, sphereModelForHolding } from './data/engagementSphere';
 import { SCENARIOS, scenarioById } from './data/scenarios';
 import { useAppState } from './hooks/useAppState';
 import { useLiveFeeds } from './hooks/useLiveFeeds';
 import { RoleSelector } from './components/RoleSelector';
-import { GlobeView } from './components/GlobeView';
-import { Map2D } from './components/Map2D';
+const CesiumMap = lazy(() => import('./components/CesiumMap'));
 import { MunitionInferencePanel } from './components/MunitionInferencePanel';
 import { OrbatPanel } from './components/OrbatPanel';
 import { SocialSignalPanel } from './components/SocialSignalPanel';
@@ -19,6 +18,8 @@ import { AboutPanel } from './components/AboutPanel';
 import { TtpFeedsPanel } from './components/TtpFeedsPanel';
 import { Toast } from './components/Toast';
 import { SalesCallout } from './components/SalesCallout';
+import { FloatCard, OverlayDockProvider, OverlayHideToggle, useOverlayDock } from './components/OverlayDock';
+import { useDockLayout } from './map/dockLayout';
 import type { MunitionProfile, Stage, VehicleHolding } from './types';
 import './App.css';
 
@@ -57,7 +58,16 @@ function openMunitionSphere(
 }
 
 export default function App() {
+  return (
+    <OverlayDockProvider>
+      <AppShell />
+    </OverlayDockProvider>
+  );
+}
+
+function AppShell() {
   const state = useAppState();
+  const dock = useOverlayDock();
   const live = useLiveFeeds({
     aircraftOn: state.liveAircraftOn,
     shipsOn: state.liveShipsOn,
@@ -76,14 +86,84 @@ export default function App() {
     aircraftAttribution: live.aircraftAttribution,
   };
   const exportRef = useRef<HTMLElement | null>(null);
+  const [mapNode, setMapNode] = useState<HTMLElement | null>(null);
+  useDockLayout(mapNode);
   const [showDomains, setShowDomains] = useState(false);
   const [showTtpFeeds, setShowTtpFeeds] = useState(() =>
     typeof window !== 'undefined' && window.location.hash === '#ttp',
   );
+  const [pulseKey, setPulseKey] = useState<string | null>(null);
+  const [anchorPoint, setAnchorPoint] = useState<{ x: number; y: number } | null>(null);
+  const onAnchor = useCallback((point: { x: number; y: number } | null) => {
+    setAnchorPoint((previous) => {
+      if (!point && !previous) return previous;
+      if (
+        point &&
+        previous &&
+        Math.abs(point.x - previous.x) < 1.5 &&
+        Math.abs(point.y - previous.y) < 1.5
+      ) {
+        return previous;
+      }
+      return point;
+    });
+  }, []);
 
   const sphereModel = state.activeSphere
     ? sphereModelById(state.activeSphere.modelId)
     : null;
+
+  const highlightKey =
+    state.selectionFocus === 'unit' && state.selectedUnitId
+      ? `unit:${state.selectedUnitId}`
+      : state.selectionFocus === 'strike' && state.selectedStrikeId
+        ? `strike:${state.selectedStrikeId}`
+        : state.selectionFocus === 'social' && state.selectedSocialId
+          ? `social:${state.selectedSocialId}`
+          : null;
+  const strikeFocus = state.selectedStrike
+    ? {
+        id: state.selectedStrike.id,
+        lat: state.selectedStrike.impactLat,
+        lng: state.selectedStrike.impactLng,
+      }
+    : null;
+  const socialHint = state.selectedSocial?.geoHints.find(
+    (hint) => hint.lat != null && hint.lon != null,
+  );
+  const socialFocus =
+    state.selectedSocial && socialHint?.lat != null && socialHint.lon != null
+      ? { id: state.selectedSocial.id, lat: socialHint.lat, lng: socialHint.lon }
+      : null;
+  const anchor =
+    state.selectionFocus === 'unit' && state.selectedUnit
+      ? { lat: state.selectedUnit.lat, lng: state.selectedUnit.lng }
+      : state.selectionFocus === 'strike' && strikeFocus
+        ? { lat: strikeFocus.lat, lng: strikeFocus.lng }
+        : state.selectionFocus === 'social' && socialFocus
+          ? { lat: socialFocus.lat, lng: socialFocus.lng }
+          : null;
+
+  useEffect(() => {
+    if (!highlightKey) return;
+    dock.expand('stage');
+    dock.expand('callout');
+    const token = highlightKey;
+    const timer = window.setTimeout(() => {
+      document.querySelector(`[data-map-focus="${CSS.escape(token)}"]`)?.scrollIntoView({
+        block: 'nearest',
+      });
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [highlightKey, dock.expand]);
+
+  useEffect(() => {
+    if (state.activeSphere) dock.expand('sphere');
+  }, [state.activeSphere, dock.expand]);
+
+  useEffect(() => {
+    if (showTtpFeeds) dock.expand('ttp');
+  }, [showTtpFeeds, dock.expand]);
 
   if (!state.role) {
     return (
@@ -183,43 +263,20 @@ export default function App() {
           <button type="button" onClick={() => setShowDomains((v) => !v)}>
             Domains
           </button>
+          <OverlayHideToggle />
         </div>
       </header>
-
-      <SalesCallout id="spine" />
-      {state.killSwitch && <SalesCallout id="killSwitch" compact />}
 
       <div className="workspace">
         <section
           className="map-col"
           ref={(node) => {
             exportRef.current = node;
+            setMapNode(node);
           }}
         >
-          {state.mapMode === 'globe' ? (
-            <GlobeView
-              aos={state.aos}
-              selectedAoId={state.selectedAoId}
-              onSelectAo={state.selectAo}
-              visibleLayers={state.visibleLayers}
-              symbology={state.symbology}
-              killSwitch={state.killSwitch}
-              strikes={state.visibleStrikes}
-              strikeOverlays={state.strikeOverlays}
-              showStrikeOverlays={state.strikeOverlayAvailable}
-              selectedStrikeId={state.selectedStrikeId}
-              onSelectStrike={state.selectStrike}
-              munitionAssessment={state.munitionAssessment}
-              selectedUnitId={state.selectedUnitId}
-              onSelectUnit={state.selectUnit}
-              unitRangeRings={state.unitRangeRings}
-              selectionFocus={state.selectionFocus}
-              socialMapHints={state.socialMapHints}
-              engagementLines={state.engagementLines}
-              {...liveMap}
-            />
-          ) : (
-            <Map2D
+          <Suspense fallback={<div className="map-stage"><p className="map-boot">Loading map…</p></div>}>
+            <CesiumMap
               aos={state.aos}
               selectedAoId={state.selectedAoId}
               onSelectAo={state.selectAo}
@@ -235,150 +292,203 @@ export default function App() {
               selectedUnitId={state.selectedUnitId}
               onSelectUnit={state.selectUnit}
               onOpenSphere={(unitId, holding) => openHoldingSphere(state, unitId, holding)}
-              onOpenMunitionSphere={(unitId, profile) =>
-                openMunitionSphere(state, unitId, profile)
-              }
               unitRangeRings={state.unitRangeRings}
-              selectionFocus={state.selectionFocus}
-              socialMapHints={state.socialMapHints}
+              socialSignals={state.visibleSocialSignals}
+              onSelectSocial={state.selectSocial}
               engagementLines={state.engagementLines}
+              tilted={state.mapMode === 'globe'}
+              onTilt={(tilted) => state.setMapMode(tilted ? 'globe' : '2d')}
+              pulseKey={pulseKey}
+              highlightKey={highlightKey}
+              strikeFocus={strikeFocus}
+              socialFocus={socialFocus}
+              anchor={anchor}
+              onAnchor={onAnchor}
               {...liveMap}
             />
-          )}
-          {state.selectedSocial && (
-            <SocialSignalPanel
-              signal={state.selectedSocial}
-              onClear={state.clearSocial}
-            />
-          )}
-          {state.selectedUnit?.orbat && (
-            <OrbatPanel
-              orbat={state.selectedUnit.orbat}
-              rangeRingsOn={state.unitRangeRings.length > 0}
-              onClear={state.clearUnit}
-              onOpenSphere={(holding) => {
-                const unitId = state.selectedUnit?.id;
-                if (!unitId) return;
-                openHoldingSphere(state, unitId, holding);
-              }}
-              onOpenMunitionSphere={(profile) => {
-                const unitId = state.selectedUnit?.id;
-                if (!unitId) return;
-                openMunitionSphere(state, unitId, profile);
-              }}
-            />
-          )}
-          {state.munitionAssessment && (
-            <MunitionInferencePanel
-              assessment={state.munitionAssessment}
-              onClear={state.clearStrike}
-              onOpenSphere={(modelId, label) => {
-                const model = sphereModelById(modelId);
-                if (!model) return;
-                state.openSphere({ unitId: null, modelId: model.id, label });
-              }}
-            />
-          )}
-          <div
-            className="scenario-toggle"
-            role="group"
-            aria-label="Engagement scenario"
-            data-testid="scenario-toggle"
-          >
-            {SCENARIOS.map((scenario) => (
-              <button
-                key={scenario.id}
-                type="button"
-                data-testid={`scenario-${scenario.id}`}
-                aria-pressed={state.scenarioId === scenario.id}
-                className={state.scenarioId === scenario.id ? 'active' : ''}
-                onClick={() => state.selectScenario(scenario.id)}
-              >
-                <small>{scenario.kicker}</small>
-                {scenario.label}
+          </Suspense>
+          <FloatCard id="sales" title="Brief" edge="left" index={1}>
+            <SalesCallout id="spine" />
+            {state.killSwitch && <SalesCallout id="killSwitch" compact />}
+          </FloatCard>
+          <FloatCard id="scenario" title="Scenario" edge="left" index={2} testId="scenario-card">
+            <div className="scenario-toggle" role="group" aria-label="Engagement scenario" data-testid="scenario-toggle">
+              {SCENARIOS.map((scenario) => (
+                <button
+                  key={scenario.id}
+                  type="button"
+                  data-testid={`scenario-${scenario.id}`}
+                  aria-pressed={state.scenarioId === scenario.id}
+                  className={state.scenarioId === scenario.id ? 'active' : ''}
+                  onClick={() => state.selectScenario(scenario.id)}
+                >
+                  <small>{scenario.kicker}</small>
+                  {scenario.label}
+                </button>
+              ))}
+            </div>
+            <p className="scenario-summary" data-testid="scenario-summary">
+              {state.selectedAoId === scenarioById(state.scenarioId).aoId
+                ? scenarioById(state.scenarioId).summary
+                : `${scenarioById(state.scenarioId).label} stays selected. The open area is outside that thread, so its engagement lines stay off.`}
+              {state.symbology !== 'military' ? ' Engagement lines draw on the military picture.' : ''}
+            </p>
+            <div className="ao-quick">
+              {state.aos.map((ao) => (
+                <button
+                  key={ao.id}
+                  type="button"
+                  className={state.selectedAoId === ao.id ? 'active' : ''}
+                  data-map-focus={`ao:${ao.id}`}
+                  onMouseEnter={() => setPulseKey(`ao:${ao.id}`)}
+                  onMouseLeave={() => setPulseKey(null)}
+                  onClick={() => state.selectAo(ao.id)}
+                >
+                  {ao.name}
+                  <small>{ao.type}</small>
+                </button>
+              ))}
+            </div>
+          </FloatCard>
+          <FloatCard id="legend" title="Legend" edge="left" index={3}>
+            <p className="scenario-legend" data-testid="engagement-line-count">
+              Blue friendly · Red adversary · {state.engagementLines.length} engagement lines
+            </p>
+            <ul className="scenario-line-list" data-testid="engagement-lines">
+              {state.engagementLines.map((line) => (
+                <li key={line.id} data-side={line.side}>
+                  {line.label}
+                </li>
+              ))}
+            </ul>
+            <p className="scenario-legend" data-testid="phase1-assets">
+              Phase 1 meshes are the CC0 sphere models already in this repo. The map drapes free Sentinel-2, NASA, USGS, and OpenTopoMap imagery on open elevation. A soldier file loads only when it is already on this machine. Premium packs are not in this build.
+            </p>
+          </FloatCard>
+          <FloatCard id="export" title="Export" edge="right" index={2}>
+            <ExportBar state={state} exportTargetRef={exportRef} />
+          </FloatCard>
+          <aside className="side-col">
+            <FloatCard id="stage" title={state.stage} edge="right" index={0} testId="stage-card">
+              {state.stage === 'Observe' && (
+                <ObservePanel state={state} live={live} onPulse={setPulseKey} />
+              )}
+              {state.stage === 'Mitigate' && <MitigatePanel state={state} />}
+              {state.stage === 'Wargame' && <WargamePanel state={state} />}
+              {state.stage === 'Decide' && <DecidePanel state={state} />}
+              {showDomains && <DomainPipelinePanel />}
+            </FloatCard>
+            <FloatCard id="about" title="About" edge="right" index={1}>
+              <AboutPanel />
+            </FloatCard>
+          </aside>
+          {anchor && anchorPoint && dock.isOpen('callout') && !dock.hidden && (
+            <div
+              className="feature-callout"
+              data-testid="feature-callout"
+              style={{ left: anchorPoint.x, top: anchorPoint.y }}
+            >
+              <button type="button" className="callout-min" aria-label="Collapse details" onClick={() => dock.collapse('callout')}>
+                –
               </button>
-            ))}
-          </div>
-          <p className="scenario-summary" data-testid="scenario-summary">
-            {state.selectedAoId === scenarioById(state.scenarioId).aoId
-              ? scenarioById(state.scenarioId).summary
-              : `${scenarioById(state.scenarioId).label} stays selected. The open area is outside that thread, so its engagement lines stay off.`}
-            {state.symbology !== 'military'
-              ? ' Engagement lines draw on the military picture.'
-              : ''}
-          </p>
-          <p className="scenario-legend" data-testid="engagement-line-count">
-            Blue friendly · Red adversary · {state.engagementLines.length} engagement lines
-          </p>
-          <p className="scenario-legend" data-testid="phase1-assets">
-            Phase 1 meshes are the CC0 sphere models already in this repo, plus OpenStreetMap tiles. A soldier file loads only when it is already on this machine. Premium packs are not in this build.
-          </p>
-          <ul className="scenario-line-list" data-testid="engagement-lines">
-            {state.engagementLines.map((line) => (
-              <li key={line.id} data-side={line.side}>
-                {line.label}
-              </li>
-            ))}
-          </ul>
-          <div className="ao-quick">
-            {state.aos.map((ao) => (
-              <button
-                key={ao.id}
-                type="button"
-                className={state.selectedAoId === ao.id ? 'active' : ''}
-                onClick={() => state.selectAo(ao.id)}
-              >
-                {ao.name}
-                <small>{ao.type}</small>
-              </button>
-            ))}
-          </div>
-          <ExportBar state={state} exportTargetRef={exportRef} />
+              {state.selectionFocus === 'unit' && state.selectedUnit?.orbat && (
+                <OrbatPanel
+                  orbat={state.selectedUnit.orbat}
+                  rangeRingsOn={state.unitRangeRings.length > 0}
+                  onClear={state.clearUnit}
+                  onOpenSphere={(holding) => {
+                    const unitId = state.selectedUnit?.id;
+                    if (!unitId) return;
+                    openHoldingSphere(state, unitId, holding);
+                  }}
+                  onOpenMunitionSphere={(profile) => {
+                    const unitId = state.selectedUnit?.id;
+                    if (!unitId) return;
+                    openMunitionSphere(state, unitId, profile);
+                  }}
+                />
+              )}
+              {state.selectionFocus === 'social' && state.selectedSocial && (
+                <SocialSignalPanel signal={state.selectedSocial} onClear={state.clearSocial} />
+              )}
+              {state.selectionFocus === 'strike' && state.munitionAssessment && (
+                <MunitionInferencePanel
+                  assessment={state.munitionAssessment}
+                  onClear={state.clearStrike}
+                  onOpenSphere={(modelId, label) => {
+                    const model = sphereModelById(modelId);
+                    if (!model) return;
+                    state.openSphere({ unitId: null, modelId: model.id, label });
+                  }}
+                />
+              )}
+            </div>
+          )}
+          {anchor && !dock.isOpen('callout') && !dock.hidden && (
+            <button type="button" className="dock-tab edge-right" data-dock-role="tab" data-dock-edge="right" data-dock-index={7} data-testid="dock-tab-callout" onClick={() => dock.expand('callout')}>
+              Details
+            </button>
+          )}
         </section>
-
-        <aside className="side-col">
-          {state.stage === 'Observe' && <ObservePanel state={state} live={live} />}
-          {state.stage === 'Mitigate' && <MitigatePanel state={state} />}
-          {state.stage === 'Wargame' && <WargamePanel state={state} />}
-          {state.stage === 'Decide' && <DecidePanel state={state} />}
-          {showDomains && <DomainPipelinePanel />}
-          <AboutPanel />
-        </aside>
       </div>
 
       {showTtpFeeds && (
-        <TtpFeedsPanel
-          onClose={() => setShowTtpFeeds(false)}
-          onOpenMitigation={(aoId, stage) => {
-            setShowTtpFeeds(false);
-            state.selectAo(aoId);
-            state.setStage(stage);
-          }}
-        />
+        <div className={dock.isOpen('ttp') && !dock.hidden ? undefined : 'dock-minimized'}>
+          <TtpFeedsPanel
+            onClose={() => setShowTtpFeeds(false)}
+            onOpenMitigation={(aoId, stage) => {
+              setShowTtpFeeds(false);
+              state.selectAo(aoId);
+              state.setStage(stage);
+            }}
+          />
+          {dock.isOpen('ttp') && !dock.hidden && (
+            <button type="button" className="float-min" aria-label="Collapse TTP feeds" onClick={() => dock.collapse('ttp')}>
+              –
+            </button>
+          )}
+        </div>
+      )}
+      {showTtpFeeds && (!dock.isOpen('ttp') || dock.hidden) && (
+        <button type="button" className="dock-tab edge-right" data-testid="dock-tab-ttp" onClick={() => dock.expand('ttp')}>
+          TTP
+        </button>
       )}
       {sphereModel && state.activeSphere && (
-        <Suspense
-          fallback={
-            <div className="sphere-backdrop">
-              <p className="sphere-status">Loading SAMPLE engagement sphere…</p>
-            </div>
-          }
-        >
-          <EngagementSphere
-            key={`${state.activeSphere.unitId ?? 'catalog'}:${state.activeSphere.modelId}`}
-            model={sphereModel}
-            typeDesignation={state.activeSphere.label}
-            unitDesignation={
-              state.activeSphere.unitId && state.selectedUnit
-                ? state.selectedUnit.orbat.designation
-                : 'SAMPLE catalog'
+        <div className={dock.isOpen('sphere') && !dock.hidden ? undefined : 'dock-minimized'}>
+          <Suspense
+            fallback={
+              <div className="sphere-backdrop">
+                <p className="sphere-status">Loading SAMPLE engagement sphere…</p>
+              </div>
             }
-            aoId={state.selectedAoId}
-            unitId={state.activeSphere.unitId}
-            scenarioId={state.scenarioId}
-            onClose={state.closeSphere}
-          />
-        </Suspense>
+          >
+            <EngagementSphere
+              key={`${state.activeSphere.unitId ?? 'catalog'}:${state.activeSphere.modelId}`}
+              model={sphereModel}
+              typeDesignation={state.activeSphere.label}
+              unitDesignation={
+                state.activeSphere.unitId && state.selectedUnit
+                  ? state.selectedUnit.orbat.designation
+                  : 'SAMPLE catalog'
+              }
+              aoId={state.selectedAoId}
+              unitId={state.activeSphere.unitId}
+              scenarioId={state.scenarioId}
+              onClose={state.closeSphere}
+            />
+          </Suspense>
+          {dock.isOpen('sphere') && !dock.hidden && (
+            <button type="button" className="float-min" aria-label="Collapse engagement sphere" onClick={() => dock.collapse('sphere')}>
+              –
+            </button>
+          )}
+        </div>
+      )}
+      {sphereModel && state.activeSphere && (!dock.isOpen('sphere') || dock.hidden) && (
+        <button type="button" className="dock-tab edge-bottom" data-testid="dock-tab-sphere" onClick={() => dock.expand('sphere')}>
+          Sphere
+        </button>
       )}
       <Toast message={state.toast} />
     </div>

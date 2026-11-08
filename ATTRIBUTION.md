@@ -1,5 +1,9 @@
 # Attribution
 
+## Map layers
+
+Base imagery, topo, elevation, and the 2525 symbol library are listed with licenses and the paid upgrades that stay off by default in [`docs/MAP_LAYERS_LICENSES.md`](docs/MAP_LAYERS_LICENSES.md).
+
 ## Live public feeds (demo only)
 
 These overlays are open public data. They are not for operational use, and no key or paid feed is bundled.

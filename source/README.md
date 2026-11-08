@@ -28,8 +28,9 @@ npm run preview
 ## Stack
 
 - Vite + React + TypeScript
-- **globe.gl** (3D globe) + **Leaflet / react-leaflet** (2D map)
-- **html2canvas** for PNG export; optional WebM via `getDisplayMedia` when the browser allows
+- **CesiumJS** map (lazy-loaded): Satellite, Terrain, 3D Photoreal, and Military Map on free imagery and open elevation. Leaflet and globe.gl remain in the repo and are not the live view.
+- **milsymbol** for MIL-STD-2525D unit symbols
+- **html2canvas** for PNG export; the map also exports a 16:9 slide from the WebGL view. Optional WebM via `getDisplayMedia` when the browser allows.
 
 ## Demo spine (success path)
 
@@ -77,7 +78,7 @@ See the deliverable checklist in the agent handoff or keep this README as the so
 ## Built checklist
 
 - [x] Role selector RBAC (Analyst / Warfighter / PM / Commercial Partner / Executive); partners hide feeders
-- [x] Globe (globe.gl) + 2D (Leaflet) toggle; AOs: Strait of Hormuz + Central Corridor (land)
+- [x] Cesium map with 2D/3D tilt; AOs: Strait of Hormuz + Central Corridor (land) and the later SAMPLE areas
 - [x] Observe: threat layers, PMESII-PT chips, Military XOR Commercial symbology
 - [x] Mitigate: play/pause vignette timeline (land + maritime)
 - [x] Wargame: pick mitigation, probabilistic red model, outcomes
@@ -92,7 +93,7 @@ See the deliverable checklist in the agent handoff or keep this README as the so
 
 - Real RBAC/auth + encryption (currently client-only role gate)
 - Full sea/air/EMS/info/cyber/undersea/space pipelines beyond STUB cards
-- True MIL-STD-2525 symbol library (current = SVG/CSS stand-ins)
+- True MIL-STD-2525 symbol library — done for the map and the symbology preview via milsymbol (2525D). Older SVG sketches are no longer the military deck.
 - Offline globe textures (currently CDN unpkg)
 - Deeper COA model / multi-turn wargame
 - PPTX export pack (PNG-ready today)
